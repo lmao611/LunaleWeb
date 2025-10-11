@@ -13,7 +13,7 @@ const FeaturedProducts = () => {
   const [rate, setRate] = useState(null);
   const { addToCart } = useCartStore();
   const { user } = useUserStore();
-
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     fetch("https://api.exchangerate-api.com/v4/latest/USD")
@@ -22,17 +22,18 @@ const FeaturedProducts = () => {
       .catch((err) => console.error("Failed to fetch rate:", err));
   }, []);
 
-
   useEffect(() => {
     fetchFeaturedProducts();
   }, [fetchFeaturedProducts]);
 
-
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth < 640) setItemsPerPage(1);
-      else if (window.innerWidth < 1024) setItemsPerPage(2);
-      else if (window.innerWidth < 1280) setItemsPerPage(3);
+      const width = window.innerWidth;
+      setIsMobile(width < 640);
+      if (width < 480) setItemsPerPage(3);
+      else if (width < 768) setItemsPerPage(2);
+      else if (width < 1024) setItemsPerPage(3);
+      else if (width < 1280) setItemsPerPage(3);
       else setItemsPerPage(4);
     };
     handleResize();
@@ -94,10 +95,10 @@ const FeaturedProducts = () => {
                 product={product}
                 rate={rate}
                 onAddToCart={handleAddToCart}
+                isMobile={isMobile}
               />
             ))}
           </div>
-
 
           <button
             onClick={prevSlide}
@@ -105,7 +106,7 @@ const FeaturedProducts = () => {
             className={`absolute top-1/2 -left-4 transform -translate-y-1/2 p-2 rounded-full transition-colors duration-300 ${
               isStartDisabled
                 ? "bg-gray-400 cursor-not-allowed"
-                : "bg-blue-800 hover:bg-blue-700"
+                : "bg-gray-900 hover:bg-gray-700"
             }`}
           >
             <ChevronLeft className="w-6 h-6 text-white" />
@@ -116,7 +117,7 @@ const FeaturedProducts = () => {
             className={`absolute top-1/2 -right-4 transform -translate-y-1/2 p-2 rounded-full transition-colors duration-300 ${
               isEndDisabled
                 ? "bg-gray-400 cursor-not-allowed"
-                : "bg-blue-800 hover:bg-blue-700"
+                : "bg-gray-900 hover:bg-gray-700"
             }`}
           >
             <ChevronRight className="w-6 h-6 text-white" />
@@ -127,12 +128,12 @@ const FeaturedProducts = () => {
   );
 };
 
-
-const Card = ({ product, rate, onAddToCart }) => {
+const Card = ({ product, rate, onAddToCart, isMobile }) => {
   const cardRef = useRef(null);
   const glareRef = useRef(null);
 
   const handleMouseMove = (e) => {
+    if (isMobile) return;
     const card = cardRef.current;
     const glare = glareRef.current;
     if (!card || !glare) return;
@@ -157,6 +158,7 @@ const Card = ({ product, rate, onAddToCart }) => {
   };
 
   const handleMouseLeave = () => {
+    if (isMobile) return;
     const card = cardRef.current;
     const glare = glareRef.current;
     if (!card || !glare) return;
@@ -171,18 +173,18 @@ const Card = ({ product, rate, onAddToCart }) => {
       ref={cardRef}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      className="group relative block w-64 flex-shrink-0 overflow-hidden rounded-xl shadow-md
-        hover:z-10 hover:shadow-2xl hover:ring-2 hover:ring-blue-400/40
-        transition-transform duration-200 ease-out mx-3 bg-white/80 backdrop-blur-sm"
+      className={`group relative block flex-shrink-0 overflow-hidden rounded-xl shadow-md
+        hover:z-10 hover:shadow-2xl hover:ring-2 hover:ring-gray-900/40
+        transition-transform duration-200 ease-out mx-2 bg-white/80 backdrop-blur-sm ${
+          isMobile ? "w-32 sm:w-40" : "w-64"
+        }`}
     >
-
       <div
         ref={glareRef}
         className="pointer-events-none absolute inset-0 rounded-xl z-20 transition-all duration-300"
       ></div>
 
-
-      <div className="w-full h-72 overflow-hidden">
+      <div className={`${isMobile ? "h-40" : "h-72"} w-full overflow-hidden`}>
         <img
           src={product.image}
           alt={product.name}
@@ -195,30 +197,46 @@ const Card = ({ product, rate, onAddToCart }) => {
       </div>
 
       <div
-        className="absolute bottom-0 left-0 right-0 translate-y-full group-hover:translate-y-0
-                   transition-transform duration-500 ease-in-out
-                   bg-gradient-to-t from-blue-900/80 to-blue-600/40 z-30 p-3"
+        className={`absolute bottom-0 left-0 right-0 z-30 p-2 ${
+          isMobile ? "text-xs" : "p-3"
+        } bg-gradient-to-t from-gray-900/80 to-gray-600/40 transition-transform duration-500 ease-in-out ${
+          isMobile
+            ? "translate-y-0"
+            : "translate-y-full group-hover:translate-y-0"
+        }`}
       >
-        <h5 className="font-semibold text-white truncate text-sm">
+        <h5
+          className={`font-semibold text-white truncate ${
+            isMobile ? "text-xs" : "text-sm"
+          }`}
+        >
           {product.name}
         </h5>
         <div className="flex items-center justify-between mt-1">
-          <span className="text-blue-300 font-bold text-sm">
+          <span
+            className={`text-white font-bold ${
+              isMobile ? "text-xs" : "text-sm"
+            }`}
+          >
             ${product.price.toFixed(2)}
           </span>
           {rate && (
-            <span className="text-blue-300 font-bold text-xs">
+            <span
+              className={`text-white font-bold ${
+                isMobile ? "text-[10px]" : "text-xs"
+              }`}
+            >
               {getVNDCurrency(product.price, rate)}
             </span>
           )}
         </div>
         <button
-          className="mt-2 flex items-center justify-center w-full rounded-md 
-                     bg-blue-600 text-white hover:bg-blue-700 active:scale-95
-                     px-3 py-1.5 text-xs"
+          className={`mt-2 flex items-center justify-center w-full rounded-md 
+                     bg-gray-200 text-black hover:bg-gray-700 hover:text-white active:scale-95
+                     ${isMobile ? "px-2 py-1 text-[10px]" : "px-3 py-1.5 text-xs"}`}
           onClick={(e) => onAddToCart(e, product)}
         >
-          <ShoppingCart size={14} className="mr-1" />
+          <ShoppingCart size={isMobile ? 10 : 14} className="mr-1" />
           Add
         </button>
       </div>

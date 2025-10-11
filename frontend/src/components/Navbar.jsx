@@ -14,6 +14,13 @@ const Navbar = () => {
   const isHome = location.pathname === "/";
 
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 640);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     if (isHome) {
@@ -48,12 +55,28 @@ const Navbar = () => {
           initial={{ top: "50%", left: "50%", x: "-50%", y: "-50%", scale: 3 }}
           animate={
             isScrolled
+              ? isMobile
+                ? {
+                    top: "8px",
+                    left: "50%",
+                    x: "-50%",
+                    y: 0,
+                    scale: 0.8,
+                  }
+                : {
+                    top: "-15px",
+                    left: "50px",
+                    x: 0,
+                    y: 0,
+                    scale: 0.55,
+                  }
+              : isMobile
               ? {
-                  top: "-15px",
-                  left: "50px",
-                  x: 0,
-                  y: 0,
-                  scale: 0.55,
+                  top: "50%",
+                  left: "50%",
+                  x: "-50%",
+                  y: "-50%",
+                  scale: 2,
                 }
               : {
                   top: "50%",
@@ -68,22 +91,24 @@ const Navbar = () => {
           <motion.img
             src="/lunale.png"
             alt="Lunale"
-            className={`w-[250px] object-contain transition-all duration-700 ${
+            className={`object-contain transition-all duration-700 ${
               isScrolled ? "filter-none" : "brightness-0 invert"
-            }`}
+            } ${isMobile ? "w-[70vw]" : "w-[250px]"}`}
           />
         </motion.div>
       ) : (
         // ✅ Trang khác: logo cố định góc trên trái, màu bình thường
         <div
-          className="fixed z-[100] cursor-pointer"
-          style={{ top: "10px", left: "110px" }}
+          className={`fixed z-[100] cursor-pointer ${
+            isMobile ? "top-[8px] left-1/2 -translate-x-1/2" : ""
+          }`}
+          style={isMobile ? undefined : { top: "10px", left: "110px" }}
           onClick={handleLogoClick}
         >
           <img
             src="/lunale.png"
             alt="Lunale"
-            className="w-[120px] object-contain"
+            className={`${isMobile ? "w-[60vw]" : "w-[120px]"} object-contain`}
           />
         </div>
       )}

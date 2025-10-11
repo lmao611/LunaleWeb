@@ -119,19 +119,19 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
           className={`absolute bottom-0 left-0 right-0
                      translate-y-0 sm:translate-y-full sm:group-hover:translate-y-0
                      transition-transform duration-500 ease-in-out
-                     bg-gradient-to-t from-blue-900/80 to-blue-600/40 z-30
+                     bg-gradient-to-t from-gray-900/80 to-gray-600/40 z-30
                      ${size.infoPadding}`}
         >
           <h5 className="font-semibold text-white truncate text-sm">{product.name}</h5>
           <div className="flex items-center justify-between mt-1">
-            <span className="text-blue-300 font-bold text-sm">${product.price}</span>
+            <span className="text-white font-bold text-sm">${product.price}</span>
             {vndDisplay && variant !== "featured" && (
-              <span className="text-blue-300 font-bold text-xs">{vndDisplay}</span>
+              <span className="text-white font-bold text-sm">{vndDisplay}</span>
             )}
           </div>
           <button
             className={`mt-2 flex items-center justify-center w-full rounded-md 
-                       bg-blue-600 text-white hover:bg-blue-700 active:scale-95
+                       bg-gray-200 text-gray-950 hover:bg-gray-700 hover:text-white active:scale-95
                        ${size.button}`}
             onClick={handleAddToCart}
           >
