@@ -56,7 +56,7 @@ const Navbar = () => {
             isScrolled
               ? isMobile
                 ? {
-                    top: "-19px",
+                    top: "-15px",
                     left: "50%",
                     x: "-50%",
                     y: 0,
