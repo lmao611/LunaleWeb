@@ -16,9 +16,18 @@ html, body {
   h1, h2, h3, h4, h5, h6 {
     @apply tracking-[0.1em];
     font-family: "Fjalla One", sans-serif;
-    text-transform: uppercase; /* ✅ cho vibe thời trang */
-    letter-spacing: 0.1em; /* phòng khi Tailwind chưa apply */
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+
+    /* Mobile mặc định */
+    font-size: 1.5rem;
+    line-height: 2rem;
+
+    /* Tailwind responsive */
+    @apply md:text-2xl md:leading-snug; /* chữ lớn hơn trên màn hình >= md */
   }
 }
+
+
 
 
