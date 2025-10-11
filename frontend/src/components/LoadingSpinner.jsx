@@ -1,6 +1,6 @@
 const LoadingSpinner = () => {
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
+    <div className="fixed inset-0 flex items-center justify-center bg-white/95 backdrop-blur-sm z-[9999] pointer-events-auto">
       <div className="relative">
         {/* Vòng nền nhạt */}
         <div className="w-20 h-20 border-2 border-gray-300 rounded-full" />

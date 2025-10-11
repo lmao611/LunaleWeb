@@ -28,7 +28,7 @@ const Footer = () => {
           <h2 className="text-3xl font-bold mb-4">Các trang mạng xã hội</h2>
           <div className="flex gap-4 mt-4">
             <motion.a
-              href="#"
+              href="https://www.facebook.com/Lunale.vn"
               whileHover={{ scale: 1.15 }}
               className="p-3 bg-blue-800 rounded-lg transition-colors hover:bg-white group"
             >
@@ -38,7 +38,7 @@ const Footer = () => {
               />
             </motion.a>
             <motion.a
-              href="#"
+              href="https://www.instagram.com/lunale.official/"
               whileHover={{ scale: 1.15 }}
               className="p-3 bg-blue-800 rounded-lg transition-colors hover:bg-white group"
             >

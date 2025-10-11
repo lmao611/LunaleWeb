@@ -73,7 +73,7 @@ const ProductDetailPage = () => {
       : "";
 
   return (
-    <div className="max-w-5xl mx-auto p-6 bg-white text-gray-900 pt-5">
+    <div className="max-w-5xl mx-auto p-6 bg-white text-gray-900 pt-30">
       <div className="flex flex-col md:flex-row gap-8">
         {/* Ảnh sản phẩm */}
         <div className="flex-1 flex flex-col items-center">

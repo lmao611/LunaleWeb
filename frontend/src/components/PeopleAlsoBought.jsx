@@ -1,14 +1,12 @@
 import { useEffect, useState } from "react";
 import ProductCard from "./ProductCard";
 import axios from "../lib/axios";
-import toast from "react-hot-toast";
 import LoadingSpinner from "./LoadingSpinner";
 
 const PeopleAlsoBought = ({ excludeIds = [] }) => {
   const [recommendations, setRecommendations] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Use the first ID as the product identifier
   const productId = excludeIds[0];
 
   useEffect(() => {
@@ -39,10 +37,8 @@ const PeopleAlsoBought = ({ excludeIds = [] }) => {
 
         if (isMounted) setRecommendations(products.slice(0, 8));
       } catch (error) {
-        toast.error(
-          error.response?.data?.message ||
-            "An error occurred while fetching recommendations"
-        );
+        // Không báo lỗi, chỉ để recommendations rỗng
+        if (isMounted) setRecommendations([]);
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -55,7 +51,7 @@ const PeopleAlsoBought = ({ excludeIds = [] }) => {
     return () => {
       isMounted = false;
     };
-  }, [productId]); // ✅ Only re-fetch when product changes
+  }, [productId]);
 
   if (isLoading) return <LoadingSpinner />;
   if (recommendations.length === 0) return null;

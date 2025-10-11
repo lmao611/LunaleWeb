@@ -15,7 +15,7 @@ const CollectionsSection = () => {
 
   return (
     <section className="mt-24 space-y-28">
-      <h2 className="text-6xl font-bold text-center text-blue-700 mb-8">
+      <h2 className="text-3xl font-bold text-center text-black mb-8">
         Bộ Sưu Tầm
       </h2>
 

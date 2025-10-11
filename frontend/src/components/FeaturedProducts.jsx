@@ -77,7 +77,7 @@ const FeaturedProducts = () => {
   return (
     <div className="py-12 bg-transparent relative">
       <div className="container mx-auto px-4">
-        <h2 className="text-center text-5xl sm:text-6xl font-bold text-blue-800 mb-6">
+        <h2 className="text-center text-5xl sm:text-3xl font-bold text-blue-990 mb-6">
           Sản phẩm được ưa thích
         </h2>
 

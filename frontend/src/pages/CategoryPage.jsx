@@ -63,8 +63,8 @@ const CategoryPage = () => {
 
   return (
     <div className="min-h-screen bg-white text-gray-900 pt-5">
-      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <h1 className="text-center text-4xl sm:text-5xl font-bold text-blue-600 mb-10">
+      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <h1 className="text-center text-4xl sm:text-4xl font-bold text-blue-990 mb-10">
           {displayTitle}
         </h1>
 

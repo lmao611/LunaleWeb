@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
+import bannerRoutes from "./routes/banner.routes.js";
 
 import authRoutes from "./routes/auth.routes.js";
 import productRoutes from "./routes/product.routes.js";
@@ -33,6 +34,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/collections", collectionRoutes);
+app.use("/api/banner", bannerRoutes);
 
 // ✅ serve frontend build trong production
 if (process.env.NODE_ENV === "production") {

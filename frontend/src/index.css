@@ -1,1 +1,24 @@
 @import "tailwindcss";
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+@layer base {
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-[0.1em];
+    font-family: "Fjalla One", sans-serif;
+    text-transform: uppercase; /* ✅ cho vibe thời trang */
+    letter-spacing: 0.1em; /* phòng khi Tailwind chưa apply */
+  }
+}
+
+

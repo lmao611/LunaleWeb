@@ -1,10 +1,11 @@
-import { PlusCircle, ShoppingBasket, Images } from "lucide-react";
+import { PlusCircle, ShoppingBasket, Images, UploadCloud } from "lucide-react";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import CreateProductForm from "../components/CreateProductForm";
 import ProductsList from "../components/ProductsList";
 import CreateCollectionForm from "../components/CreateCollectionForm";
 import CollectionsList from "../components/CollectionsList";
+import BannerUploadForm from "../components/BannerUploadForm";
 import { useProductStore } from "../stores/useProductStore";
 
 const tabs = [
@@ -12,6 +13,7 @@ const tabs = [
   { id: "products", label: "Danh sách sản phẩm", icon: ShoppingBasket },
   { id: "collections", label: "Tạo bộ sưu tầm", icon: Images },
   { id: "collectionsList", label: "Danh sách bộ sưu tầm", icon: Images },
+  { id: "banner", label: "Tải ảnh banner", icon: UploadCloud },
 ];
 
 const AdminPage = () => {
@@ -19,17 +21,16 @@ const AdminPage = () => {
   const { fetchAllProducts } = useProductStore();
 
   useEffect(() => {
-
     fetchAllProducts();
   }, [fetchAllProducts]);
 
-
   const handleCreateCollection = (col) => {
     const stored = JSON.parse(localStorage.getItem("collections") || "[]");
-    localStorage.setItem("collections", JSON.stringify([...stored, { ...col, products: col.products || [] }]));
-
+    localStorage.setItem(
+      "collections",
+      JSON.stringify([...stored, { ...col, products: col.products || [] }])
+    );
     alert("✅ Bộ sưu tầm đã được lưu!");
-
     setActiveTab("collectionsList");
   };
 
@@ -43,7 +44,6 @@ const AdminPage = () => {
         >
           Trang Admin
         </motion.h1>
-
 
         <div className="flex justify-center mb-8 flex-wrap gap-3">
           {tabs.map((tab) => (
@@ -62,7 +62,6 @@ const AdminPage = () => {
             </button>
           ))}
         </div>
-
 
         <AnimatePresence mode="wait">
           {activeTab === "create" && (
@@ -106,6 +105,17 @@ const AdminPage = () => {
               exit={{ opacity: 0, y: -8 }}
             >
               <CollectionsList />
+            </motion.div>
+          )}
+
+          {activeTab === "banner" && (
+            <motion.div
+              key="banner"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+            >
+              <BannerUploadForm />
             </motion.div>
           )}
         </AnimatePresence>

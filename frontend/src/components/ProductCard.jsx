@@ -40,8 +40,9 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
     vndDisplay = rounded.toLocaleString("vi-VN") + "đ";
   }
 
-  // Tilt + Glare
+  // Tilt + Glare (desktop only)
   const handleMouseMove = (e) => {
+    if (window.innerWidth < 640) return; // disable on mobile
     const card = cardRef.current;
     const glare = glareRef.current;
     if (!card || !glare) return;
@@ -50,8 +51,10 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
     const y = e.clientY - rect.top;
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
+
     const rotateX = ((y - centerY) / centerY) * 12;
     const rotateY = ((x - centerX) / centerX) * 12;
+
     card.style.transform = `perspective(800px) scale(1.07) rotateX(${-rotateX}deg) rotateY(${rotateY}deg)`;
 
     const angle = Math.atan2(y - centerY, x - centerX) * (180 / Math.PI);
@@ -63,6 +66,7 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
   };
 
   const handleMouseLeave = () => {
+    if (window.innerWidth < 640) return;
     const card = cardRef.current;
     const glare = glareRef.current;
     if (!card || !glare) return;
@@ -112,12 +116,13 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
 
         {/* Info + Button */}
         <div
-          className={`absolute bottom-0 left-0 right-0 translate-y-full group-hover:translate-y-0
+          className={`absolute bottom-0 left-0 right-0
+                     translate-y-0 sm:translate-y-full sm:group-hover:translate-y-0
                      transition-transform duration-500 ease-in-out
                      bg-gradient-to-t from-blue-900/80 to-blue-600/40 z-30
                      ${size.infoPadding}`}
         >
-          <h5 className={`font-semibold text-white truncate text-sm`}>{product.name}</h5>
+          <h5 className="font-semibold text-white truncate text-sm">{product.name}</h5>
           <div className="flex items-center justify-between mt-1">
             <span className="text-blue-300 font-bold text-sm">${product.price}</span>
             {vndDisplay && variant !== "featured" && (
@@ -126,8 +131,8 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
           </div>
           <button
             className={`mt-2 flex items-center justify-center w-full rounded-md 
-                     bg-blue-600 text-white hover:bg-blue-700 active:scale-95
-                     ${size.button}`}
+                       bg-blue-600 text-white hover:bg-blue-700 active:scale-95
+                       ${size.button}`}
             onClick={handleAddToCart}
           >
             <ShoppingCart size={variant === "featured" ? 12 : 14} className="mr-1" />

@@ -4,7 +4,7 @@ import LoginPage from "./pages/LoginPage";
 import SignUpPage from "./pages/SignUpPage";
 import { Toaster } from "react-hot-toast";
 import Navbar from "./components/Navbar";
-import Footer from "./components/Footer"; // 👈 Thêm dòng này
+import Footer from "./components/Footer";
 import { useUserStore } from "./stores/useUserStore";
 import { useEffect } from "react";
 import LoadingSpinner from "./components/LoadingSpinner";
@@ -32,11 +32,11 @@ function App() {
 
   return (
     <div className="min-h-screen bg-white text-gray-900 flex flex-col">
-      {/* Navbar cố định trên cùng */}
+      {/* ✅ Navbar trong suốt, đè lên banner */}
       <Navbar />
 
-      {/* Nội dung */}
-      <div className="pt-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex-1 w-full">
+      {/* ✅ Nội dung chính, không giới hạn width */}
+      <div className="flex-1 w-full">
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route
@@ -63,9 +63,7 @@ function App() {
         </Routes>
       </div>
 
-      {/* Footer luôn hiện */}
       <Footer />
-
       <Toaster />
     </div>
   );

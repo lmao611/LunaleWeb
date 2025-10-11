@@ -1,5 +1,5 @@
 import { ShoppingCart, UserPlus, LogIn, LogOut, Lock, Home } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useUserStore } from "../stores/useUserStore";
 import { useCartStore } from "../stores/useCartStore";
 import { useEffect, useState } from "react";
@@ -10,115 +10,110 @@ const Navbar = () => {
   const { cart } = useCartStore();
   const isAdmin = user?.role === "admin";
   const location = useLocation();
+  const navigate = useNavigate();
   const isHome = location.pathname === "/";
 
   const [isScrolled, setIsScrolled] = useState(false);
-  const [preventInitialAnim, setPreventInitialAnim] = useState(true);
 
-  // ✅ Ensure big state on homepage when first loaded
   useEffect(() => {
     if (isHome) {
-      setIsScrolled(false); // Start in big state
-      const handleScroll = () => setIsScrolled(window.scrollY > 50);
+      setIsScrolled(false);
+      const handleScroll = () => setIsScrolled(window.scrollY > 0);
       window.addEventListener("scroll", handleScroll);
       return () => window.removeEventListener("scroll", handleScroll);
     } else {
-      setIsScrolled(true); // Always small on other routes
+      setIsScrolled(true);
     }
-  }, [location.pathname]);
+  }, [isHome]);
 
-  // ✅ Reset scroll and animation flag on route change
-  useEffect(() => {
-    window.scrollTo(0, 0);
-    setPreventInitialAnim(true);
-    const timeout = setTimeout(() => setPreventInitialAnim(false), 100);
-    return () => clearTimeout(timeout);
-  }, [location.pathname]);
+  // ✅ Bấm logo: về Home hoặc cuộn lên đầu
+  const handleLogoClick = () => {
+    if (isHome) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      navigate("/");
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }, 300);
+    }
+  };
 
   return (
     <>
-      {/* Top white bar */}
-      <div className="fixed top-0 left-0 w-full h-5 bg-white z-[60]" />
+      {/* ✅ Logo chạy từ giữa ra góc nếu là trang chủ */}
+      {isHome ? (
+        <motion.div
+          className="fixed z-[100] cursor-pointer"
+          onClick={handleLogoClick}
+          initial={{ top: "50%", left: "50%", x: "-50%", y: "-50%", scale: 3 }}
+          animate={
+            isScrolled
+              ? {
+                  top: "-15px",
+                  left: "50px",
+                  x: 0,
+                  y: 0,
+                  scale: 0.55,
+                }
+              : {
+                  top: "50%",
+                  left: "50%",
+                  x: "-50%",
+                  y: "-50%",
+                  scale: 3,
+                }
+          }
+          transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+        >
+          <motion.img
+            src="/lunale.png"
+            alt="Lunale"
+            className={`w-[250px] object-contain transition-all duration-700 ${
+              isScrolled ? "filter-none" : "brightness-0 invert"
+            }`}
+          />
+        </motion.div>
+      ) : (
+        // ✅ Trang khác: logo cố định góc trên trái, màu bình thường
+        <div
+          className="fixed z-[100] cursor-pointer"
+          style={{ top: "10px", left: "110px" }}
+          onClick={handleLogoClick}
+        >
+          <img
+            src="/lunale.png"
+            alt="Lunale"
+            className="w-[120px] object-contain"
+          />
+        </div>
+      )}
 
-      {/* Navbar */}
-      <motion.header
-        layout={isHome}
-        initial={false}
-        animate={{
-          y: isHome ? 0 : undefined,
-          opacity: 1,
-        }}
-        transition={{
-          duration: preventInitialAnim ? 0 : 0.5,
-          ease: "easeInOut",
-        }}
-        className={`fixed top-0 left-0 w-full z-50 ${
-          isScrolled
-            ? "bg-white shadow-md border-b border-gray-200"
-            : "bg-white shadow-lg"
+      {/* ✅ Navbar gốc (cao hơn, nền mượt hơn) */}
+      <header
+        className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ${
+          isScrolled || !isHome
+            ? "bg-white/90 backdrop-blur-md shadow-md border-b border-gray-200"
+            : "bg-transparent"
         }`}
       >
         <div
           className={`container mx-auto px-4 transition-all duration-500 ${
-            isScrolled ? "py-2" : "py-8"
+            isScrolled ? "py-4" : "py-8"
           }`}
         >
-          <motion.div
-            layout={isHome}
-            transition={{
-              duration: preventInitialAnim ? 0 : 0.5,
-              ease: "easeInOut",
-            }}
-            className={`flex flex-col items-center ${
-              isScrolled ? "sm:flex-row sm:justify-between" : "sm:flex-col"
-            }`}
-          >
-            {/* Logo */}
-            <motion.div
-              layout={isHome}
-              transition={{
-                duration: preventInitialAnim ? 0 : 0.5,
-                ease: "easeInOut",
-              }}
-              className="flex justify-center"
-            >
-              <Link to="/" onClick={() => window.scrollTo(0, 0)}>
-                <motion.img
-                  layout={isHome}
-                  transition={{
-                    duration: preventInitialAnim ? 0 : 0.5,
-                    ease: "easeInOut",
-                  }}
-                  src="./lunale.png"
-                  alt="Lunale"
-                  className={`object-contain transition-all duration-500 ${
-                    isScrolled ? "h-12 sm:h-14" : "h-28 sm:h-32"
-                  }`}
-                />
-              </Link>
-            </motion.div>
-
-            {/* Navigation */}
-            <motion.nav
-              layout={isHome}
-              animate={{
-                opacity: isScrolled ? 1 : 0,
-                y: isHome && !isScrolled ? -10 : 0,
-              }}
-              transition={{
-                duration: preventInitialAnim ? 0 : 0.5,
-                ease: "easeInOut",
-              }}
-              className={`flex flex-wrap items-center gap-4 mt-4 justify-end text-gray-800 ${
-                !isScrolled && isHome ? "pointer-events-none" : ""
+          <div className="flex flex-col sm:flex-row items-center justify-end">
+            {/* Navigation giữ nguyên */}
+            <nav
+              className={`flex flex-wrap items-center gap-4 mt-4 sm:mt-0 transition-colors duration-500 ${
+                !isScrolled && isHome ? "text-white" : "text-gray-800"
               }`}
             >
-              {/* Home */}
               <Link
                 to="/"
-                onClick={() => window.scrollTo(0, 0)}
                 className={`flex items-end pb-[2px] transition ${
-                  isHome ? "text-blue-700" : "text-black hover:text-blue-700"
+                  isHome && !isScrolled
+                    ? "text-white"
+                    : "text-black hover:text-blue-700"
                 }`}
                 title="Trang Chủ"
               >
@@ -128,8 +123,11 @@ const Navbar = () => {
               {user && (
                 <Link
                   to="/cart"
-                  onClick={() => window.scrollTo(0, 0)}
-                  className="relative group hover:text-blue-700 transition flex items-end"
+                  className={`relative group transition flex items-end ${
+                    isHome && !isScrolled
+                      ? "text-white hover:text-gray-200"
+                      : "text-black hover:text-blue-700"
+                  }`}
                 >
                   <ShoppingCart className="inline-block mr-1" size={20} />
                   <span className="hidden sm:inline">Giỏ Hàng</span>
@@ -177,10 +175,10 @@ const Navbar = () => {
                   </Link>
                 </>
               )}
-            </motion.nav>
-          </motion.div>
+            </nav>
+          </div>
         </div>
-      </motion.header>
+      </header>
     </>
   );
 };
