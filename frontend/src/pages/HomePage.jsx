@@ -7,9 +7,10 @@ import axios from "axios";
 
 const categories = [
   { href: "/dress", name: "Đầm nữ", imageUrl: "/dress.jpg" },
-  { href: "/skirt", name: "Chân váy", imageUrl: "/skirt.jpg" },
+  
   { href: "/shirt", name: "Áo nữ", imageUrl: "/shirt.jpg" },
-  { href: "/set", name: "Đồ bộ", imageUrl: "/set.jpg" },
+  { href: "/set", name: "Set", imageUrl: "/set.jpg" },
+  { href: "/feedback", name: "Feedback", imageUrl: "/feedback.jpg" },
 ];
 
 const HomePage = () => {
@@ -53,7 +54,7 @@ const HomePage = () => {
                 const nextSection = document.getElementById("homepage-content");
                 nextSection?.scrollIntoView({ behavior: "smooth" });
               }}
-              className="bg-white text-black px-8 py-4 rounded-full font-medium hover:bg-gray-100 transition"
+              className="bg-white text-black px-8 py-4 rounded-full font-medium hover:bg-gray-300 transition"
             >
               Khám phá ngay
             </button>
@@ -67,7 +68,7 @@ const HomePage = () => {
         className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20"
       >
         <h1 className="text-center sm:text-3xl font-bold text-blue-990 mb-8">
-          CÁC DÒNG SẢN PHẨM CỦA CHÚNG TÔI
+          SHOP NOW
         </h1>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mt-6">

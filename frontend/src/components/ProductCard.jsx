@@ -42,7 +42,7 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
 
   // 🔹 Tilt + Glare (desktop only)
   const handleMouseMove = (e) => {
-    if (window.innerWidth < 1024) return; // disable on mobile + tablet
+    if (window.innerWidth < 1024) return;
     const card = cardRef.current;
     const glare = glareRef.current;
     if (!card || !glare) return;
@@ -51,12 +51,9 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
     const y = e.clientY - rect.top;
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
-
     const rotateX = ((y - centerY) / centerY) * 12;
     const rotateY = ((x - centerX) / centerX) * 12;
-
     card.style.transform = `perspective(800px) scale(1.07) rotateX(${-rotateX}deg) rotateY(${rotateY}deg)`;
-
     const angle = Math.atan2(y - centerY, x - centerX) * (180 / Math.PI);
     const opacity = Math.min(
       0.15,
@@ -70,7 +67,8 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
     const card = cardRef.current;
     const glare = glareRef.current;
     if (!card || !glare) return;
-    card.style.transform = "perspective(800px) scale(1) rotateX(0deg) rotateY(0deg)";
+    card.style.transform =
+      "perspective(800px) scale(1) rotateX(0deg) rotateY(0deg)";
     glare.style.background = "transparent";
   };
 
@@ -94,7 +92,6 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
       infoPadding: "p-3",
       button: "px-3 py-1.5 text-xs",
     },
-    // 🆕 Variant riêng cho PeopleAlsoBought (nhỏ hơn default)
     PeopleAlsoBought: {
       width: "w-[130px] sm:w-[170px] lg:w-[220px]",
       height: "h-[200px] sm:h-[260px] lg:h-[320px]",
@@ -104,10 +101,55 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
   };
 
   const size = sizes[variant] || sizes.default;
+  const isFeedback = product.category === "feedback";
 
+  // -------------------------------
+  // 🔹 Nếu là FEEDBACK → dùng thẻ <a> với link ngoài
+  // -------------------------------
+  if (isFeedback) {
+    return (
+      <a
+        href={product.productLink || "#"}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="group relative block"
+      >
+        <div
+          ref={cardRef}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+          className={`relative overflow-hidden rounded-xl shadow-md transform-gpu will-change-transform
+            hover:shadow-2xl transition-transform duration-300 ease-out
+            ${size.width}`}
+        >
+          {/* Glare */}
+          <div
+            ref={glareRef}
+            className="pointer-events-none absolute inset-0 rounded-xl z-20 transition-opacity duration-300"
+          />
+
+          {/* Image only */}
+          <div className={`w-full overflow-hidden ${size.height}`}>
+            <img
+              src={product.image}
+              alt={product.name}
+              className="w-full h-full object-cover transition-transform duration-500"
+              onError={(e) =>
+                (e.target.src =
+                  "https://via.placeholder.com/300x400?text=No+Image")
+              }
+            />
+          </div>
+        </div>
+      </a>
+    );
+  }
+
+  // -------------------------------
+  // 🔹 Nếu KHÔNG phải feedback → card bình thường
+  // -------------------------------
   return (
     <Link to={`/product/${product._id}`} className="group relative block">
-      {/* Card wrapper */}
       <div
         ref={cardRef}
         onMouseMove={handleMouseMove}
@@ -116,13 +158,11 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
           hover:shadow-2xl transition-transform duration-300 ease-out
           ${size.width}`}
       >
-        {/* Glare */}
         <div
           ref={glareRef}
           className="pointer-events-none absolute inset-0 rounded-xl z-20 transition-opacity duration-300"
         />
 
-        {/* Image */}
         <div className={`w-full overflow-hidden ${size.height}`}>
           <img
             src={product.image}
@@ -135,7 +175,7 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
           />
         </div>
 
-        {/* Info + Button */}
+        {/* Overlay Info */}
         <div
           className={`absolute bottom-0 left-0 right-0
                      lg:translate-y-full lg:group-hover:translate-y-0

@@ -27,6 +27,10 @@ const productSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    productLink: {              // 👈 thêm dòng này
+        type: String,
+        required: false,
+    },
     isFeatured: {
         type: Boolean,
         default: false

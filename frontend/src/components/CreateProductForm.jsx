@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { PlusCircle, Upload, Loader, Images } from "lucide-react";
+import { PlusCircle, Upload, Loader, Images, Link as LinkIcon } from "lucide-react";
 import { useProductStore } from "../stores/useProductStore";
 
 const categories = [
   { id: "dress", label: "Đầm nữ" },
-  { id: "skirt", label: "Chân váy" },
   { id: "shirt", label: "Áo nữ" },
   { id: "set", label: "Đồ bộ" },
+  { id: "feedback", label: "Feedback" },
 ];
 
 const CreateProductForm = () => {
@@ -18,6 +18,7 @@ const CreateProductForm = () => {
     category: "",
     image: "",
     thumbnails: [],
+    productLink: "", // 👈 thêm field mới
   });
 
   const { createProduct, loading } = useProductStore();
@@ -33,6 +34,7 @@ const CreateProductForm = () => {
         category: "",
         image: "",
         thumbnails: [],
+        productLink: "",
       });
     } catch (error) {
       console.error("❌ Lỗi khi tạo sản phẩm:", error);
@@ -43,11 +45,9 @@ const CreateProductForm = () => {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
-
       reader.onloadend = () => {
         setNewProduct({ ...newProduct, image: reader.result });
       };
-
       reader.readAsDataURL(file);
     }
   };
@@ -81,6 +81,7 @@ const CreateProductForm = () => {
 
       <form onSubmit={handleSubmit} className="space-y-4">
 
+        {/* Tên sản phẩm */}
         <div>
           <label
             htmlFor="name"
@@ -101,6 +102,7 @@ const CreateProductForm = () => {
           />
         </div>
 
+        {/* Mô tả */}
         <div>
           <label
             htmlFor="description"
@@ -121,7 +123,7 @@ const CreateProductForm = () => {
           />
         </div>
 
-
+        {/* Giá */}
         <div>
           <label
             htmlFor="price"
@@ -143,7 +145,7 @@ const CreateProductForm = () => {
           />
         </div>
 
-
+        {/* Loại sản phẩm */}
         <div>
           <label
             htmlFor="category"
@@ -171,7 +173,34 @@ const CreateProductForm = () => {
           </select>
         </div>
 
+        {/* 👇 Hiện input Link sản phẩm chỉ khi chọn feedback */}
+        {newProduct.category === "feedback" && (
+          <div>
+            <label
+              htmlFor="productLink"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Link sản phẩm
+            </label>
+            <div className="mt-1 flex items-center">
+              <LinkIcon className="h-5 w-5 text-blue-500 mr-2" />
+              <input
+                type="url"
+                id="productLink"
+                value={newProduct.productLink}
+                onChange={(e) =>
+                  setNewProduct({ ...newProduct, productLink: e.target.value })
+                }
+                placeholder="https://example.com/san-pham"
+                className="flex-1 border border-gray-300 rounded-md shadow-sm py-2 px-3 
+                 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
+          </div>
+        )}
 
+        {/* Ảnh chính */}
         <div className="mt-1 flex items-center">
           <input
             type="file"
@@ -192,7 +221,7 @@ const CreateProductForm = () => {
           )}
         </div>
 
-
+        {/* Ảnh phụ */}
         <div className="mt-3">
           <input
             type="file"
@@ -222,7 +251,7 @@ const CreateProductForm = () => {
           </div>
         </div>
 
-
+        {/* Nút Submit */}
         <button
           type="submit"
           className="w-full flex justify-center py-2 px-4 rounded-md shadow-sm text-sm font-medium 

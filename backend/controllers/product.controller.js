@@ -75,17 +75,19 @@ export const getFeaturedProducts = async (req, res) => {
 // -------------------- Create product --------------------
 export const createProduct = async (req, res) => {
   try {
-    const { name, description, price, image, category, thumbnails } = req.body;
+    const { name, description, price, image, category, thumbnails, productLink } = req.body;
 
     let cloudinaryResponse = null;
     let thumbnailUrls = [];
 
+    // Upload ảnh chính lên Cloudinary
     if (image) {
       cloudinaryResponse = await cloudinary.uploader.upload(image, {
         folder: "products",
       });
     }
 
+    // Upload ảnh phụ lên Cloudinary
     if (thumbnails && Array.isArray(thumbnails)) {
       const uploadPromises = thumbnails.map((thumb) =>
         cloudinary.uploader.upload(thumb, { folder: "products/thumbnails" })
@@ -94,14 +96,18 @@ export const createProduct = async (req, res) => {
       thumbnailUrls = uploadResults.map((res) => res.secure_url);
     }
 
-    const product = await Product.create({
+    // ✅ Tạo đối tượng sản phẩm, chỉ thêm productLink nếu là feedback
+    const productData = {
       name,
       description,
       price,
       image: cloudinaryResponse?.secure_url || "",
       thumbnails: thumbnailUrls,
       category,
-    });
+      ...(category === "feedback" && { productLink }), // 👈 chỉ thêm khi là feedback
+    };
+
+    const product = await Product.create(productData);
 
     await clearFeaturedCache();
 
