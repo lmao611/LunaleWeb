@@ -134,8 +134,8 @@ const ProductDetailPage = () => {
                           className={`w-[116px] h-[140px] object-cover rounded-md cursor-pointer border-2 transition-all duration-300 
                             ${
                               mainImage === thumb
-                                ? "border-blue-600 scale-110 shadow-md z-10"
-                                : "border-gray-200 hover:border-blue-400"
+                                ? "border-gray-900 scale-110 shadow-md z-10"
+                                : "border-gray-200 hover:border-gray-500"
                             }`}
                         />
                       </div>
@@ -163,11 +163,11 @@ const ProductDetailPage = () => {
             <h1 className="text-3xl font-bold">{selectedProduct.name}</h1>
 
             <div className="flex items-center gap-3">
-              <p className="text-blue-600 text-2xl font-semibold">
+              <p className="text-gray-700 text-2xl font-semibold">
                 ${selectedProduct.price}
               </p>
               {vndDisplay && (
-                <p className="text-blue-600 text-2xl font-semibold">
+                <p className="text-gray-700 text-2xl font-semibold">
                   - {vndDisplay}
                 </p>
               )}
@@ -175,7 +175,7 @@ const ProductDetailPage = () => {
 
             <p className="text-gray-600">{selectedProduct.description}</p>
 
-            <button className="mt-4 w-full px-5 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 transition text-white font-medium">
+            <button className="mt-4 w-full px-5 py-3 rounded-lg bg-black hover:bg-gray-400 transition text-white hover:text-black font-medium">
               Liên hệ
             </button>
           </div>

@@ -180,7 +180,7 @@ const CollectionDetailPage = () => {
         <div className="text-center mt-12">
           <Link
             to="/"
-            className="inline-block text-blue-600 hover:text-blue-800 font-semibold transition-colors duration-200"
+            className="inline-block text-black hover:text-gray-700 font-semibold transition-colors duration-200"
           >
             ← Quay về Trang Chủ
           </Link>

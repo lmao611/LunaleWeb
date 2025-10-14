@@ -94,14 +94,16 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
       infoPadding: "p-3",
       button: "px-3 py-1.5 text-xs",
     },
+    // 🆕 Variant riêng cho PeopleAlsoBought (nhỏ hơn default)
+    PeopleAlsoBought: {
+      width: "w-[130px] sm:w-[170px] lg:w-[220px]",
+      height: "h-[200px] sm:h-[260px] lg:h-[320px]",
+      infoPadding: "p-2.5",
+      button: "px-2.5 py-1 text-xs",
+    },
   };
 
-  const size =
-    variant === "category"
-      ? sizes.category
-      : variant === "featured"
-      ? sizes.featured
-      : sizes.default;
+  const size = sizes[variant] || sizes.default;
 
   return (
     <Link to={`/product/${product._id}`} className="group relative block">
@@ -136,7 +138,7 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
         {/* Info + Button */}
         <div
           className={`absolute bottom-0 left-0 right-0
-                     lg:translate-y-full lg:group-hover:translate-y-0  /* 👈 only hover on desktop */
+                     lg:translate-y-full lg:group-hover:translate-y-0
                      transition-transform duration-500 ease-in-out
                      bg-gradient-to-t from-gray-900/80 to-gray-600/40 z-30
                      ${size.infoPadding}`}
