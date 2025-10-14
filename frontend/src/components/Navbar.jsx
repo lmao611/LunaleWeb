@@ -196,7 +196,7 @@ const Navbar = () => {
                 <>
                   <Link
                     to="/signup"
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-md flex items-center transition"
+                    className="bg-gray-200 hover:bg-gray-300 text-black px-3 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-md flex items-center transition"
                   >
                     <UserPlus className="mr-2" size={16} />
                     Đăng Ký

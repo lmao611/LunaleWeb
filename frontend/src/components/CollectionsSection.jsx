@@ -65,7 +65,13 @@ const CollectionsSection = () => {
               <motion.div
                 whileHover={{ scale: 1.02 }} // scale container nhẹ để shadow/card nổi
                 transition={{ type: "spring", stiffness: 200, damping: 15 }}
-                className="rounded-3xl overflow-hidden shadow-2xl w-[400px] h-[600px] relative flex items-center justify-center bg-gray-200"
+                className="
+                  rounded-3xl overflow-hidden shadow-2xl 
+                  w-[330px] h-[450px]          /* Mobile default */
+                  sm:w-[320px] sm:h-[480px]    /* Small screens */
+                  md:w-[400px] md:h-[600px]    /* Medium and up */
+                  relative flex items-center justify-center bg-gray-200
+                "
               >
                 <motion.div
                   whileHover={{ scale: 1.03 }} // scale media riêng để video/image mượt

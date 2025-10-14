@@ -13,7 +13,7 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
   const { user } = useUserStore();
   const { addToCart } = useCartStore();
 
-  // Fetch tỷ giá USD → VND
+  // 🔹 Fetch tỷ giá USD → VND
   useEffect(() => {
     fetch("https://api.exchangerate-api.com/v4/latest/USD")
       .then((res) => res.json())
@@ -21,7 +21,7 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
       .catch(() => {});
   }, []);
 
-  // Add to cart
+  // 🔹 Add to cart
   const handleAddToCart = (e) => {
     e.preventDefault();
     if (!user) {
@@ -32,7 +32,7 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
     toast.success("Đã thêm vào giỏ hàng");
   };
 
-  // Giá VND
+  // 🔹 Giá VND
   let vndDisplay = "";
   if (rate != null) {
     const raw = product.price * rate;
@@ -40,9 +40,9 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
     vndDisplay = rounded.toLocaleString("vi-VN") + "đ";
   }
 
-  // Tilt + Glare (desktop only)
+  // 🔹 Tilt + Glare (desktop only)
   const handleMouseMove = (e) => {
-    if (window.innerWidth < 640) return; // disable on mobile
+    if (window.innerWidth < 1024) return; // disable on mobile + tablet
     const card = cardRef.current;
     const glare = glareRef.current;
     if (!card || !glare) return;
@@ -66,7 +66,7 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
   };
 
   const handleMouseLeave = () => {
-    if (window.innerWidth < 640) return;
+    if (window.innerWidth < 1024) return;
     const card = cardRef.current;
     const glare = glareRef.current;
     if (!card || !glare) return;
@@ -74,16 +74,34 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
     glare.style.background = "transparent";
   };
 
-  // Kích thước theo variant
+  // 🔹 Responsive sizes by variant
   const sizes = {
-    category: { width: "w-72", height: "h-96", infoPadding: "p-3", button: "px-3 py-1.5 text-sm" },
-    featured: { width: "w-40", height: "h-40", infoPadding: "p-2", button: "px-2 py-1 text-xs" },
-    default: { width: "w-56", height: "h-80", infoPadding: "p-3", button: "px-3 py-1.5 text-xs" },
+    category: {
+      width: "w-[160px] sm:w-[200px] lg:w-[260px]",
+      height: "h-[240px] sm:h-[300px] lg:h-[380px]",
+      infoPadding: "p-3",
+      button: "px-3 py-1.5 text-sm",
+    },
+    featured: {
+      width: "w-[140px] sm:w-[180px] lg:w-[220px]",
+      height: "h-[140px] sm:h-[180px] lg:h-[220px]",
+      infoPadding: "p-2",
+      button: "px-2 py-1 text-xs",
+    },
+    default: {
+      width: "w-[150px] sm:w-[190px] lg:w-[250px]",
+      height: "h-[220px] sm:h-[280px] lg:h-[360px]",
+      infoPadding: "p-3",
+      button: "px-3 py-1.5 text-xs",
+    },
   };
 
-  const size = variant === "category" ? sizes.category
-             : variant === "featured" ? sizes.featured
-             : sizes.default;
+  const size =
+    variant === "category"
+      ? sizes.category
+      : variant === "featured"
+      ? sizes.featured
+      : sizes.default;
 
   return (
     <Link to={`/product/${product._id}`} className="group relative block">
@@ -109,7 +127,8 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
             alt={product.name}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
             onError={(e) =>
-              (e.target.src = "https://via.placeholder.com/300x400?text=No+Image")
+              (e.target.src =
+                "https://via.placeholder.com/300x400?text=No+Image")
             }
           />
         </div>
@@ -117,14 +136,18 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
         {/* Info + Button */}
         <div
           className={`absolute bottom-0 left-0 right-0
-                     translate-y-0 sm:translate-y-full sm:group-hover:translate-y-0
+                     lg:translate-y-full lg:group-hover:translate-y-0  /* 👈 only hover on desktop */
                      transition-transform duration-500 ease-in-out
                      bg-gradient-to-t from-gray-900/80 to-gray-600/40 z-30
                      ${size.infoPadding}`}
         >
-          <h5 className="font-semibold text-white truncate text-sm">{product.name}</h5>
+          <h5 className="font-semibold text-white truncate text-sm">
+            {product.name}
+          </h5>
           <div className="flex items-center justify-between mt-1">
-            <span className="text-white font-bold text-sm">${product.price}</span>
+            <span className="text-white font-bold text-sm">
+              ${product.price}
+            </span>
             {vndDisplay && variant !== "featured" && (
               <span className="text-white font-bold text-sm">{vndDisplay}</span>
             )}
@@ -135,7 +158,10 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
                        ${size.button}`}
             onClick={handleAddToCart}
           >
-            <ShoppingCart size={variant === "featured" ? 12 : 14} className="mr-1" />
+            <ShoppingCart
+              size={variant === "featured" ? 12 : 14}
+              className="mr-1"
+            />
             Add
           </button>
         </div>

@@ -66,7 +66,7 @@ const HomePage = () => {
         id="homepage-content"
         className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20"
       >
-        <h1 className="text-center text-5xl sm:text-3xl font-bold text-blue-990 mb-8">
+        <h1 className="text-center sm:text-3xl font-bold text-blue-990 mb-8">
           CÁC DÒNG SẢN PHẨM CỦA CHÚNG TÔI
         </h1>
 

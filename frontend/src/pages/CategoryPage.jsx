@@ -39,16 +39,12 @@ const CategoryPage = () => {
     set: "Đồ Bộ",
   };
   const displayTitle =
-    categoryTitles[category] || category.charAt(0).toUpperCase() + category.slice(1);
+    categoryTitles[category] ||
+    category.charAt(0).toUpperCase() + category.slice(1);
 
-  // --- Animation variants ---
   const containerVariants = {
     hidden: {},
-    visible: {
-      transition: {
-        staggerChildren: 0.08, // khoảng delay giữa các card
-      },
-    },
+    visible: { transition: { staggerChildren: 0.08 } },
   };
 
   const cardVariants = {
@@ -64,47 +60,71 @@ const CategoryPage = () => {
   return (
     <div className="min-h-screen bg-white text-gray-900 pt-5">
       <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <h1 className="text-center text-4xl sm:text-4xl font-bold text-blue-990 mb-10">
+        {/* ✅ Centered title */}
+        <h1 className="text-4xl font-bold text-blue-990 mb-10 mx-auto text-center">
           {displayTitle}
         </h1>
 
         {loading && (
-          <h2 className="text-center text-gray-500 text-xl mb-10">Đang tải sản phẩm...</h2>
+          <h2 className="text-center text-gray-500 text-xl mb-10">
+            Đang tải sản phẩm...
+          </h2>
         )}
-
         {!loading && totalCards === 0 && (
-          <h2 className="text-center text-gray-500 text-xl mb-10">Chưa có sản phẩm</h2>
+          <h2 className="text-center text-gray-500 text-xl mb-10">
+            Chưa có sản phẩm
+          </h2>
         )}
 
-        {/* Grid sản phẩm với hiệu ứng */}
-        <motion.div
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-25 gap-y-10 justify-items-center mx-auto"
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.2 }}
-        >
-          {currentCards.map((product) => (
-            <motion.div
-              key={product._id}
-              variants={cardVariants}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.2 }}
-              className="w-full flex justify-center"
-            >
-              <ProductCard
-                product={{
-                  ...product,
-                  image: product.image || "/placeholder.png",
-                }}
-                variant="category"
-              />
-            </motion.div>
-          ))}
-        </motion.div>
+        {/* ✅ Grid wrapper (centered properly for tablet/fold) */}
+        <div className="flex justify-center">
+          <motion.div
+            className="
+              grid
+              grid-cols-2
+              sm:grid-cols-2
+              md:grid-cols-3
+              lg:grid-cols-4
+              gap-x-8 gap-y-10
+              justify-items-center
+              w-fit
+              px-3
+              sm:px-4
+              md:px-6
+              lg:px-0
+              mx-auto
+              md:max-w-[750px]
+              lg:max-w-none
+            "
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.2 }}
+          >
+            {currentCards.map((product) => (
+              <motion.div
+                key={product._id}
+                variants={cardVariants}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.2 }}
+                className="w-full flex justify-center"
+              >
+                <div className="w-[160px] sm:w-[200px] md:w-[230px] lg:w-[270px]">
+                  <ProductCard
+                    product={{
+                      ...product,
+                      image: product.image || "/placeholder.png",
+                    }}
+                    variant="category"
+                  />
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
 
-        {/* Pagination */}
+        {/* ✅ Pagination */}
         {totalPages > 1 && (
           <div className="flex justify-center items-center gap-2 mt-10 flex-wrap">
             <button

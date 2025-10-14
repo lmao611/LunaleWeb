@@ -5,15 +5,20 @@ import { useUserStore } from "../stores/useUserStore";
 import { useProductStore } from "../stores/useProductStore";
 import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 
 const FeaturedProducts = () => {
   const { products, fetchFeaturedProducts } = useProductStore();
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [page, setPage] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(4);
   const [rate, setRate] = useState(null);
   const { addToCart } = useCartStore();
   const { user } = useUserStore();
   const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    fetchFeaturedProducts();
+  }, [fetchFeaturedProducts]);
 
   useEffect(() => {
     fetch("https://api.exchangerate-api.com/v4/latest/USD")
@@ -23,40 +28,24 @@ const FeaturedProducts = () => {
   }, []);
 
   useEffect(() => {
-    fetchFeaturedProducts();
-  }, [fetchFeaturedProducts]);
-
-  useEffect(() => {
     const handleResize = () => {
       const width = window.innerWidth;
-      setIsMobile(width < 640);
-      if (width < 480) setItemsPerPage(3);
-      else if (width < 768) setItemsPerPage(2);
-      else if (width < 1024) setItemsPerPage(3);
-      else if (width < 1280) setItemsPerPage(3);
-      else setItemsPerPage(4);
+      setIsMobile(width < 768);
+
+      if (width < 640) setItemsPerPage(2); // mobile
+      else if (width < 900) setItemsPerPage(3); // tablet
+      else setItemsPerPage(4); // desktop
     };
+
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const nextSlide = () =>
-    setCurrentIndex((prev) =>
-      Math.min(prev + itemsPerPage, products.length - itemsPerPage)
-    );
-  const prevSlide = () =>
-    setCurrentIndex((prev) => Math.max(prev - itemsPerPage, 0));
+  const totalPages = Math.ceil(products.length / itemsPerPage);
 
-  const isStartDisabled = currentIndex === 0;
-  const isEndDisabled = currentIndex >= products.length - itemsPerPage;
-
-  const getVND = (usd) => {
-    if (!rate) return "";
-    const raw = usd * rate;
-    const rounded = Math.floor(raw / 1000) * 1000;
-    return rounded.toLocaleString("vi-VN") + "đ";
-  };
+  const nextPage = () => setPage((p) => Math.min(p + 1, totalPages - 1));
+  const prevPage = () => setPage((p) => Math.max(p - 1, 0));
 
   const handleAddToCart = (e, product) => {
     e.preventDefault();
@@ -75,21 +64,20 @@ const FeaturedProducts = () => {
       </div>
     );
 
+  const start = page * itemsPerPage;
+  const visibleProducts = products.slice(start, start + itemsPerPage);
+
   return (
-    <div className="py-12 bg-transparent relative">
+    <div className="py-12 bg-transparent relative overflow-hidden">
       <div className="container mx-auto px-4">
-        <h2 className="text-center text-5xl sm:text-3xl font-bold text-blue-990 mb-6">
+        <h2 className="text-center sm:text-3xl font-bold text-blue-990 mb-6">
           Sản phẩm được ưa thích
         </h2>
 
-        <div className="relative">
-          <div
-            className="flex transition-transform duration-300 ease-in-out"
-            style={{
-              transform: `translateX(-${(currentIndex * 100) / itemsPerPage}%)`,
-            }}
-          >
-            {products.map((product) => (
+        <div className="relative z-0">
+          {/* Grid sản phẩm trực tiếp, không còn AnimatePresence / motion */}
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 justify-items-center">
+            {visibleProducts.map((product) => (
               <Card
                 key={product._id}
                 product={product}
@@ -100,34 +88,45 @@ const FeaturedProducts = () => {
             ))}
           </div>
 
-          <button
-            onClick={prevSlide}
-            disabled={isStartDisabled}
-            className={`absolute top-1/2 -left-4 transform -translate-y-1/2 p-2 rounded-full transition-colors duration-300 ${
-              isStartDisabled
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-gray-900 hover:bg-gray-700"
-            }`}
-          >
-            <ChevronLeft className="w-6 h-6 text-white" />
-          </button>
-          <button
-            onClick={nextSlide}
-            disabled={isEndDisabled}
-            className={`absolute top-1/2 -right-4 transform -translate-y-1/2 p-2 rounded-full transition-colors duration-300 ${
-              isEndDisabled
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-gray-900 hover:bg-gray-700"
-            }`}
-          >
-            <ChevronRight className="w-6 h-6 text-white" />
-          </button>
+          {/* Nút chuyển trang giữ nguyên vị trí tuyệt đối */}
+          <div className="z-50">
+            <button
+              onClick={prevPage}
+              disabled={page === 0}
+              className={`absolute top-1/2 -left-4 transform -translate-y-1/2 flex items-center justify-center 
+                rounded-full transition-colors duration-300 shadow-md ${
+                  page === 0
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-gray-900 hover:bg-gray-700"
+                } ${isMobile ? "w-8 h-8 p-1" : "w-10 h-10 p-2"} z-50`}
+            >
+              <ChevronLeft
+                className={`${isMobile ? "w-4 h-4" : "w-6 h-6"} text-white`}
+              />
+            </button>
+
+            <button
+              onClick={nextPage}
+              disabled={page >= totalPages - 1}
+              className={`absolute top-1/2 -right-4 transform -translate-y-1/2 flex items-center justify-center 
+                rounded-full transition-colors duration-300 shadow-md ${
+                  page >= totalPages - 1
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-gray-900 hover:bg-gray-700"
+                } ${isMobile ? "w-8 h-8 p-1" : "w-10 h-10 p-2"} z-50`}
+            >
+              <ChevronRight
+                className={`${isMobile ? "w-4 h-4" : "w-6 h-6"} text-white`}
+              />
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
+// === CARD vẫn giữ hover 3D và glare ===
 const Card = ({ product, rate, onAddToCart, isMobile }) => {
   const cardRef = useRef(null);
   const glareRef = useRef(null);
@@ -154,7 +153,7 @@ const Card = ({ product, rate, onAddToCart, isMobile }) => {
       0.25,
       Math.hypot(x - centerX, y - centerY) / (rect.width / 1.5)
     );
-    glare.style.background = `linear-gradient(${angle}deg, rgba(255,255,255,${opacity}) 0%, transparent 80%)`;
+    glareRef.current.style.background = `linear-gradient(${angle}deg, rgba(255,255,255,${opacity}) 0%, transparent 80%)`;
   };
 
   const handleMouseLeave = () => {
@@ -168,79 +167,68 @@ const Card = ({ product, rate, onAddToCart, isMobile }) => {
   };
 
   return (
-    <Link
-      to={`/product/${product._id}`}
-      ref={cardRef}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      className={`group relative block flex-shrink-0 overflow-hidden rounded-xl shadow-md
-        hover:z-10 hover:shadow-2xl hover:ring-2 hover:ring-gray-900/40
-        transition-transform duration-200 ease-out mx-2 bg-white/80 backdrop-blur-sm ${
-          isMobile ? "w-32 sm:w-40" : "w-64"
-        }`}
+    <motion.div
+      whileHover={!isMobile ? { scale: 1.04 } : {}}
+      transition={{ duration: 0.3 }}
+      className="z-10"
     >
-      <div
-        ref={glareRef}
-        className="pointer-events-none absolute inset-0 rounded-xl z-20 transition-all duration-300"
-      ></div>
-
-      <div className={`${isMobile ? "h-40" : "h-72"} w-full overflow-hidden`}>
-        <img
-          src={product.image}
-          alt={product.name}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-          onError={(e) =>
-            (e.target.src =
-              "https://via.placeholder.com/300x400?text=No+Image")
-          }
-        />
-      </div>
-
-      <div
-        className={`absolute bottom-0 left-0 right-0 z-30 p-2 ${
-          isMobile ? "text-xs" : "p-3"
-        } bg-gradient-to-t from-gray-900/80 to-gray-600/40 transition-transform duration-500 ease-in-out ${
-          isMobile
-            ? "translate-y-0"
-            : "translate-y-full group-hover:translate-y-0"
-        }`}
+      <Link
+        to={`/product/${product._id}`}
+        ref={cardRef}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        className={`group relative block overflow-hidden rounded-xl shadow-md
+        hover:shadow-2xl hover:ring-2 hover:ring-gray-900/40
+        transition-transform duration-200 ease-out bg-white/80 backdrop-blur-sm
+        w-40 sm:w-52 md:w-54 md:h-72 lg:w-64 lg:h-77`}
       >
-        <h5
-          className={`font-semibold text-white truncate ${
-            isMobile ? "text-xs" : "text-sm"
+        <div
+          ref={glareRef}
+          className="pointer-events-none absolute inset-0 rounded-xl z-20 transition-all duration-300"
+        ></div>
+
+        <div className="h-60 sm:h-72 md:h-80 lg:h-96 w-full overflow-hidden">
+          <img
+            src={product.image}
+            alt={product.name}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+            onError={(e) =>
+              (e.target.src =
+                "https://via.placeholder.com/300x400?text=No+Image")
+            }
+          />
+        </div>
+
+        <div
+          className={`absolute bottom-0 left-0 right-0 z-30 p-2 bg-gradient-to-t from-gray-900/80 to-gray-600/40 transition-transform duration-500 ease-in-out ${
+            isMobile
+              ? "translate-y-0"
+              : "translate-y-full group-hover:translate-y-0"
           }`}
         >
-          {product.name}
-        </h5>
-        <div className="flex items-center justify-between mt-1">
-          <span
-            className={`text-white font-bold ${
-              isMobile ? "text-xs" : "text-sm"
-            }`}
-          >
-            ${product.price.toFixed(2)}
-          </span>
-          {rate && (
-            <span
-              className={`text-white font-bold ${
-                isMobile ? "text-[10px]" : "text-xs"
-              }`}
-            >
-              {getVNDCurrency(product.price, rate)}
+          <h5 className="font-semibold text-white truncate text-sm sm:text-base">
+            {product.name}
+          </h5>
+          <div className="flex items-center justify-between mt-1">
+            <span className="text-white font-bold text-sm">
+              ${product.price.toFixed(2)}
             </span>
-          )}
+            {rate && (
+              <span className="text-white font-bold text-xs">
+                {getVNDCurrency(product.price, rate)}
+              </span>
+            )}
+          </div>
+          <button
+            className="mt-2 flex items-center justify-center w-full rounded-md bg-gray-200 text-black hover:bg-gray-700 hover:text-white active:scale-95 px-3 py-1.5 text-xs"
+            onClick={(e) => onAddToCart(e, product)}
+          >
+            <ShoppingCart size={14} className="mr-1" />
+            Add
+          </button>
         </div>
-        <button
-          className={`mt-2 flex items-center justify-center w-full rounded-md 
-                     bg-gray-200 text-black hover:bg-gray-700 hover:text-white active:scale-95
-                     ${isMobile ? "px-2 py-1 text-[10px]" : "px-3 py-1.5 text-xs"}`}
-          onClick={(e) => onAddToCart(e, product)}
-        >
-          <ShoppingCart size={isMobile ? 10 : 14} className="mr-1" />
-          Add
-        </button>
-      </div>
-    </Link>
+      </Link>
+    </motion.div>
   );
 };
 
