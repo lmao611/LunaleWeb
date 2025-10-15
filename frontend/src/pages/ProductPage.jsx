@@ -68,7 +68,7 @@ const ProductDetailPage = () => {
   const vndDisplay =
     rate != null
       ? (
-          Math.floor((selectedProduct.price * rate) / 1000) * 1000
+          Math.floor((selectedProduct.price) / 1000) * 1000
         ).toLocaleString("vi-VN") + "đ"
       : "";
 
@@ -163,17 +163,15 @@ const ProductDetailPage = () => {
             <h1 className="text-3xl font-bold">{selectedProduct.name}</h1>
 
             <div className="flex items-center gap-3">
-              <p className="text-gray-700 text-2xl font-semibold">
-                ${selectedProduct.price}
-              </p>
+              
               {vndDisplay && (
-                <p className="text-gray-700 text-2xl font-semibold">
-                  - {vndDisplay}
+                <p className="text-gray-500 text-2xl font-semibold">
+                  {vndDisplay}
                 </p>
               )}
             </div>
 
-            <p className="text-gray-600">{selectedProduct.description}</p>
+            <p className="text-gray-600 whitespace-pre-line">{selectedProduct.description}</p>
 
             <button className="mt-4 w-full px-5 py-3 rounded-lg bg-black hover:bg-gray-400 transition text-white hover:text-black font-medium">
               Liên hệ

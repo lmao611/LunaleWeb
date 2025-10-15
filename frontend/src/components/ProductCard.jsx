@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useRef } from "react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import { ShoppingCart } from "lucide-react";
@@ -6,20 +6,11 @@ import { useUserStore } from "../stores/useUserStore";
 import { useCartStore } from "../stores/useCartStore";
 
 const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
-  const [rate, setRate] = useState(null);
   const cardRef = useRef(null);
   const glareRef = useRef(null);
 
   const { user } = useUserStore();
   const { addToCart } = useCartStore();
-
-  // 🔹 Fetch tỷ giá USD → VND
-  useEffect(() => {
-    fetch("https://api.exchangerate-api.com/v4/latest/USD")
-      .then((res) => res.json())
-      .then((data) => setRate(data.rates.VND))
-      .catch(() => {});
-  }, []);
 
   // 🔹 Add to cart
   const handleAddToCart = (e) => {
@@ -32,13 +23,9 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
     toast.success("Đã thêm vào giỏ hàng");
   };
 
-  // 🔹 Giá VND
-  let vndDisplay = "";
-  if (rate != null) {
-    const raw = product.price * rate;
-    const rounded = Math.floor(raw / 1000) * 1000;
-    vndDisplay = rounded.toLocaleString("vi-VN") + "đ";
-  }
+  // 🔹 Hiển thị giá (đã từ backend)
+  const vndDisplay =
+    product.price?.toLocaleString("vi-VN", { maximumFractionDigits: 0 }) + "đ";
 
   // 🔹 Tilt + Glare (desktop only)
   const handleMouseMove = (e) => {
@@ -104,7 +91,7 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
   const isFeedback = product.category === "feedback";
 
   // -------------------------------
-  // 🔹 Nếu là FEEDBACK → dùng thẻ <a> với link ngoài
+  // 🔹 Nếu là FEEDBACK → link ngoài
   // -------------------------------
   if (isFeedback) {
     return (
@@ -122,13 +109,11 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
             hover:shadow-2xl transition-transform duration-300 ease-out
             ${size.width}`}
         >
-          {/* Glare */}
           <div
             ref={glareRef}
             className="pointer-events-none absolute inset-0 rounded-xl z-20 transition-opacity duration-300"
           />
 
-          {/* Image only */}
           <div className={`w-full overflow-hidden ${size.height}`}>
             <img
               src={product.image}
@@ -146,7 +131,7 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
   }
 
   // -------------------------------
-  // 🔹 Nếu KHÔNG phải feedback → card bình thường
+  // 🔹 Card mặc định
   // -------------------------------
   return (
     <Link to={`/product/${product._id}`} className="group relative block">
@@ -175,7 +160,6 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
           />
         </div>
 
-        {/* Overlay Info */}
         <div
           className={`absolute bottom-0 left-0 right-0
                      lg:translate-y-full lg:group-hover:translate-y-0
@@ -187,12 +171,7 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
             {product.name}
           </h5>
           <div className="flex items-center justify-between mt-1">
-            <span className="text-white font-bold text-sm">
-              ${product.price}
-            </span>
-            {vndDisplay && variant !== "featured" && (
-              <span className="text-white font-bold text-sm">{vndDisplay}</span>
-            )}
+            <span className="text-white font-bold text-sm">{vndDisplay}</span>
           </div>
           <button
             className={`mt-2 flex items-center justify-center w-full rounded-md 

@@ -11,7 +11,6 @@ const FeaturedProducts = () => {
   const { products, fetchFeaturedProducts } = useProductStore();
   const [page, setPage] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(4);
-  const [rate, setRate] = useState(null);
   const { addToCart } = useCartStore();
   const { user } = useUserStore();
   const [isMobile, setIsMobile] = useState(false);
@@ -19,13 +18,6 @@ const FeaturedProducts = () => {
   useEffect(() => {
     fetchFeaturedProducts();
   }, [fetchFeaturedProducts]);
-
-  useEffect(() => {
-    fetch("https://api.exchangerate-api.com/v4/latest/USD")
-      .then((res) => res.json())
-      .then((data) => setRate(data.rates.VND))
-      .catch((err) => console.error("Failed to fetch rate:", err));
-  }, []);
 
   useEffect(() => {
     const handleResize = () => {
@@ -75,20 +67,19 @@ const FeaturedProducts = () => {
         </h2>
 
         <div className="relative z-0">
-          {/* Grid sản phẩm trực tiếp, không còn AnimatePresence / motion */}
+          {/* Grid sản phẩm */}
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 justify-items-center">
             {visibleProducts.map((product) => (
               <Card
                 key={product._id}
                 product={product}
-                rate={rate}
                 onAddToCart={handleAddToCart}
                 isMobile={isMobile}
               />
             ))}
           </div>
 
-          {/* Nút chuyển trang giữ nguyên vị trí tuyệt đối */}
+          {/* Nút chuyển trang */}
           <div className="z-50">
             <button
               onClick={prevPage}
@@ -126,8 +117,8 @@ const FeaturedProducts = () => {
   );
 };
 
-// === CARD vẫn giữ hover 3D và glare ===
-const Card = ({ product, rate, onAddToCart, isMobile }) => {
+// === CARD giữ hover 3D + glare ===
+const Card = ({ product, onAddToCart, isMobile }) => {
   const cardRef = useRef(null);
   const glareRef = useRef(null);
 
@@ -178,7 +169,7 @@ const Card = ({ product, rate, onAddToCart, isMobile }) => {
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         className={`group relative block overflow-hidden rounded-xl shadow-md
-        hover:shadow-2xl hover:ring-2 hover:ring-gray-900/40
+        hover:shadow-1xl hover:ring-2 hover:ring-gray-900/40
         transition-transform duration-200 ease-out bg-white/80 backdrop-blur-sm
         w-40 sm:w-52 md:w-54 md:h-72 lg:w-64 lg:h-77`}
       >
@@ -209,16 +200,13 @@ const Card = ({ product, rate, onAddToCart, isMobile }) => {
           <h5 className="font-semibold text-white truncate text-sm sm:text-base">
             {product.name}
           </h5>
+
           <div className="flex items-center justify-between mt-1">
             <span className="text-white font-bold text-sm">
-              ${product.price.toFixed(2)}
+              {Number(product.price).toLocaleString("vi-VN")}đ
             </span>
-            {rate && (
-              <span className="text-white font-bold text-xs">
-                {getVNDCurrency(product.price, rate)}
-              </span>
-            )}
           </div>
+
           <button
             className="mt-2 flex items-center justify-center w-full rounded-md bg-gray-200 text-black hover:bg-gray-700 hover:text-white active:scale-95 px-3 py-1.5 text-xs"
             onClick={(e) => onAddToCart(e, product)}
@@ -230,12 +218,6 @@ const Card = ({ product, rate, onAddToCart, isMobile }) => {
       </Link>
     </motion.div>
   );
-};
-
-const getVNDCurrency = (usd, rate) => {
-  const raw = usd * rate;
-  const rounded = Math.floor(raw / 1000) * 1000;
-  return rounded.toLocaleString("vi-VN") + "đ";
 };
 
 export default FeaturedProducts;
