@@ -147,18 +147,25 @@ export const updateProduct = async (req, res) => {
       }
     }
 
-    // ----- Thumbnails -----
+    // ----- Thumbnails (FIXED) -----
     let newThumbnails = product.thumbnails || [];
-    if (thumbnails && Array.isArray(thumbnails) && thumbnails.length > 0) {
+
+    if (Array.isArray(thumbnails) && thumbnails.length > 0) {
       try {
-        for (const thumb of product.thumbnails || []) {
-          const publicId = getPublicId(thumb);
-          if (publicId) await cloudinary.uploader.destroy(publicId, { invalidate: true });
-        }
+        // Chỉ upload các thumbnail mới (base64)
         const uploads = await Promise.all(
-          thumbnails.map((t) => cloudinary.uploader.upload(t, { folder: "products/thumbnails" }))
+          thumbnails
+            .filter((t) => t.startsWith("data:image")) // chỉ upload ảnh mới
+            .map((t) => cloudinary.uploader.upload(t, { folder: "products/thumbnails" }))
         );
-        newThumbnails = uploads.map((u) => u.secure_url);
+
+        // Giữ lại thumbnail cũ không phải base64, + thêm thumbnail mới
+        newThumbnails = [
+          ...product.thumbnails.filter((t) => !t.startsWith("data:image")),
+          ...uploads.map((u) => u.secure_url),
+        ];
+
+        console.log("✅ Updated thumbnails:", newThumbnails.length);
       } catch (err) {
         console.log("⚠️ Error updating thumbnails:", err.message);
       }
@@ -166,7 +173,15 @@ export const updateProduct = async (req, res) => {
 
     const updated = await Product.findByIdAndUpdate(
       id,
-      { name, description, price, category, image: newImage, thumbnails: newThumbnails, productLink },
+      {
+        name,
+        description,
+        price,
+        category,
+        image: newImage,
+        thumbnails: newThumbnails,
+        productLink,
+      },
       { new: true }
     );
 
