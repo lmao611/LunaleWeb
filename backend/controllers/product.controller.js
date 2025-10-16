@@ -128,49 +128,40 @@ export const updateProduct = async (req, res) => {
     // ----- Ảnh chính -----
     let newImage = product.image;
     if (image && image.startsWith("data:image")) {
-      try {
-        // Xóa ảnh cũ trên Cloudinary nếu có
-        if (product.image) {
-          const publicId = getPublicId(product.image);
-          if (publicId) {
-            await cloudinary.uploader.destroy(publicId, { invalidate: true });
-            console.log("🗑️ Deleted old main image:", publicId);
-          }
-        }
-
-        // Upload ảnh mới
-        const uploaded = await cloudinary.uploader.upload(image, { folder: "products" });
-        newImage = uploaded.secure_url;
-        console.log("✅ Uploaded new main image:", newImage);
-      } catch (err) {
-        console.log("⚠️ Error updating main image:", err.message);
+      // Xóa ảnh cũ
+      if (product.image) {
+        const publicId = getPublicId(product.image);
+        if (publicId) await cloudinary.uploader.destroy(publicId, { invalidate: true });
       }
+      // Upload ảnh mới
+      const uploaded = await cloudinary.uploader.upload(image, { folder: "products" });
+      newImage = uploaded.secure_url;
     }
 
-    // ----- Thumbnails (FIXED) -----
-    let newThumbnails = product.thumbnails || [];
+    // ----- Thumbnails -----
+    let newThumbnails = thumbnails || [];
 
-    if (Array.isArray(thumbnails) && thumbnails.length > 0) {
-      try {
-        // Chỉ upload các thumbnail mới (base64)
-        const uploads = await Promise.all(
-          thumbnails
-            .filter((t) => t.startsWith("data:image")) // chỉ upload ảnh mới
-            .map((t) => cloudinary.uploader.upload(t, { folder: "products/thumbnails" }))
-        );
-
-        // Giữ lại thumbnail cũ không phải base64, + thêm thumbnail mới
-        newThumbnails = [
-          ...product.thumbnails.filter((t) => !t.startsWith("data:image")),
-          ...uploads.map((u) => u.secure_url),
-        ];
-
-        console.log("✅ Updated thumbnails:", newThumbnails.length);
-      } catch (err) {
-        console.log("⚠️ Error updating thumbnails:", err.message);
-      }
+    // Tìm thumbnail bị xóa và remove Cloudinary
+    const deletedThumbs = product.thumbnails.filter((t) => !newThumbnails.includes(t));
+    for (const url of deletedThumbs) {
+      const publicId = getPublicId(url);
+      if (publicId) await cloudinary.uploader.destroy(publicId, { invalidate: true });
     }
 
+    // Upload thumbnail mới (base64)
+    const uploadedThumbs = await Promise.all(
+      newThumbnails
+        .filter((t) => t.startsWith("data:image"))
+        .map((t) => cloudinary.uploader.upload(t, { folder: "products/thumbnails" }))
+    );
+
+    // Kết hợp thumbnail còn lại (URL cũ) + thumbnail mới
+    const finalThumbnails = [
+      ...newThumbnails.filter((t) => !t.startsWith("data:image")),
+      ...uploadedThumbs.map((u) => u.secure_url),
+    ];
+
+    // ----- Cập nhật product -----
     const updated = await Product.findByIdAndUpdate(
       id,
       {
@@ -179,7 +170,7 @@ export const updateProduct = async (req, res) => {
         price,
         category,
         image: newImage,
-        thumbnails: newThumbnails,
+        thumbnails: finalThumbnails,
         productLink,
       },
       { new: true }

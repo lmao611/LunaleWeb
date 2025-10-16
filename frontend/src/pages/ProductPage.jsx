@@ -7,7 +7,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import PeopleAlsoBought from "../components/PeopleAlsoBought";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
-import LoadingSpinner from "../components/LoadingSpinner"; // ✅ Thêm dòng này
+import LoadingSpinner from "../components/LoadingSpinner";
 
 const ProductDetailPage = () => {
   const { id } = useParams();
@@ -18,13 +18,11 @@ const ProductDetailPage = () => {
   const [mainImage, setMainImage] = useState(null);
   const [zoomImage, setZoomImage] = useState(null);
   const [isImageLoading, setIsImageLoading] = useState(false);
-
   const [startIndex, setStartIndex] = useState(0);
   const visibleCount = 3;
-
-  // ---------- NEW: slider state for zoom controls ----------
   const [sliderValue, setSliderValue] = useState(1);
 
+  // Fetch product + rate
   useEffect(() => {
     fetchProductById(id);
     fetch("https://api.exchangerate-api.com/v4/latest/USD")
@@ -33,11 +31,13 @@ const ProductDetailPage = () => {
       .catch((err) => console.error("Failed to fetch rate:", err));
   }, [id, fetchProductById]);
 
+  // Set main image
   useEffect(() => {
-    if (selectedProduct) setMainImage(selectedProduct.image);
+    if (selectedProduct && selectedProduct.image) {
+      setMainImage(selectedProduct.image);
+    }
   }, [selectedProduct]);
 
-  // ✅ Nếu đang loading -> hiển thị spinner
   if (loading)
     return (
       <div className="flex justify-center items-center h-[60vh]">
@@ -48,29 +48,29 @@ const ProductDetailPage = () => {
   if (!selectedProduct)
     return <p className="text-gray-600 text-center mt-10">Không tìm thấy sản phẩm</p>;
 
-  const allThumbnails = [selectedProduct.image, ...(selectedProduct.thumbnails || [])];
+  // Thumbnails + fallback
+  const allThumbnails = [
+    selectedProduct.image,
+    ...(Array.isArray(selectedProduct.thumbnails) ? selectedProduct.thumbnails : []),
+  ];
   const canScroll = allThumbnails.length > visibleCount;
+  const visibleThumbnails = allThumbnails.slice(startIndex, startIndex + visibleCount);
 
   const handleNext = () => {
-    if (startIndex + visibleCount < allThumbnails.length) {
-      setStartIndex((prev) => prev + 1);
-    }
+    if (startIndex + visibleCount < allThumbnails.length) setStartIndex((prev) => prev + 1);
   };
 
   const handlePrev = () => {
-    if (startIndex > 0) {
-      setStartIndex((prev) => prev - 1);
-    }
+    if (startIndex > 0) setStartIndex((prev) => prev - 1);
   };
-
-  const visibleThumbnails = allThumbnails.slice(startIndex, startIndex + visibleCount);
 
   const vndDisplay =
     rate != null
-      ? (
-          Math.floor((selectedProduct.price) / 1000) * 1000
-        ).toLocaleString("vi-VN") + "đ"
+      ? (Math.floor(selectedProduct.price / 1000) * 1000).toLocaleString("vi-VN") + "đ"
       : "";
+
+  // Local fallback image path
+  const fallbackImage = "/images/no-image.jpg";
 
   return (
     <div className="max-w-5xl mx-auto p-6 bg-white text-gray-900 pt-30">
@@ -79,21 +79,18 @@ const ProductDetailPage = () => {
         <div className="flex-1 flex flex-col items-center">
           <div className="w-full max-w-[464px] aspect-[3/4] rounded-lg shadow-lg overflow-hidden bg-gray-100 relative">
             <img
-              src={mainImage}
+              src={mainImage || fallbackImage}
               alt={selectedProduct.name}
               onLoad={() => setIsImageLoading(false)}
-              onError={(e) => {
-                e.target.src =
-                  "https://via.placeholder.com/928x1120?text=No+Image";
-                setIsImageLoading(false);
-              }}
-              onClick={() => setZoomImage(mainImage)}
-              className={`absolute inset-0 w-full h-full object-cover cursor-pointer transition-all duration-500 ease-in-out 
-              ${isImageLoading ? "opacity-0 scale-105" : "opacity-100 hover:scale-110"}`}
+              onError={(e) => (e.target.src = fallbackImage)}
+              onClick={() => setZoomImage(mainImage || fallbackImage)}
+              className={`absolute inset-0 w-full h-full object-cover cursor-pointer transition-all duration-500 ease-in-out ${
+                isImageLoading ? "opacity-0 scale-105" : "opacity-100 hover:scale-110"
+              }`}
             />
           </div>
 
-          {/* ✅ Thumbnails fix + animation */}
+          {/* Thumbnails */}
           {allThumbnails.length > 0 && (
             <div className="relative flex items-center justify-center mt-4 w-full max-w-[464px] overflow-visible">
               {canScroll && startIndex > 0 && (
@@ -116,12 +113,9 @@ const ProductDetailPage = () => {
                     className="flex gap-3"
                   >
                     {visibleThumbnails.map((thumb, index) => (
-                      <div
-                        key={index + startIndex}
-                        className="relative flex-shrink-0 overflow-visible"
-                      >
+                      <div key={index + startIndex} className="relative flex-shrink-0 overflow-visible">
                         <motion.img
-                          src={thumb}
+                          src={thumb || fallbackImage}
                           alt={`thumb-${index}`}
                           onClick={() => {
                             if (thumb !== mainImage) {
@@ -129,14 +123,14 @@ const ProductDetailPage = () => {
                               setMainImage(thumb);
                             }
                           }}
+                          onError={(e) => (e.target.src = fallbackImage)}
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.97 }}
-                          className={`w-[116px] h-[140px] object-cover rounded-md cursor-pointer border-2 transition-all duration-300 
-                            ${
-                              mainImage === thumb
-                                ? "border-gray-900 scale-110 shadow-md z-10"
-                                : "border-gray-200 hover:border-gray-500"
-                            }`}
+                          className={`w-[116px] h-[140px] object-cover rounded-md cursor-pointer border-2 transition-all duration-300 ${
+                            mainImage === thumb
+                              ? "border-gray-900 scale-110 shadow-md z-10"
+                              : "border-gray-200 hover:border-gray-500"
+                          }`}
                         />
                       </div>
                     ))}
@@ -144,15 +138,14 @@ const ProductDetailPage = () => {
                 </AnimatePresence>
               </div>
 
-              {canScroll &&
-                startIndex + visibleCount < allThumbnails.length && (
-                  <button
-                    onClick={handleNext}
-                    className="absolute -right-5 z-20 bg-white/90 hover:bg-white text-gray-800 shadow-md rounded-full p-2"
-                  >
-                    <ChevronRight className="h-5 w-5" />
-                  </button>
-                )}
+              {canScroll && startIndex + visibleCount < allThumbnails.length && (
+                <button
+                  onClick={handleNext}
+                  className="absolute -right-5 z-20 bg-white/90 hover:bg-white text-gray-800 shadow-md rounded-full p-2"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -163,12 +156,7 @@ const ProductDetailPage = () => {
             <h1 className="text-3xl font-bold">{selectedProduct.name}</h1>
 
             <div className="flex items-center gap-3">
-              
-              {vndDisplay && (
-                <p className="text-gray-500 text-2xl font-semibold">
-                  {vndDisplay}
-                </p>
-              )}
+              {vndDisplay && <p className="text-gray-500 text-2xl font-semibold">{vndDisplay}</p>}
             </div>
 
             <p className="text-gray-600 whitespace-pre-line">{selectedProduct.description}</p>
@@ -187,6 +175,7 @@ const ProductDetailPage = () => {
         </div>
       </div>
 
+      {/* People Also Bought */}
       {selectedProduct && (
         <div className="mt-16">
           <PeopleAlsoBought excludeIds={[id, ...cart.map((item) => item._id)]} />
@@ -230,7 +219,6 @@ const ProductDetailPage = () => {
               >
                 {({ zoomIn, zoomOut, resetTransform, setTransform, state }) => (
                   <>
-                    {/* Điều khiển zoom */}
                     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900/80 text-white px-4 py-2 rounded-lg flex items-center gap-3 z-[60]">
                       <button
                         onClick={() => {
@@ -241,16 +229,9 @@ const ProductDetailPage = () => {
                       >
                         Reset
                       </button>
-
-                      <button
-                        onClick={() => {
-                          zoomOut();
-                        }}
-                        className="bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded-md text-sm"
-                      >
+                      <button onClick={zoomOut} className="bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded-md text-sm">
                         -
                       </button>
-
                       <input
                         type="range"
                         min="0.5"
@@ -266,21 +247,16 @@ const ProductDetailPage = () => {
                         }}
                         className="w-40 accent-blue-600"
                       />
-
-                      <button
-                        onClick={() => {
-                          zoomIn();
-                        }}
-                        className="bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded-md text-sm"
-                      >
+                      <button onClick={zoomIn} className="bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded-md text-sm">
                         +
                       </button>
                     </div>
 
                     <TransformComponent>
                       <img
-                        src={zoomImage}
+                        src={zoomImage || fallbackImage}
                         alt="Zoomed"
+                        onError={(e) => (e.target.src = fallbackImage)}
                         className="max-h-[90vh] max-w-[90vw] rounded-lg shadow-lg object-contain cursor-grab active:cursor-grabbing"
                       />
                     </TransformComponent>
