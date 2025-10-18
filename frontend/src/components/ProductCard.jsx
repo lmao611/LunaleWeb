@@ -23,9 +23,25 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
     toast.success("Đã thêm vào giỏ hàng");
   };
 
-  // 🔹 Hiển thị giá (đã từ backend)
+  // 🔹 Hiển thị giá
   const vndDisplay =
     product.price?.toLocaleString("vi-VN", { maximumFractionDigits: 0 }) + "đ";
+
+  // 🔹 Hiển thị trạng thái pre-order
+  const getPreOrderLabel = (status) => {
+    switch (status) {
+      case "preorder":
+        return { label: "Pre-Order", color: "bg-purple-500 text-white" };
+      case "out":
+        return { label: "Hết hàng", color: "bg-red-500 text-white" };
+      case "low":
+        return { label: "Số lượng còn ít", color: "bg-yellow-400 text-gray-900" };
+      default:
+        return null; // none => không hiển thị
+    }
+  };
+
+  const preorderStatus = getPreOrderLabel(product.isPreOrder);
 
   // 🔹 Tilt + Glare (desktop only)
   const handleMouseMove = (e) => {
@@ -59,7 +75,7 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
     glare.style.background = "transparent";
   };
 
-  // 🔹 Responsive sizes by variant
+  // 🔹 Responsive sizes
   const sizes = {
     category: {
       width: "w-[160px] sm:w-[200px] lg:w-[260px]",
@@ -91,7 +107,7 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
   const isFeedback = product.category === "feedback";
 
   // -------------------------------
-  // 🔹 Nếu là FEEDBACK → link ngoài
+  // 🔹 FEEDBACK CARD → link ngoài
   // -------------------------------
   if (isFeedback) {
     return (
@@ -114,6 +130,15 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
             className="pointer-events-none absolute inset-0 rounded-xl z-20 transition-opacity duration-300"
           />
 
+          {/* 🔸 Badge trạng thái */}
+          {preorderStatus && (
+            <span
+              className={`absolute top-2 right-2 z-30 text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-md ${preorderStatus.color}`}
+            >
+              {preorderStatus.label}
+            </span>
+          )}
+
           <div className={`w-full overflow-hidden ${size.height}`}>
             <img
               src={product.image}
@@ -131,7 +156,7 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
   }
 
   // -------------------------------
-  // 🔹 Card mặc định
+  // 🔹 CARD MẶC ĐỊNH
   // -------------------------------
   return (
     <Link to={`/product/${product._id}`} className="group relative block">
@@ -147,6 +172,15 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
           ref={glareRef}
           className="pointer-events-none absolute inset-0 rounded-xl z-20 transition-opacity duration-300"
         />
+
+        {/* 🔸 Badge trạng thái */}
+        {preorderStatus && (
+          <span
+            className={`absolute top-2 right-2 z-30 text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-md opacity-70 ${preorderStatus.color}`}
+          >
+            {preorderStatus.label}
+          </span>
+        )}
 
         <div className={`w-full overflow-hidden ${size.height}`}>
           <img

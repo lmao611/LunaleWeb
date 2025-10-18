@@ -15,10 +15,12 @@ const FeaturedProducts = () => {
   const { user } = useUserStore();
   const [isMobile, setIsMobile] = useState(false);
 
+  // 🔹 Fetch featured products
   useEffect(() => {
     fetchFeaturedProducts();
   }, [fetchFeaturedProducts]);
 
+  // 🔹 Responsive
   useEffect(() => {
     const handleResize = () => {
       const width = window.innerWidth;
@@ -35,7 +37,6 @@ const FeaturedProducts = () => {
   }, []);
 
   const totalPages = Math.ceil(products.length / itemsPerPage);
-
   const nextPage = () => setPage((p) => Math.min(p + 1, totalPages - 1));
   const prevPage = () => setPage((p) => Math.max(p - 1, 0));
 
@@ -59,6 +60,20 @@ const FeaturedProducts = () => {
   const start = page * itemsPerPage;
   const visibleProducts = products.slice(start, start + itemsPerPage);
 
+  // 🔹 Pre-order label
+  const getPreOrderLabel = (status) => {
+    switch (status) {
+      case "preorder":
+        return { label: "Pre-Order", color: "bg-purple-500 text-white" };
+      case "out":
+        return { label: "Hết hàng", color: "bg-red-500 text-white" };
+      case "low":
+        return { label: "Số lượng còn ít", color: "bg-yellow-400 text-gray-900" };
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="py-12 bg-transparent relative overflow-hidden">
       <div className="container mx-auto px-4">
@@ -69,14 +84,18 @@ const FeaturedProducts = () => {
         <div className="relative z-0">
           {/* Grid sản phẩm */}
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 justify-items-center">
-            {visibleProducts.map((product) => (
-              <Card
-                key={product._id}
-                product={product}
-                onAddToCart={handleAddToCart}
-                isMobile={isMobile}
-              />
-            ))}
+            {visibleProducts.map((product) => {
+              const preorderStatus = getPreOrderLabel(product.isPreOrder);
+              return (
+                <Card
+                  key={product._id}
+                  product={product}
+                  onAddToCart={handleAddToCart}
+                  isMobile={isMobile}
+                  preorderStatus={preorderStatus}
+                />
+              );
+            })}
           </div>
 
           {/* Nút chuyển trang */}
@@ -117,8 +136,8 @@ const FeaturedProducts = () => {
   );
 };
 
-// === CARD giữ hover 3D + glare ===
-const Card = ({ product, onAddToCart, isMobile }) => {
+// === CARD giữ hover 3D + glare + pre-order badge ===
+const Card = ({ product, onAddToCart, isMobile, preorderStatus }) => {
   const cardRef = useRef(null);
   const glareRef = useRef(null);
 
@@ -158,25 +177,27 @@ const Card = ({ product, onAddToCart, isMobile }) => {
   };
 
   return (
-    <motion.div
-      whileHover={!isMobile ? { scale: 1.04 } : {}}
-      transition={{ duration: 0.3 }}
-      className="z-10"
-    >
+    <motion.div whileHover={!isMobile ? { scale: 1.04 } : {}} transition={{ duration: 0.3 }} className="z-10">
       <Link
         to={`/product/${product._id}`}
         ref={cardRef}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
-        className={`group relative block overflow-hidden rounded-xl shadow-md
-        hover:shadow-1xl hover:ring-2 hover:ring-gray-900/40
-        transition-transform duration-200 ease-out bg-white/80 backdrop-blur-sm
-        w-40 sm:w-52 md:w-54 md:h-72 lg:w-64 lg:h-77`}
+        className="group relative block overflow-hidden rounded-xl shadow-md hover:shadow-1xl hover:ring-2 hover:ring-gray-900/40 transition-transform duration-200 ease-out bg-white/80 backdrop-blur-sm w-40 sm:w-52 md:w-54 md:h-72 lg:w-64 lg:h-77"
       >
         <div
           ref={glareRef}
           className="pointer-events-none absolute inset-0 rounded-xl z-20 transition-all duration-300"
         ></div>
+
+        {/* 🔹 Pre-order badge */}
+        {preorderStatus && (
+          <span
+            className={`absolute top-2 right-2 z-30 text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-md opacity-70 ${preorderStatus.color}`}
+          >
+            {preorderStatus.label}
+          </span>
+        )}
 
         <div className="h-60 sm:h-72 md:h-80 lg:h-96 w-full overflow-hidden">
           <img
@@ -192,9 +213,7 @@ const Card = ({ product, onAddToCart, isMobile }) => {
 
         <div
           className={`absolute bottom-0 left-0 right-0 z-30 p-2 bg-gradient-to-t from-gray-900/80 to-gray-600/40 transition-transform duration-500 ease-in-out ${
-            isMobile
-              ? "translate-y-0"
-              : "translate-y-full group-hover:translate-y-0"
+            isMobile ? "translate-y-0" : "translate-y-full group-hover:translate-y-0"
           }`}
         >
           <h5 className="font-semibold text-white truncate text-sm sm:text-base">

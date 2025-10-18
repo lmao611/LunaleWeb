@@ -27,14 +27,20 @@ const productSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    productLink: {              // 👈 thêm dòng này
+    productLink: {              
         type: String,
         required: false,
     },
     isFeatured: {
         type: Boolean,
-        default: false
-    }
+        default: false,
+    },
+    // ⚡️ Chỉnh lại kiểu để hiển thị 4 trạng thái:
+    isPreOrder: {
+        type: String,
+        enum: ["None", "Pre-Order", "Hết hàng", "Số lượng còn ít"],
+        default: "None",
+    },
 }, { timestamps: true });
 
 const Product = mongoose.model("Product", productSchema);

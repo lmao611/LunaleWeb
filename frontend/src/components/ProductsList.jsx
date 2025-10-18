@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Trash, Star, Settings } from "lucide-react";
+import { Trash, Star, Settings, Clock } from "lucide-react";
 import { useProductStore } from "../stores/useProductStore";
 import { useCollectionStore } from "../stores/useCollectionStore";
 import axios from "axios";
@@ -27,13 +27,13 @@ const EditProductModal = ({ product, collections, onClose }) => {
     description: "",
     productLink: "",
     collectionId: "",
+    isPreOrder: "none",
   });
   const [uploadingThumbIndex, setUploadingThumbIndex] = useState(null);
   const [uploadingMain, setUploadingMain] = useState(false);
 
   useEffect(() => {
     if (product) {
-      // tìm collection hiện tại của product
       const currentCol = collections.find((col) =>
         (col.products || []).some((p) => p._id === product._id)
       );
@@ -47,11 +47,11 @@ const EditProductModal = ({ product, collections, onClose }) => {
         description: product.description || "",
         productLink: product.productLink || "",
         collectionId: currentCol?._id || "",
+        isPreOrder: product.isPreOrder || "none",
       });
     }
   }, [product, collections]);
 
-  // ----- Upload ảnh chính -----
   const handleMainImageChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -76,11 +76,9 @@ const EditProductModal = ({ product, collections, onClose }) => {
     reader.readAsDataURL(file);
   };
 
-  // ----- Upload thumbnail -----
   const handleThumbnailChange = async (e, index) => {
     const file = e.target.files[0];
     if (!file) return;
-
     setUploadingThumbIndex(index);
 
     try {
@@ -106,22 +104,16 @@ const EditProductModal = ({ product, collections, onClose }) => {
     }
   };
 
-  const addThumbnail = () => {
-    setFormData({ ...formData, thumbnails: [...formData.thumbnails, ""] });
-  };
-
+  const addThumbnail = () => setFormData({ ...formData, thumbnails: [...formData.thumbnails, ""] });
   const removeThumbnail = (index) => {
     const newThumbs = formData.thumbnails.filter((_, i) => i !== index);
     setFormData({ ...formData, thumbnails: newThumbs });
   };
 
-  // ----- Lưu thay đổi -----
   const handleSave = async () => {
     try {
-      // 1️⃣ Cập nhật sản phẩm
       await updateProduct(product._id, formData);
 
-      // 2️⃣ Đồng bộ collection
       const oldCol = collections.find((col) =>
         (col.products || []).some((p) => p._id === product._id)
       );
@@ -145,13 +137,13 @@ const EditProductModal = ({ product, collections, onClose }) => {
   if (!product) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex justify-center items-start pt-20 z-50">
+    <div className="fixed inset-0 bg-black/50 flex justify-center items-start pt-10 sm:pt-20 z-50">
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white p-6 rounded-lg w-full max-w-lg shadow-xl space-y-4 overflow-y-auto max-h-[90vh]"
+        className="bg-white p-4 sm:p-6 rounded-lg w-full max-w-lg shadow-xl space-y-4 overflow-y-auto max-h-[95vh] sm:max-h-[90vh]"
       >
-        <h2 className="text-xl font-semibold mb-2">
+        <h2 className="text-lg sm:text-xl font-semibold mb-2 text-blue-800">
           ⚙️ Chỉnh sửa: {product.name}
         </h2>
 
@@ -160,25 +152,21 @@ const EditProductModal = ({ product, collections, onClose }) => {
           placeholder="Tên sản phẩm"
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          className="w-full border p-2 rounded"
+          className="w-full border p-2 rounded text-sm sm:text-base"
         />
 
         <input
           type="number"
           placeholder="Giá (VNĐ)"
           value={formData.price}
-          onChange={(e) =>
-            setFormData({ ...formData, price: Number(e.target.value) })
-          }
-          className="w-full border p-2 rounded"
+          onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
+          className="w-full border p-2 rounded text-sm sm:text-base"
         />
 
         <select
           value={formData.category}
-          onChange={(e) =>
-            setFormData({ ...formData, category: e.target.value })
-          }
-          className="w-full border p-2 rounded"
+          onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+          className="w-full border p-2 rounded text-sm sm:text-base"
         >
           <option value="">Chọn loại sản phẩm</option>
           {categories.map((cat) => (
@@ -190,10 +178,8 @@ const EditProductModal = ({ product, collections, onClose }) => {
 
         <select
           value={formData.collectionId}
-          onChange={(e) =>
-            setFormData({ ...formData, collectionId: e.target.value })
-          }
-          className="w-full border p-2 rounded"
+          onChange={(e) => setFormData({ ...formData, collectionId: e.target.value })}
+          className="w-full border p-2 rounded text-sm sm:text-base"
         >
           <option value="">Chọn bộ sưu tập</option>
           {collections.map((col) => (
@@ -206,10 +192,8 @@ const EditProductModal = ({ product, collections, onClose }) => {
         <textarea
           placeholder="Mô tả sản phẩm"
           value={formData.description}
-          onChange={(e) =>
-            setFormData({ ...formData, description: e.target.value })
-          }
-          className="w-full border p-2 rounded h-24 resize-none"
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          className="w-full border p-2 rounded h-24 resize-none text-sm sm:text-base"
         />
 
         {formData.category === "feedback" && (
@@ -217,45 +201,65 @@ const EditProductModal = ({ product, collections, onClose }) => {
             type="text"
             placeholder="Link sản phẩm (chỉ dành cho feedback)"
             value={formData.productLink}
-            onChange={(e) =>
-              setFormData({ ...formData, productLink: e.target.value })
-            }
-            className="w-full border p-2 rounded"
+            onChange={(e) => setFormData({ ...formData, productLink: e.target.value })}
+            className="w-full border p-2 rounded text-sm sm:text-base"
           />
         )}
 
+        {/* ✅ Hiển thị trạng thái Pre-Order */}
+        <div className="flex flex-col gap-1 mt-2">
+          <label className="text-sm font-medium">Trạng thái sản phẩm</label>
+          <div
+            onClick={() => {
+              const order = ["none", "preorder", "out", "low"];
+              const next = order[(order.indexOf(formData.isPreOrder) + 1) % order.length];
+              setFormData({ ...formData, isPreOrder: next });
+            }}
+            className={`cursor-pointer px-3 py-2 rounded text-center text-sm font-medium transition-all duration-200
+              ${
+                formData.isPreOrder === "preorder"
+                  ? "bg-purple-500 text-white"
+                  : formData.isPreOrder === "out"
+                  ? "bg-red-500 text-white"
+                  : formData.isPreOrder === "low"
+                  ? "bg-yellow-400 text-gray-900"
+                  : "bg-gray-200 text-gray-700"
+              }`}
+          >
+            {formData.isPreOrder === "none"
+              ? "None"
+              : formData.isPreOrder === "preorder"
+              ? "Pre-Order"
+              : formData.isPreOrder === "out"
+              ? "Hết hàng"
+              : "Số lượng còn ít"}
+          </div>
+        </div>
+
         {/* Ảnh chính */}
-        <div className="space-y-2">
-          <label className="block font-medium">Ảnh chính</label>
+        <div className="space-y-2 mt-2">
+          <label className="block font-medium text-sm sm:text-base">Ảnh chính</label>
           {formData.image && (
             <img
               src={formData.image}
               alt="preview"
-              className="w-full h-40 object-cover rounded"
+              className="w-full h-36 sm:h-40 object-cover rounded"
             />
           )}
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleMainImageChange}
-            disabled={uploadingMain}
-          />
+          <input type="file" accept="image/*" onChange={handleMainImageChange} disabled={uploadingMain} />
           {uploadingMain && <p className="text-sm text-gray-500">Đang upload...</p>}
         </div>
 
         {/* Thumbnails */}
         <div>
           <div className="flex justify-between items-center mb-2">
-            <span className="font-medium">Ảnh phụ</span>
-            <button
-              onClick={addThumbnail}
-              className="text-sm text-blue-600 hover:text-blue-400"
-            >
+            <span className="font-medium text-sm sm:text-base">Ảnh phụ</span>
+            <button onClick={addThumbnail} className="text-sm text-blue-600 hover:text-blue-400">
               + Thêm ảnh
             </button>
           </div>
           {formData.thumbnails.map((thumb, index) => (
-            <div key={index} className="flex gap-2 mb-2 items-center">
+            <div key={index} className="flex gap-2 mb-2 items-center flex-wrap">
               {thumb && (
                 <img
                   src={thumb}
@@ -269,10 +273,7 @@ const EditProductModal = ({ product, collections, onClose }) => {
                 onChange={(e) => handleThumbnailChange(e, index)}
                 disabled={uploadingThumbIndex === index}
               />
-              <button
-                onClick={() => removeThumbnail(index)}
-                className="text-red-500 hover:text-red-400"
-              >
+              <button onClick={() => removeThumbnail(index)} className="text-red-500 hover:text-red-400">
                 <Trash className="w-5 h-5" />
               </button>
               {uploadingThumbIndex === index && (
@@ -282,16 +283,13 @@ const EditProductModal = ({ product, collections, onClose }) => {
           ))}
         </div>
 
-        <div className="flex justify-end gap-2 pt-2">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
-          >
+        <div className="flex flex-col sm:flex-row justify-end gap-2 pt-2">
+          <button onClick={onClose} className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 w-full sm:w-auto">
             Hủy
           </button>
           <button
             onClick={handleSave}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 w-full sm:w-auto"
           >
             Lưu thay đổi
           </button>
@@ -301,9 +299,9 @@ const EditProductModal = ({ product, collections, onClose }) => {
   );
 };
 
-// ----- Component danh sách sản phẩm chính -----
+// ----- Component danh sách sản phẩm -----
 const ProductsList = () => {
-  const { products, deleteProduct, toggleFeaturedProduct } = useProductStore();
+  const { products, deleteProduct, toggleFeaturedProduct, updateProduct } = useProductStore();
   const { collections, fetchCollections, removeProductFromCollection } = useCollectionStore();
 
   const [deletingId, setDeletingId] = useState(null);
@@ -327,6 +325,17 @@ const ProductsList = () => {
       console.error("❌ Xóa thất bại:", err);
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  // ✅ Xử lý xoay trạng thái Pre-order
+  const handleTogglePreorder = async (product) => {
+    const order = ["none", "preorder", "out", "low"];
+    const next = order[(order.indexOf(product.isPreOrder) + 1) % order.length];
+    try {
+      await updateProduct(product._id, { ...product, isPreOrder: next });
+    } catch (err) {
+      console.error("❌ Toggle preorder failed:", err);
     }
   };
 
@@ -358,102 +367,183 @@ const ProductsList = () => {
         transition={{ duration: 0.8 }}
       >
         {/* Xóa tất cả */}
-        <div className="flex justify-end px-6 pt-2">
+        <div className="flex justify-end px-4 sm:px-6 pt-2">
           <button
             onClick={handleDeleteAll}
             disabled={deletingAll || products.length === 0}
-            className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2
-              ${
-                deletingAll || products.length === 0
-                  ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                  : "bg-red-600 text-white hover:bg-red-700 active:scale-95 transition-all duration-150"
-              }`}
+            className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 ${
+              deletingAll || products.length === 0
+                ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                : "bg-red-600 text-white hover:bg-red-700 active:scale-95 transition-all duration-150"
+            }`}
           >
             <Trash className="h-4 w-4" />
             {deletingAll ? "Đang xóa..." : "Xóa tất cả"}
           </button>
         </div>
 
-        {/* Danh sách sản phẩm */}
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-blue-900">
-            <tr>
-              {["Sản phẩm", "Giá", "Loại", "Nổi bật", "Bộ sưu tầm", "Hành động"].map((col) => (
-                <th
-                  key={col}
-                  className="px-6 py-3 text-left text-xs font-semibold text-white uppercase"
-                >
-                  {col}
-                </th>
-              ))}
-            </tr>
-          </thead>
+        {/* Bảng desktop */}
+        <div className="hidden md:block">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-blue-900">
+              <tr>
+                {["Sản phẩm", "Giá", "Loại", "Nổi bật", "Trạng thái", "Bộ sưu tập", "Hành động"].map((col) => (
+                  <th key={col} className="px-6 py-3 text-left text-xs font-semibold text-white uppercase">
+                    {col}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {products?.map((product) => {
+                const col = findCollectionByProductId(product._id);
+                const categoryLabel =
+                  categories.find((c) => c.id === product.category)?.label || product.category;
 
-          <tbody className="bg-white divide-y divide-gray-200">
-            {products?.map((product) => {
-              const col = findCollectionByProductId(product._id);
-              const categoryLabel =
-                categories.find((c) => c.id === product.category)?.label ||
-                product.category;
-              return (
-                <tr key={product._id} className="hover:bg-blue-50 transition-colors duration-200">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <img
-                        className="h-10 w-10 rounded-full object-cover border"
-                        src={product.image}
-                        alt={product.name}
-                      />
-                      <div className="ml-4 text-sm font-medium text-gray-900">
-                        {product.name}
+                const statusColor =
+                  product.isPreOrder === "preorder"
+                    ? "bg-purple-500 text-white"
+                    : product.isPreOrder === "out"
+                    ? "bg-red-500 text-white"
+                    : product.isPreOrder === "low"
+                    ? "bg-yellow-400 text-gray-900"
+                    : "bg-gray-200 text-gray-700";
+
+                const statusLabel =
+                  product.isPreOrder === "preorder"
+                    ? "Pre-Order"
+                    : product.isPreOrder === "out"
+                    ? "Hết hàng"
+                    : product.isPreOrder === "low"
+                    ? "Số lượng còn ít"
+                    : "None";
+
+                return (
+                  <tr key={product._id} className="hover:bg-blue-50 transition-colors duration-200">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <img
+                          className="h-10 w-10 rounded-full object-cover border"
+                          src={product.image}
+                          alt={product.name}
+                        />
+                        <div className="ml-4 text-sm font-medium text-gray-900">{product.name}</div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {product.price.toLocaleString()} ₫
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">{categoryLabel}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <button
-                      onClick={() => toggleFeaturedProduct(product._id)}
-                      className={`p-1 rounded-full ${
-                        product.isFeatured
-                          ? "bg-yellow-400 text-gray-900"
-                          : "bg-gray-200 text-gray-500"
-                      } hover:scale-105 transition-transform`}
-                    >
-                      <Star className="h-5 w-5" />
-                    </button>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {col ? col.name : "—"}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap flex gap-3 text-sm font-medium">
-                    <button
-                      onClick={() => setEditingProduct(product)}
-                      className="text-gray-700 hover:text-blue-600"
-                    >
-                      <Settings className="h-5 w-5" />
-                    </button>
-                    {deletingId === product._id ? (
-                      <span className="text-gray-400 italic">Đang xóa...</span>
-                    ) : (
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">{product.price.toLocaleString()} ₫</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{categoryLabel}</td>
+
+                    {/* Nổi bật */}
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <button
-                        onClick={() => handleDelete(product._id)}
-                        className="text-red-500 hover:text-red-400"
+                        onClick={() => toggleFeaturedProduct(product._id)}
+                        className={`p-1 rounded-full ${
+                          product.isFeatured
+                            ? "bg-yellow-400 text-gray-900"
+                            : "bg-gray-200 text-gray-500"
+                        } hover:scale-105 transition-transform`}
                       >
-                        <Trash className="h-5 w-5" />
+                        <Star className="h-5 w-5" />
                       </button>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                    </td>
+
+                    {/* ✅ Nút Trạng thái */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <button
+                        onClick={() => handleTogglePreorder(product)}
+                        className={`px-3 py-1 rounded text-xs font-medium ${statusColor}`}
+                      >
+                        {statusLabel}
+                      </button>
+                    </td>
+
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      {col ? col.name : "—"}
+                    </td>
+
+                    <td className="px-6 py-4 whitespace-nowrap flex gap-3 text-sm font-medium">
+                      <button onClick={() => setEditingProduct(product)} className="text-gray-700 hover:text-blue-600">
+                        <Settings className="h-5 w-5" />
+                      </button>
+                      {deletingId === product._id ? (
+                        <span className="text-gray-400 italic">Đang xóa...</span>
+                      ) : (
+                        <button onClick={() => handleDelete(product._id)} className="text-red-500 hover:text-red-400">
+                          <Trash className="h-5 w-5" />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Card layout mobile giữ nguyên như cũ, thêm màu trạng thái */}
+        <div className="md:hidden grid gap-4 p-4">
+          {products.map((p) => {
+            const col = findCollectionByProductId(p._id);
+            const cat = categories.find((c) => c.id === p.category)?.label || p.category;
+
+            const statusColor =
+              p.isPreOrder === "preorder"
+                ? "bg-purple-500 text-white"
+                : p.isPreOrder === "out"
+                ? "bg-red-500 text-white"
+                : p.isPreOrder === "low"
+                ? "bg-yellow-400 text-gray-900"
+                : "bg-gray-200 text-gray-700";
+
+            const statusLabel =
+              p.isPreOrder === "preorder"
+                ? "Pre-Order"
+                : p.isPreOrder === "out"
+                ? "Hết hàng"
+                : p.isPreOrder === "low"
+                ? "Số lượng còn ít"
+                : "None";
+
+            return (
+              <div
+                key={p._id}
+                className="border rounded-lg p-3 flex flex-col sm:flex-row sm:items-center gap-3 shadow-sm bg-white"
+              >
+                <img src={p.image} alt={p.name} className="w-full sm:w-24 h-40 sm:h-24 object-cover rounded" />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-base text-gray-800">{p.name}</h3>
+                  <p className="text-sm text-gray-500">{cat}</p>
+                  <p className="text-blue-700 font-semibold">{p.price.toLocaleString()} ₫</p>
+                  <p className="text-xs text-gray-400">{col ? col.name : "—"}</p>
+                  <button
+                    onClick={() => handleTogglePreorder(p)}
+                    className={`mt-1 px-2 py-1 rounded text-xs font-medium ${statusColor}`}
+                  >
+                    {statusLabel}
+                  </button>
+                </div>
+                <div className="flex justify-between sm:flex-col gap-3 mt-2 sm:mt-0">
+                  <button
+                    onClick={() => toggleFeaturedProduct(p._id)}
+                    className={`p-2 rounded-full ${
+                      p.isFeatured ? "bg-yellow-400 text-gray-900" : "bg-gray-200 text-gray-500"
+                    }`}
+                  >
+                    <Star className="h-5 w-5" />
+                  </button>
+                  <button onClick={() => setEditingProduct(p)} className="p-2 bg-blue-100 text-blue-600 rounded-full">
+                    <Settings className="h-5 w-5" />
+                  </button>
+                  <button onClick={() => handleDelete(p._id)} className="p-2 bg-red-100 text-red-500 rounded-full">
+                    {deletingId === p._id ? "…" : <Trash className="h-5 w-5" />}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </motion.div>
 
-      {/* Modal chỉnh sửa */}
       {editingProduct && (
         <EditProductModal
           product={editingProduct}

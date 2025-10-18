@@ -103,6 +103,30 @@ export const useProductStore = create((set, get) => ({
     }
   },
 
+  // 🟣 Toggle Pre-order (Đặt trước)
+  togglePreOrderProduct: async (productId, newState) => {
+    set({ loading: true });
+    try {
+      const res = await axios.put(`/products/${productId}`, { isPreOrder: newState });
+      const updated =
+        res.data.product && typeof res.data.product === "object"
+          ? res.data.product
+          : res.data;
+
+      set((state) => ({
+        products: state.products.map((p) =>
+          p._id === productId ? { ...p, ...updated } : p
+        ),
+        loading: false,
+      }));
+      toast.success("Đã cập nhật trạng thái Pre-order!");
+    } catch (error) {
+      console.error("❌ togglePreOrderProduct error:", error);
+      set({ loading: false });
+      toast.error(error.response?.data?.error || "Không thể cập nhật Pre-order");
+    }
+  },
+
   // 🟢 Cập nhật sản phẩm
   updateProduct: async (productId, updatedData) => {
     set({ loading: true });

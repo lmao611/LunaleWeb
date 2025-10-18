@@ -77,7 +77,7 @@ export const getFeaturedProducts = async (req, res) => {
 // -------------------- Create product --------------------
 export const createProduct = async (req, res) => {
   try {
-    const { name, description, price, image, category, thumbnails, productLink } = req.body;
+    const { name, description, price, image, category, thumbnails, productLink, isPreOrder } = req.body;
 
     let mainImageUrl = "";
     let thumbnailUrls = [];
@@ -104,6 +104,7 @@ export const createProduct = async (req, res) => {
       category,
       image: mainImageUrl,
       thumbnails: thumbnailUrls,
+      isPreOrder: isPreOrder || "None", // ✅ lưu đúng giá trị chuỗi
       ...(category === "feedback" && { productLink }),
     };
 
@@ -120,7 +121,7 @@ export const createProduct = async (req, res) => {
 export const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, price, category, image, thumbnails, productLink } = req.body;
+    const { name, description, price, category, image, thumbnails, productLink, isPreOrder } = req.body;
 
     const product = await Product.findById(id);
     if (!product) return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
@@ -172,6 +173,7 @@ export const updateProduct = async (req, res) => {
         image: newImage,
         thumbnails: finalThumbnails,
         productLink,
+        isPreOrder: isPreOrder || "None", // ✅ cập nhật đúng giá trị chuỗi
       },
       { new: true }
     );
@@ -225,6 +227,28 @@ export const toggleFeaturedProduct = async (req, res) => {
   }
 };
 
+// -------------------- Toggle Pre-order --------------------
+// ⚡️ Giờ dùng để luân chuyển giữa 4 trạng thái
+export const togglePreOrderProduct = async (req, res) => {
+  try {
+    const { status } = req.body; // gửi lên "None" | "Pre-Order" | "Hết hàng" | "Số lượng còn ít"
+    const product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).json({ message: "Product not found" });
+
+    if (!["None", "Pre-Order", "Hết hàng", "Số lượng còn ít"].includes(status)) {
+      return res.status(400).json({ message: "Trạng thái không hợp lệ" });
+    }
+
+    product.isPreOrder = status;
+    const updatedProduct = await product.save();
+
+    res.json(updatedProduct);
+  } catch (error) {
+    console.log("Error in togglePreOrderProduct ctrler", error.message);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 // -------------------- Get products by category --------------------
 export const getProductsByCategory = async (req, res) => {
   try {
@@ -245,9 +269,25 @@ export const getRecommendedProducts = async (req, res) => {
     const excluded = excludeIds.map((id) => new mongoose.Types.ObjectId(id));
 
     const products = await Product.aggregate([
-      { $match: { _id: { $nin: excluded } } },
+      {
+        $match: {
+          _id: { $nin: excluded },
+          category: { $ne: "feedback" },
+        },
+      },
       { $sample: { size: 8 } },
-      { $project: { _id: 1, name: 1, description: 1, image: 1, thumbnails: 1, price: 1 } },
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          description: 1,
+          image: 1,
+          thumbnails: 1,
+          price: 1,
+          category: 1,
+          isPreOrder: 1,
+        },
+      },
     ]);
 
     res.json(products);

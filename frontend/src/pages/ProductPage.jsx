@@ -14,7 +14,6 @@ import {
   Instagram,
 } from "lucide-react";
 import PeopleAlsoBought from "../components/PeopleAlsoBought";
-import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { useUserStore } from "../stores/useUserStore";
 
@@ -26,14 +25,12 @@ const ProductDetailPage = () => {
 
   const [rate, setRate] = useState(null);
   const [mainImage, setMainImage] = useState(null);
-  const [zoomImage, setZoomImage] = useState(null);
   const [isImageLoading, setIsImageLoading] = useState(false);
   const [startIndex, setStartIndex] = useState(0);
   const [showContactModal, setShowContactModal] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [size, setSize] = useState("M");
   const visibleCount = 3;
-  const [sliderValue, setSliderValue] = useState(1);
 
   useEffect(() => {
     fetchProductById(id);
@@ -112,7 +109,6 @@ const ProductDetailPage = () => {
 - Số lượng: ${quantity}
 Tôi muốn mua sản phẩm này.`;
 
-    // Sao chép nội dung để người dùng dán vào nếu cần
     navigator.clipboard
       .writeText(message)
       .then(() =>
@@ -120,7 +116,6 @@ Tôi muốn mua sản phẩm này.`;
       )
       .catch(() => toast.error("Không thể sao chép nội dung!"));
 
-    // Mở Messenger app hoặc web
     if (isMobile) {
       window.location.href = `fb://messaging/${fbPage}`;
       setTimeout(() => {
@@ -148,7 +143,6 @@ Tôi muốn mua sản phẩm này.`;
               alt={selectedProduct.name}
               onLoad={() => setIsImageLoading(false)}
               onError={(e) => (e.target.src = fallbackImage)}
-              onClick={() => setZoomImage(mainImage || fallbackImage)}
               className={`absolute inset-0 w-full h-full object-cover cursor-pointer transition-all duration-500 ease-in-out ${
                 isImageLoading
                   ? "opacity-0 scale-105"
@@ -169,42 +163,40 @@ Tôi muốn mua sản phẩm này.`;
                 </button>
               )}
               <div className="flex gap-3 justify-center items-center overflow-visible relative w-full">
-                <AnimatePresence initial={false} mode="popLayout">
-                  <motion.div
-                    key={startIndex}
-                    initial={{ x: 50, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    exit={{ x: -50, opacity: 0 }}
-                    transition={{ duration: 0.4, ease: "easeInOut" }}
-                    className="flex gap-3"
-                  >
-                    {visibleThumbnails.map((thumb, index) => (
-                      <div
-                        key={index + startIndex}
-                        className="relative flex-shrink-0 overflow-visible"
-                      >
-                        <motion.img
-                          src={thumb || fallbackImage}
-                          alt={`thumb-${index}`}
-                          onClick={() => {
-                            if (thumb !== mainImage) {
-                              setIsImageLoading(true);
-                              setMainImage(thumb);
-                            }
-                          }}
-                          onError={(e) => (e.target.src = fallbackImage)}
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.97 }}
-                          className={`w-[116px] h-[140px] object-cover rounded-md cursor-pointer border-2 transition-all duration-300 ${
-                            mainImage === thumb
-                              ? "border-gray-900 scale-110 shadow-md z-10"
-                              : "border-gray-200 hover:border-gray-500"
-                          }`}
-                        />
-                      </div>
-                    ))}
-                  </motion.div>
-                </AnimatePresence>
+                <motion.div
+                  key={startIndex}
+                  initial={{ x: 50, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  exit={{ x: -50, opacity: 0 }}
+                  transition={{ duration: 0.4, ease: "easeInOut" }}
+                  className="flex gap-3"
+                >
+                  {visibleThumbnails.map((thumb, index) => (
+                    <div
+                      key={index + startIndex}
+                      className="relative flex-shrink-0 overflow-visible"
+                    >
+                      <motion.img
+                        src={thumb || fallbackImage}
+                        alt={`thumb-${index}`}
+                        onClick={() => {
+                          if (thumb !== mainImage) {
+                            setIsImageLoading(true);
+                            setMainImage(thumb);
+                          }
+                        }}
+                        onError={(e) => (e.target.src = fallbackImage)}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.97 }}
+                        className={`w-[116px] h-[140px] object-cover rounded-md cursor-pointer border-2 transition-all duration-300 ${
+                          mainImage === thumb
+                            ? "border-gray-900 scale-110 shadow-md z-10"
+                            : "border-gray-200 hover:border-gray-500"
+                        }`}
+                      />
+                    </div>
+                  ))}
+                </motion.div>
               </div>
               {canScroll &&
                 startIndex + visibleCount < allThumbnails.length && (
@@ -268,9 +260,13 @@ Tôi muốn mua sản phẩm này.`;
         </div>
       </div>
 
+      {/* ✅ Chặn “feedback” trong PeopleAlsoBought */}
       {selectedProduct && (
         <div className="mt-16">
-          <PeopleAlsoBought excludeIds={[id, ...cart.map((item) => item._id)]} />
+          <PeopleAlsoBought
+            excludeIds={[id, ...cart.map((item) => item._id)]}
+            filterFn={(p) => (p.category || "").toLowerCase() !== "feedback"}
+          />
         </div>
       )}
 
