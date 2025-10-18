@@ -158,14 +158,29 @@ const Navbar = () => {
               {user && (
                 <Link
                   to="/cart"
-                  className={`relative group transition flex items-end ${
+                  className={`relative group transition flex items-end mb-1.5 ${
                     isHome && !isScrolled
                       ? "text-white hover:text-gray-200"
                       : "text-black hover:text-blue-700"
                   }`}
                 >
-                  <ShoppingCart className="inline-block mr-1" size={18} />
-                  <span className="hidden sm:inline">Giỏ Hàng</span>
+                  {/* ✅ Icon giỏ hàng mới (SVG tối giản) */}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="inline-block mr-1 w-[18px] h-[18px]"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1.293 2.293a1 1 0 00.707 1.707H17m-6 4a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2z"
+                    />
+                  </svg>
+
+                  <span className="hidden sm:inline pt-1 ">Giỏ Hàng</span>
                   {cart.length > 0 && (
                     <span className="absolute -top-2 -left-3 bg-blue-600 text-white rounded-full px-2 py-0.5 text-xs">
                       {cart.length}

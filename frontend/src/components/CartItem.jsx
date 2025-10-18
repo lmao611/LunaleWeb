@@ -28,7 +28,7 @@ const CartItem = ({ item }) => {
 
   let vndDisplay = "";
   if (rate != null) {
-    const raw = item.price * rate * item.quantity;
+    const raw = item.price * item.quantity;
     const rounded = Math.floor(raw / 1000) * 1000; 
     vndDisplay = rounded.toLocaleString("vi-VN") + " ₫";
   }
@@ -54,7 +54,7 @@ const CartItem = ({ item }) => {
 
         <div className="flex-1 space-y-2">
           <p className="text-base font-medium text-gray-800">{item.name}</p>
-          <p className="text-sm text-gray-500">{item.description}</p>
+          
           <button
             className="inline-flex items-center text-sm font-medium text-red-500 
              hover:text-red-700 hover:underline"
@@ -92,12 +92,10 @@ const CartItem = ({ item }) => {
           </div>
 
 
-          <p className="text-base font-bold text-blue-700">
-            ${(item.price * item.quantity).toFixed(2)}
+          <p className="text-base font-bold text-black">
+            {vndDisplay}
           </p>
-          {vndDisplay && (
-            <p className="text-sm text-gray-500">{vndDisplay}</p>
-          )}
+          
         </div>
       </div>
     </div>

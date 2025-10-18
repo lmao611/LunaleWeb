@@ -13,36 +13,42 @@ const PeopleAlsoBought = ({ excludeIds = [] }) => {
     let isMounted = true;
 
     const fetchRecommendations = async () => {
-      setIsLoading(true);
-      try {
-        const res = await axios.get(
-          `/products/recommendations?excludeIds=${excludeIds.join(",")}`
-        );
+  setIsLoading(true);
+  try {
+    const res = await axios.get(
+      `/products/recommendations?excludeIds=${excludeIds.join(",")}`
+    );
 
-        let products = res.data;
+    let products = res.data;
 
-        if (products.length < 8) {
-          const allRes = await axios.get("/products");
-          const extra = allRes.data.products
-            .filter(
-              (p) =>
-                !excludeIds.includes(p._id) &&
-                !products.find((prod) => prod._id === p._id)
-            )
-            .sort(() => Math.random() - 0.5)
-            .slice(0, 8 - products.length);
+    // 🧹 Lọc bỏ sản phẩm feedback
+    products = products.filter(
+      (p) => p.category?.toLowerCase() !== "feedback"
+    );
 
-          products = [...products, ...extra];
-        }
+    if (products.length < 8) {
+      const allRes = await axios.get("/products");
+      const extra = allRes.data.products
+        .filter(
+          (p) =>
+            !excludeIds.includes(p._id) &&
+            !products.find((prod) => prod._id === p._id) &&
+            p.category?.toLowerCase() !== "feedback" // 🔥 tránh feedback ở đây luôn
+        )
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 8 - products.length);
 
-        if (isMounted) setRecommendations(products.slice(0, 8));
-      } catch (error) {
-        // Không báo lỗi, chỉ để recommendations rỗng
-        if (isMounted) setRecommendations([]);
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
-    };
+      products = [...products, ...extra];
+    }
+
+    if (isMounted) setRecommendations(products.slice(0, 8));
+  } catch (error) {
+    if (isMounted) setRecommendations([]);
+  } finally {
+    if (isMounted) setIsLoading(false);
+  }
+};
+
 
     if (productId) {
       fetchRecommendations();

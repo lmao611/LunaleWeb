@@ -37,6 +37,7 @@ const CategoryPage = () => {
     shirt: "Áo Nữ",
     skirt: "Chân Váy",
     set: "Đồ Bộ",
+    feedback:"Feedback"
   };
   const displayTitle =
     categoryTitles[category] ||

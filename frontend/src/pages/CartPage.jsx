@@ -36,7 +36,7 @@ const CartPage = () => {
 
   let totalVND = null;
   if (rate != null) {
-    const raw = totalUSD * rate;
+    const raw = totalUSD;
     totalVND = Math.floor(raw / 1000) * 1000; 
   }
 
@@ -88,10 +88,7 @@ const CartPage = () => {
                       <span className="font-medium">{totalItems} items</span>
                     </div>
                     <div className="flex justify-between mb-2">
-                      <span className="text-gray-600">Tổng cộng (USD):</span>
-                      <span className="font-bold text-blue-700">
-                        ${totalUSD.toFixed(2)}
-                      </span>
+                      
                     </div>
                     {totalVND && (
                       <div className="flex justify-between mb-4">
