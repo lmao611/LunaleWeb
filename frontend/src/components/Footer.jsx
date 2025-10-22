@@ -1,6 +1,7 @@
 import { Facebook, Instagram } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { SiTiktok, SiShopee } from "react-icons/si"; // ✅ Thêm icon TikTok & Shopee
 
 const Footer = () => {
   const location = useLocation();
@@ -8,10 +9,8 @@ const Footer = () => {
 
   const handleLogoClick = () => {
     if (location.pathname === "/") {
-      // Nếu đang ở trang home → cuộn lên đầu
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
-      // Nếu ở trang khác → điều hướng về home
       navigate("/");
     }
   };
@@ -27,24 +26,65 @@ const Footer = () => {
 
           <h2 className="text-3xl font-bold mb-4">Theo dõi chúng tôi</h2>
           <div className="flex gap-4 mt-4">
+            {/* Facebook */}
             <motion.a
               href="https://www.facebook.com/Lunale.vn"
               whileHover={{ scale: 1.15 }}
-              className="p-3 bg-blue-800 rounded-lg transition-colors hover:bg-white group"
+              className="p-3 bg-white rounded-lg transition-colors hover:bg-blue-600 group"
             >
               <Facebook
                 size={24}
-                className="text-white group-hover:text-blue-600 transition"
+                className="text-black group-hover:text-white transition"
               />
             </motion.a>
+
+            {/* Instagram */}
             <motion.a
               href="https://www.instagram.com/lunale.official/"
               whileHover={{ scale: 1.15 }}
-              className="p-3 bg-blue-800 rounded-lg transition-colors hover:bg-white group"
+              className="p-3 rounded-lg transition-all duration-300 bg-white group relative overflow-hidden"
             >
+              <span
+                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                style={{
+                  background:
+                    "linear-gradient(to top right, #0070f3, #ec4899, #facc15)",
+                }}
+              />
               <Instagram
                 size={24}
-                className="text-white group-hover:text-pink-500 transition"
+                className="relative z-10 text-black group-hover:text-white transition-colors duration-300"
+              />
+            </motion.a>
+
+            {/* TikTok */}
+            <motion.a
+              href="https://www.tiktok.com/@lunaleofficial?_t=ZS-90gHFx4MrJf&_r=1"
+              whileHover={{ scale: 1.15 }}
+              className="p-3 rounded-lg bg-white group relative overflow-hidden transition-all duration-300"
+            >
+              <span
+                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                style={{
+                  background:
+                    "linear-gradient(to top right, #000000, #333333, #ff0050)",
+                }}
+              />
+              <SiTiktok
+                size={22}
+                className="relative z-10 text-black group-hover:text-white transition-colors duration-300"
+              />
+            </motion.a>
+
+            {/* Shopee */}
+            <motion.a
+              href="https://shopee.vn/lunaleshop"
+              whileHover={{ scale: 1.15 }}
+              className="p-3 rounded-lg bg-white hover:bg-amber-500 group relative overflow-hidden transition-all duration-300"
+            >
+              <SiShopee
+                size={22}
+                className="relative z-10 text-black group-hover:text-white transition-colors duration-300"
               />
             </motion.a>
           </div>
@@ -89,7 +129,7 @@ const Footer = () => {
           </ul>
         </div>
 
-        {/* Logo bên phải → scroll lên đầu nếu đang ở home */}
+        {/* Logo bên phải */}
         <div className="flex justify-start md:justify-end">
           <button
             onClick={handleLogoClick}

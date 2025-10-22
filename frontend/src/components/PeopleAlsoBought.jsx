@@ -77,19 +77,21 @@ const PeopleAlsoBought = ({ excludeIds = [] }) => {
 
   return (
     <div className="mt-8">
-      <h3 className="text-2xl font-semibold text-blue-800">
+      <h3 className="text-2xl font-semibold text-blue-800 text-center">
         People also bought
       </h3>
-      <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-12">
-        {recommendations.map((product) => (
-          <ProductCard
-            key={product._id}
-            product={{
-              ...product,
-              image: product.image || "/placeholder.png",
-            }}
-          />
-        ))}
+      <div className="mt-6 flex justify-center">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-12">
+          {recommendations.map((product) => (
+            <ProductCard
+              key={product._id}
+              product={{
+                ...product,
+                image: product.image || "/placeholder.png",
+              }}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );

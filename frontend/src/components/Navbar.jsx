@@ -1,4 +1,4 @@
-import { ShoppingCart, UserPlus, LogIn, LogOut, Lock, Home } from "lucide-react";
+import { ShoppingCart, UserPlus, LogIn, LogOut, Lock, Home, User,X } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useUserStore } from "../stores/useUserStore";
 import { useCartStore } from "../stores/useCartStore";
@@ -6,16 +6,22 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
 const Navbar = () => {
-  const { user, logout } = useUserStore();
+  const user = useUserStore((state) => state.user);
+
+  const { logout } = useUserStore();
   const { cart } = useCartStore();
   const isAdmin = user?.role === "admin";
   const location = useLocation();
   const navigate = useNavigate();
   const isHome = location.pathname === "/";
-
+  const [editName, setEditName] = useState(user?.name || "");
+const [editEmail, setEditEmail] = useState(user?.email || "");
+const [editPhone, setEditPhone] = useState(user?.phoneNumber || "");
+const [editDirection, setEditDirection] = useState(user?.direction || "");
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
-
+  const [showUserBox, setShowUserBox] = useState(false);
+  const setUser = useUserStore((state) => state.setUser);
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 640);
     window.addEventListener("resize", handleResize);
@@ -43,7 +49,35 @@ const Navbar = () => {
       }, 300);
     }
   };
+  const handleUpdateProfile = async () => {
+  try {
+    const res = await fetch("/api/auth/profile", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({
+        name: editName,
+        email: editEmail,
+        phoneNumber: editPhone,
+        direction: editDirection,
+      }),
+    });
 
+    const data = await res.json();
+    if (res.ok) {
+      setUser(data); // ✅ updates Zustand store
+      setShowUserBox(false);
+      alert("Thông tin đã được cập nhật");
+    } else {
+      alert(data.message || "Lỗi cập nhật");
+    }
+  } catch (err) {
+    console.error("Update error:", err);
+    alert("Lỗi máy chủ");
+  }
+};
   return (
     <>
       {/* ✅ Logo */}
@@ -154,7 +188,26 @@ const Navbar = () => {
               >
                 <Home size={22} strokeWidth={2.2} />
               </Link>
+              {user && (
+  <div className="relative">
+    <button
+      onClick={() => setShowUserBox(true)}
+      className={`transition flex items-end mb-1.5 ${
+        isHome && !isScrolled
+          ? "text-white hover:text-gray-200"
+          : "text-black hover:text-blue-700"
+      }`}
+      title="Thông Tin Cá Nhân"
+    >
+      <User size={20} />
+    </button>
 
+    {/* 🔴 Red dot if phone or direction is missing */}
+    {(!user.phoneNumber || !user.direction) && (
+      <span className="absolute -top-1 -left-1 w-2.5 h-2.5 bg-red-600 rounded-full border border-white" />
+    )}
+  </div>
+)}
               {user && (
                 <Link
                   to="/cart"
@@ -229,6 +282,62 @@ const Navbar = () => {
           </div>
         </div>
       </motion.header>
+      {showUserBox && user && (
+  <div className="fixed inset-0 z-[999] bg-white flex flex-col items-center justify-center text-center px-6">
+    <button
+      onClick={() => setShowUserBox(false)}
+      className="absolute top-4 right-4 text-gray-600 hover:text-black"
+    >
+      <X size={28} />
+    </button>
+    <h2 className="text-2xl font-bold mb-6">Thông Tin Cá Nhân</h2>
+    <div className="text-lg space-y-4">
+      <div className="text-left space-y-4 w-full max-w-md">
+  <label className="block">
+    <span className="text-sm font-semibold">Họ Tên:</span>
+    <input
+      type="text"
+      value={editName}
+      onChange={(e) => setEditName(e.target.value)}
+      className="w-full mt-1 border px-3 py-2 rounded"
+    />
+  </label>
+  <label className="block">
+    <span className="text-sm font-semibold">Email:</span>
+    <input
+      type="email"
+      value={editEmail}
+      onChange={(e) => setEditEmail(e.target.value)}
+      className="w-full mt-1 border px-3 py-2 rounded"
+    />
+  </label>
+  <label className="block">
+    <span className="text-sm font-semibold">Số Điện Thoại:</span>
+    <input
+      type="text"
+      value={editPhone}
+      onChange={(e) => setEditPhone(e.target.value)}
+      className="w-full mt-1 border px-3 py-2 rounded"
+    />
+  </label>
+  <label className="block">
+    <span className="text-sm font-semibold">Địa Chỉ:</span>
+    <textarea
+      value={editDirection}
+      onChange={(e) => setEditDirection(e.target.value)}
+      className="w-full mt-1 border px-3 py-2 rounded"
+    />
+  </label>
+</div>
+      <button
+  onClick={handleUpdateProfile}
+  className="mt-6 bg-blue-600 text-white px-4 py-2 rounded"
+>
+  Cập Nhật Thông Tin
+</button>
+    </div>
+  </div>
+)}
     </>
   );
 };
