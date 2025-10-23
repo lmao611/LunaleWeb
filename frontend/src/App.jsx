@@ -14,7 +14,7 @@ import CartPage from "./pages/CartPage";
 import ProductPage from "./pages/ProductPage";
 import { useCartStore } from "./stores/useCartStore";
 import CollectionDetailPage from "./pages/CollectionDetailPage";
-
+import PolicyPage from "./components/PolicyPage";
 function App() {
   const { user, checkAuth, checkingAuth } = useUserStore();
   const { getCartItems } = useCartStore();
@@ -60,6 +60,7 @@ function App() {
           />
           <Route path="/product/:id" element={<ProductPage />} />
           <Route path="/collection/:id" element={<CollectionDetailPage />} />
+          <Route path="/policy" element={<PolicyPage/>} />
         </Routes>
       </div>
 

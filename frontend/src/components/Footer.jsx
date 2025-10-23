@@ -1,7 +1,7 @@
 import { Facebook, Instagram } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { SiTiktok, SiShopee } from "react-icons/si"; // ✅ Thêm icon TikTok & Shopee
+import { SiTiktok, SiShopee } from "react-icons/si";
 
 const Footer = () => {
   const location = useLocation();
@@ -18,7 +18,6 @@ const Footer = () => {
   return (
     <footer className="bg-gradient-to-r from-black to-black text-white py-14 mt-20">
       <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-10">
-        {/* Thông tin liên hệ bên trái */}
         <div className="space-y-3 text-left">
           <h2 className="text-3xl font-bold mb-4">Thông tin liên hệ</h2>
           <p className="text-base opacity-90">Email: example@gmail.com</p>
@@ -26,7 +25,6 @@ const Footer = () => {
 
           <h2 className="text-3xl font-bold mb-4">Theo dõi chúng tôi</h2>
           <div className="flex gap-4 mt-4">
-            {/* Facebook */}
             <motion.a
               href="https://www.facebook.com/Lunale.vn"
               whileHover={{ scale: 1.15 }}
@@ -38,7 +36,6 @@ const Footer = () => {
               />
             </motion.a>
 
-            {/* Instagram */}
             <motion.a
               href="https://www.instagram.com/lunale.official/"
               whileHover={{ scale: 1.15 }}
@@ -57,7 +54,6 @@ const Footer = () => {
               />
             </motion.a>
 
-            {/* TikTok */}
             <motion.a
               href="https://www.tiktok.com/@lunaleofficial?_t=ZS-90gHFx4MrJf&_r=1"
               whileHover={{ scale: 1.15 }}
@@ -76,7 +72,6 @@ const Footer = () => {
               />
             </motion.a>
 
-            {/* Shopee */}
             <motion.a
               href="https://shopee.vn/lunaleshop"
               whileHover={{ scale: 1.15 }}
@@ -90,7 +85,6 @@ const Footer = () => {
           </div>
         </div>
 
-        {/* Các trang (ở giữa) */}
         <div className="space-y-3 text-left">
           <h2 className="text-3xl font-bold mb-4">Các trang</h2>
           <ul className="space-y-2">
@@ -127,9 +121,44 @@ const Footer = () => {
               </Link>
             </li>
           </ul>
+
+          <h2 className="text-3xl font-bold mt-8 mb-4">Chính sách</h2>
+          <ul className="space-y-2">
+            <li>
+              <Link
+                to="/policy#exchange"
+                className="hover:text-blue-400 transition-colors text-base"
+              >
+                Chính sách đổi hàng
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="/policy#inspection"
+                className="hover:text-blue-400 transition-colors text-base"
+              >
+                Chính sách kiểm hàng
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="/policy#payment"
+                className="hover:text-blue-400 transition-colors text-base"
+              >
+                Chính sách thanh toán
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="/policy#shipping"
+                className="hover:text-blue-400 transition-colors text-base"
+              >
+                Chính sách vận chuyển
+              </Link>
+            </li>
+          </ul>
         </div>
 
-        {/* Logo bên phải */}
         <div className="flex justify-start md:justify-end">
           <button
             onClick={handleLogoClick}
