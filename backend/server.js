@@ -11,7 +11,8 @@ import productRoutes from "./routes/product.routes.js";
 import cartRoutes from "./routes/cart.routes.js";
 import collectionRoutes from "./routes/collection.routes.js";
 import { connectDB } from "./lib/db.js";
-
+import ordersRoutes from "./routes/orders.routes.js";
+import userRoutes from "./routes/user.routes.js";
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -33,9 +34,12 @@ app.use(
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/cart", cartRoutes);
+app.use("/api/users", userRoutes);
 app.use("/api/collections", collectionRoutes);
 app.use("/api/banner", bannerRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/orders", ordersRoutes);
+
 // ✅ serve frontend build trong production
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "../frontend/dist")));
