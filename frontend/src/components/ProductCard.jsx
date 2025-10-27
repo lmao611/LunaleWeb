@@ -5,7 +5,7 @@ import { ShoppingCart } from "lucide-react";
 import { useUserStore } from "../stores/useUserStore";
 import { useCartStore } from "../stores/useCartStore";
 
-const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
+const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = false }) => {
   const cardRef = useRef(null);
   const glareRef = useRef(null);
 
@@ -37,7 +37,7 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
       case "low":
         return { label: "Số lượng còn ít", color: "bg-yellow-400 text-gray-900" };
       default:
-        return null; // none => không hiển thị
+        return null;
     }
   };
 
@@ -129,8 +129,6 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
             ref={glareRef}
             className="pointer-events-none absolute inset-0 rounded-xl z-20 transition-opacity duration-300"
           />
-
-          {/* 🔸 Badge trạng thái */}
           {preorderStatus && (
             <span
               className={`absolute top-2 right-2 z-30 text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-md ${preorderStatus.color}`}
@@ -138,7 +136,6 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
               {preorderStatus.label}
             </span>
           )}
-
           <div className={`w-full overflow-hidden ${size.height}`}>
             <img
               src={product.image}
@@ -156,71 +153,79 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought" }) => {
   }
 
   // -------------------------------
-  // 🔹 CARD MẶC ĐỊNH
+  // 🔹 CARD MẶC ĐỊNH (CÓ / KHÔNG LINK)
   // -------------------------------
+  const CardContent = (
+    <div
+      ref={cardRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      className={`relative overflow-hidden rounded-xl shadow-md transform-gpu will-change-transform
+        hover:shadow-2xl transition-transform duration-300 ease-out
+        ${size.width}`}
+    >
+      <div
+        ref={glareRef}
+        className="pointer-events-none absolute inset-0 rounded-xl z-20 transition-opacity duration-300"
+      />
+
+      {preorderStatus && (
+        <span
+          className={`absolute top-2 right-2 z-30 text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-md opacity-70 ${preorderStatus.color}`}
+        >
+          {preorderStatus.label}
+        </span>
+      )}
+
+      <div className={`w-full overflow-hidden ${size.height}`}>
+        <img
+          src={product.image}
+          alt={product.name}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          onError={(e) =>
+            (e.target.src =
+              "https://via.placeholder.com/300x400?text=No+Image")
+          }
+        />
+      </div>
+
+      <div
+        className={`absolute bottom-0 left-0 right-0
+                    lg:translate-y-full lg:group-hover:translate-y-0
+                    transition-transform duration-500 ease-in-out
+                    bg-gradient-to-t from-gray-900/80 to-gray-600/40 z-30
+                    ${size.infoPadding}`}
+      >
+        <h5 className="font-semibold text-white truncate text-sm">
+          {product.name}
+        </h5>
+        <div className="flex items-center justify-between mt-1">
+          <span className="text-white font-bold text-sm">{vndDisplay}</span>
+        </div>
+        <button
+          className={`mt-2 flex items-center justify-center w-full rounded-md 
+                      bg-gray-200 text-gray-950 hover:bg-gray-700 hover:text-white active:scale-95
+                      ${size.button}`}
+          onClick={handleAddToCart}
+        >
+          <ShoppingCart
+            size={variant === "featured" ? 12 : 14}
+            className="mr-1"
+          />
+          Add
+        </button>
+      </div>
+    </div>
+  );
+
+  // ✅ Nếu disableLink === true → không bọc Link
+  if (disableLink) {
+    return <div className="group relative block">{CardContent}</div>;
+  }
+
   return (
     <Link to={`/product/${product._id}`} className="group relative block">
-      <div
-        ref={cardRef}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
-        className={`relative overflow-hidden rounded-xl shadow-md transform-gpu will-change-transform
-          hover:shadow-2xl transition-transform duration-300 ease-out
-          ${size.width}`}
-      >
-        <div
-          ref={glareRef}
-          className="pointer-events-none absolute inset-0 rounded-xl z-20 transition-opacity duration-300"
-        />
-
-        {/* 🔸 Badge trạng thái */}
-        {preorderStatus && (
-          <span
-            className={`absolute top-2 right-2 z-30 text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-md opacity-70 ${preorderStatus.color}`}
-          >
-            {preorderStatus.label}
-          </span>
-        )}
-
-        <div className={`w-full overflow-hidden ${size.height}`}>
-          <img
-            src={product.image}
-            alt={product.name}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-            onError={(e) =>
-              (e.target.src =
-                "https://via.placeholder.com/300x400?text=No+Image")
-            }
-          />
-        </div>
-
-        <div
-          className={`absolute bottom-0 left-0 right-0
-                     lg:translate-y-full lg:group-hover:translate-y-0
-                     transition-transform duration-500 ease-in-out
-                     bg-gradient-to-t from-gray-900/80 to-gray-600/40 z-30
-                     ${size.infoPadding}`}
-        >
-          <h5 className="font-semibold text-white truncate text-sm">
-            {product.name}
-          </h5>
-          <div className="flex items-center justify-between mt-1">
-            <span className="text-white font-bold text-sm">{vndDisplay}</span>
-          </div>
-          <button
-            className={`mt-2 flex items-center justify-center w-full rounded-md 
-                       bg-gray-200 text-gray-950 hover:bg-gray-700 hover:text-white active:scale-95
-                       ${size.button}`}
-            onClick={handleAddToCart}
-          >
-            <ShoppingCart
-              size={variant === "featured" ? 12 : 14}
-              className="mr-1"
-            />
-            Add
-          </button>
-        </div>
-      </div>
+      {CardContent}
     </Link>
   );
 };

@@ -15,6 +15,7 @@ import ProductPage from "./pages/ProductPage";
 import { useCartStore } from "./stores/useCartStore";
 import CollectionDetailPage from "./pages/CollectionDetailPage";
 import PolicyPage from "./components/PolicyPage";
+import ScrollToTop from "./components/ScrollToTop";
 function App() {
   const { user, checkAuth, checkingAuth } = useUserStore();
   const { getCartItems } = useCartStore();
@@ -36,8 +37,10 @@ function App() {
       <Navbar />
 
       {/* ✅ Nội dung chính, không giới hạn width */}
+      <ScrollToTop/>
       <div className="flex-1 w-full">
         <Routes>
+           
           <Route path="/" element={<HomePage />} />
           <Route
             path="/signup"

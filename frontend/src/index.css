@@ -27,7 +27,13 @@ html, body {
     @apply md:text-2xl md:leading-snug; /* chữ lớn hơn trên màn hình >= md */
   }
 }
-
+li{
+  font-family: 'Merriweather', serif;
+}
+pre{
+    font-family: 'Merriweather', serif;
+    font-size: 1.2rem;
+}
 p {
     font-family: 'Merriweather', serif;
   }

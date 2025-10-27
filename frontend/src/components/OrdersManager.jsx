@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Trash2, PlusCircle, Edit2, X } from "lucide-react";
 import axios from "axios";
-
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 const sizes = ["S", "M", "L", "XL"];
 const statuses = ["chưa giao", "đang giao", "đã giao"];
 const paymentMethods = ["COD", "Chuyển khoản"];
@@ -184,6 +185,96 @@ export default function OrdersManager() {
     }
   }
 
+
+// 🧾 Hàm xuất Excel có logo thật
+async function exportToExcel() {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("Đơn hàng");
+
+  // 🪶 Header
+  const headers = [
+    "STT",
+    "Trạng thái",
+    "Ngày nhận",
+    "Ngày giao",
+    "Khách hàng",
+    "Địa chỉ",
+    "SĐT",
+    "Sản phẩm",
+    "Tổng tiền",
+    "Thanh toán",
+  ];
+  worksheet.addRow(headers);
+
+  // 🧱 Thêm dữ liệu
+  orders.forEach((o, idx) => {
+    const itemsStr = (o.items || [])
+      .map((it) => {
+        const prod = products.find(
+          (p) => String(p._id) === String(it.productId?._id ?? it.productId)
+        );
+        return `${prod ? prod.name : it.productId?.name ?? it.productId} (size ${it.size}, SL ${it.quantity})`;
+      })
+      .join("; ");
+
+    worksheet.addRow([
+      idx + 1,
+      o.status,
+      formatDate(o.receivedDate),
+      formatDate(o.deliverDate),
+      o.customerName ?? o.customerId?.name ?? "-",
+      o.address,
+      o.phone,
+      itemsStr,
+      (o.total || 0).toLocaleString() + " ₫",
+      o.paymentMethod,
+    ]);
+  });
+
+  // 🧮 Auto width cho cột
+  worksheet.columns.forEach((column) => {
+    let maxLength = 0;
+    column.eachCell({ includeEmpty: true }, (cell) => {
+      const len = cell.value ? cell.value.toString().length : 0;
+      if (len > maxLength) maxLength = len;
+    });
+    column.width = Math.min(maxLength + 4, 50);
+  });
+
+  // 🎨 Style header
+  const headerRow = worksheet.getRow(1);
+  headerRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
+  headerRow.alignment = { horizontal: "center", vertical: "middle" };
+  headerRow.fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FF666666" },
+  };
+
+  // 🖼️ Thêm logo (lấy từ public/lunale.png)
+  const response = await fetch("/lunale.png");
+  const imgBuffer = await response.arrayBuffer();
+  const logoId = workbook.addImage({
+    buffer: imgBuffer,
+    extension: "png",
+  });
+
+  const lastRow = worksheet.lastRow.number + 2;
+  const lastCol = worksheet.columns.length;
+  worksheet.addImage(logoId, {
+    tl: { col: lastCol - 2, row: lastRow },
+    ext: { width: 180, height: 80 },
+  });
+
+  // 📦 Xuất file Excel
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  saveAs(blob, `DonHang_${new Date().toISOString().slice(0, 10)}.xlsx`);
+}
+
+
   const filtered = orders.filter((o) => (filterStatus ? o.status === filterStatus : true));
 
   return (
@@ -203,6 +294,13 @@ export default function OrdersManager() {
               </option>
             ))}
           </select>
+          <button
+  onClick={exportToExcel}
+  className="bg-green-600 text-white px-3 py-1 rounded inline-flex items-center gap-2"
+>
+  📊 Xuất Excel
+</button>
+
           <button
             onClick={openCreate}
             className="bg-blue-600 text-white px-3 py-1 rounded inline-flex items-center gap-2"
