@@ -99,20 +99,25 @@ const Navbar = () => {
 
   return (
     <>
-      {/* ✅ Nút Go Back Mobile (cố định góc trái trên) */}
-      {isMobile && (
-        <button
-          onClick={handleGoBack}
-          className={`fixed top-0 left-3 z-[150] flex items-center justify-center rounded-md text-4xl transition ${
-            isHome && !isScrolled
-              ? "text-white hover:text-gray-200"
-              : "text-black hover:text-blue-700"
-          }`}
-          title="Quay lại"
-        >
-          ←
-        </button>
-      )}
+      {/* ✅ Nút Go Back — Cố định trên navbar, chỉ hiện khi không ở trang Home */}
+{!isHome && (
+  <button
+    onClick={handleGoBack}
+    className={`
+      fixed z-[150] top-[12px] sm:top-[14px]
+      flex items-center justify-center transition-all
+      hover:opacity-80
+      ${isMobile ? "left-3" : "left-6"}
+    `}
+    title="Quay lại"
+  >
+    <img
+      src="/goback.png"
+      alt="Go Back"
+      className={`${isMobile ? "w-8 h-8" : "w-9 h-9"} object-contain`}
+    />
+  </button>
+)}
 
       {/* ✅ Logo */}
       {isHome ? (
@@ -178,24 +183,13 @@ const Navbar = () => {
           }`}
         >
           <div
-            className={`flex flex-col sm:flex-row items-center pb-2 justify-between ${
-              isMobile ? "gap-1" : ""
-            }`}
-          >
+  className={`flex flex-col sm:flex-row items-center pb-2 ${
+    isMobile ? "gap-1 justify-center" : "justify-end"
+  }`}
+>
+
             {/* ✅ Nút Go Back PC */}
-            {!isMobile && (
-              <button
-                onClick={handleGoBack}
-                className={`flex items-center gap-1 rounded-md left-auto px-0 py-0 text-4xl transition ${
-                  isHome && !isScrolled
-                    ? "text-white hover:text-gray-200"
-                    : "text-black hover:text-blue-700"
-                }`}
-                title="Quay lại"
-              >
-                ←
-              </button>
-            )}
+            
 
             {/* ✅ Nav */}
             <nav
@@ -206,9 +200,7 @@ const Navbar = () => {
               <Link
                 to="/"
                 className={`flex items-end pb-[2px] transition ${
-                  isHome && !isScrolled
-                    ? "text-white"
-                    : "text-black hover:text-blue-700"
+                  isHome && !isScrolled ? "text-white" : "text-black hover:text-blue-700"
                 }`}
                 title="Trang Chủ"
               >
