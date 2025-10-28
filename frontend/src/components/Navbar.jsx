@@ -186,7 +186,7 @@ const Navbar = () => {
             {!isMobile && (
               <button
                 onClick={handleGoBack}
-                className={`flex items-center gap-1 rounded-md px-0 py-0 text-4xl transition ${
+                className={`flex items-center gap-1 rounded-md left-auto px-0 py-0 text-4xl transition ${
                   isHome && !isScrolled
                     ? "text-white hover:text-gray-200"
                     : "text-black hover:text-blue-700"
