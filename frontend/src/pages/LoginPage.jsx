@@ -1,22 +1,74 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Mail, Lock, Loader, LogIn, ArrowRight } from "lucide-react";
+import { Mail, Lock, Loader, LogIn, ArrowRight, Facebook } from "lucide-react";
 import { useUserStore } from "../stores/useUserStore";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { login, loading } = useUserStore();
+  const { login, loading, setUser } = useUserStore();
+  const [fbLoading, setFbLoading] = useState(false);
 
+  // --- Load Facebook SDK ---
+  useEffect(() => {
+    if (window.FB) return;
+    window.fbAsyncInit = function () {
+      FB.init({
+        appId: "1365209865023366", // 👉 thay bằng App ID thật
+        cookie: true,
+        xfbml: false,
+        version: "v17.0",
+      });
+    };
+
+    const script = document.createElement("script");
+    script.src = "https://connect.facebook.net/en_US/sdk.js";
+    script.async = true;
+    document.body.appendChild(script);
+  }, []);
+
+  // --- Login form thường ---
   const handleSubmit = (e) => {
     e.preventDefault();
     login(email, password);
   };
 
+  // --- Facebook login (không dùng async function trực tiếp) ---
+  const handleFacebookLogin = () => {
+    setFbLoading(true);
+    FB.login((response) => {
+      if (response.authResponse) {
+        const accessToken = response.authResponse.accessToken;
+
+        fetch("https://localhost:5000/auth/facebook/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ accessToken }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.token) {
+              localStorage.setItem("token", data.token);
+              setUser(data.user);
+            } else {
+              alert(data.message || "Đăng nhập Facebook thất bại");
+            }
+          })
+          .catch((err) => {
+            console.error("Facebook login error:", err);
+            alert("Đăng nhập Facebook thất bại");
+          })
+          .finally(() => setFbLoading(false));
+      } else {
+        alert("Bạn đã hủy đăng nhập Facebook");
+        setFbLoading(false);
+      }
+    }, { scope: "email" });
+  };
+
   return (
     <div className="min-h-screen flex flex-col justify-center bg-gray-50 py-12 sm:px-6 lg:px-8 pt-0">
-      {/* Tiêu đề */}
       <motion.div
         className="sm:mx-auto sm:w-full sm:max-w-md"
         initial={{ opacity: 0, y: -20 }}
@@ -28,7 +80,6 @@ const LoginPage = () => {
         </h2>
       </motion.div>
 
-      {/* Form */}
       <motion.div
         className="sm:mx-auto sm:w-full sm:max-w-md mt-6"
         initial={{ opacity: 0, y: 20 }}
@@ -37,7 +88,6 @@ const LoginPage = () => {
       >
         <div className="bg-white border border-gray-200 py-8 px-6 shadow-lg sm:rounded-lg sm:px-10">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email
@@ -58,7 +108,6 @@ const LoginPage = () => {
               </div>
             </div>
 
-            {/* Password */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 Mật khẩu
@@ -79,7 +128,6 @@ const LoginPage = () => {
               </div>
             </div>
 
-            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
@@ -99,7 +147,30 @@ const LoginPage = () => {
             </button>
           </form>
 
-          {/* Link sang Sign up */}
+          <div className="my-6 flex items-center">
+            <div className="flex-grow border-t border-gray-300"></div>
+            <span className="mx-2 text-gray-500 text-sm">hoặc</span>
+            <div className="flex-grow border-t border-gray-300"></div>
+          </div>
+
+          <button
+            onClick={handleFacebookLogin}
+            disabled={fbLoading}
+            className="w-full flex justify-center py-2 px-4 rounded-md text-sm font-medium text-white bg-[#1877f2] hover:bg-[#166fe5] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#1877f2] transition disabled:opacity-50"
+          >
+            {fbLoading ? (
+              <>
+                <Loader className="mr-2 h-5 w-5 animate-spin" />
+                Đang đăng nhập Facebook...
+              </>
+            ) : (
+              <>
+                <Facebook className="mr-2 h-5 w-5" />
+                Đăng nhập bằng Facebook
+              </>
+            )}
+          </button>
+
           <p className="mt-8 text-center text-sm text-gray-500">
             Chưa có tài khoản?{" "}
             <Link
