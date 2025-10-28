@@ -2,6 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import fs from "fs";
 import https from "https";
+import http from "http";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import path from "path";
@@ -25,6 +26,7 @@ const PORT = process.env.PORT || 5000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
+
 app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 app.use(
@@ -53,14 +55,31 @@ if (process.env.NODE_ENV === "production") {
   });
 }
 
-// ✅ HTTPS options
-const sslOptions = {
-  key: fs.readFileSync(process.env.SSL_KEY),
-  cert: fs.readFileSync(process.env.SSL_CERT),
-};
+// ✅ HTTPS / HTTP setup
+let server;
+try {
+  const sslKeyPath = path.resolve(__dirname, process.env.SSL_KEY || "");
+  const sslCertPath = path.resolve(__dirname, process.env.SSL_CERT || "");
 
-// ✅ Start HTTPS server
-https.createServer(sslOptions, app).listen(PORT, () => {
-  console.log(`🚀 HTTPS Server running at https://localhost:${PORT}`);
-  connectDB();
-});
+  if (!fs.existsSync(sslKeyPath) || !fs.existsSync(sslCertPath)) {
+    throw new Error("SSL key/cert file not found");
+  }
+
+  const sslOptions = {
+    key: fs.readFileSync(sslKeyPath),
+    cert: fs.readFileSync(sslCertPath),
+  };
+
+  server = https.createServer(sslOptions, app);
+  server.listen(PORT, () => {
+    console.log(`🚀 HTTPS Server running at https://localhost:${PORT}`);
+    connectDB();
+  });
+} catch (err) {
+  console.warn("⚠️ HTTPS failed, fallback to HTTP:", err.message);
+  server = http.createServer(app);
+  server.listen(PORT, () => {
+    console.log(`🚀 HTTP Server running at http://localhost:${PORT}`);
+    connectDB();
+  });
+}
