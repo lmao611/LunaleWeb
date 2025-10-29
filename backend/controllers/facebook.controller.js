@@ -9,45 +9,48 @@ export const facebookLogin = async (req, res) => {
       return res.status(400).json({ message: "Access token is required" });
     }
 
-    // Lấy thông tin người dùng từ Facebook Graph API
-    const response = await axios.get(
+    // 📡 Lấy thông tin người dùng từ Facebook Graph API
+    const fbRes = await axios.get(
       `https://graph.facebook.com/me?fields=id,name,email,picture&access_token=${accessToken}`
     );
 
-    const { id, name, email, picture } = response.data;
+    const { id, name, email, picture } = fbRes.data;
 
     if (!email) {
       return res.status(400).json({ message: "Facebook account has no email" });
     }
 
-    // Kiểm tra user trong database
+    // 👤 Tìm hoặc tạo user
     let user = await User.findOne({ email });
     if (!user) {
       user = await User.create({
         name,
         email,
-        password: id, // bạn có thể random 1 chuỗi nếu muốn
+        password: id, // có thể random chuỗi khác nếu muốn
         avatar: picture?.data?.url || "",
       });
     }
 
-    // Tạo JWT
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
-
-    // Gửi cookie + dữ liệu user về client
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+    // 🔐 Tạo JWT
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
     });
 
-    res.status(200).json({
+    // 🍪 Gửi cookie JWT về client
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // chỉ HTTPS khi production
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // quan trọng để cookie gửi qua domain khác
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return res.status(200).json({
       message: "Facebook login successful",
       user,
       token,
     });
   } catch (err) {
-    console.error("Facebook login error:", err.message);
+    console.error("❌ Facebook login error:", err.response?.data || err.message);
     res.status(500).json({ message: "Facebook login failed" });
   }
 };
