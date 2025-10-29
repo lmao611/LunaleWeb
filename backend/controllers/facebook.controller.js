@@ -40,7 +40,7 @@ export const facebookLogin = async (req, res) => {
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production", // chỉ HTTPS khi production
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // quan trọng để cookie gửi qua domain khác
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // cho phép cookie cross-domain
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -50,7 +50,9 @@ export const facebookLogin = async (req, res) => {
       token,
     });
   } catch (err) {
-    console.error("❌ Facebook login error:", err.response?.data || err.message);
-    res.status(500).json({ message: "Facebook login failed" });
+    // 🔍 ✅ Chỉ thay đổi phần này để log lỗi chi tiết
+    const fbError = err.response?.data?.error?.message || err.message;
+    console.error("❌ Facebook login error:", fbError);
+    res.status(500).json({ message: `Facebook login failed: ${fbError}` });
   }
 };
