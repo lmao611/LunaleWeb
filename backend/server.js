@@ -1,8 +1,5 @@
 import express from "express";
 import dotenv from "dotenv";
-import fs from "fs";
-import https from "https";
-import http from "http";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import path from "path";
@@ -30,7 +27,7 @@ dotenv.config({ path: path.resolve(__dirname, "../.env") });
 app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 
-// ✅ Sửa duy nhất phần CORS (phần còn lại giữ nguyên)
+// ✅ CORS cấu hình an toàn cho cả dev và Render
 const allowedOrigins = [
   process.env.CLIENT_URL,
   "http://localhost:5173",
@@ -70,31 +67,8 @@ if (process.env.NODE_ENV === "production") {
   });
 }
 
-// ✅ HTTPS / HTTP setup
-let server;
-try {
-  const sslKeyPath = path.resolve(__dirname, process.env.SSL_KEY || "");
-  const sslCertPath = path.resolve(__dirname, process.env.SSL_CERT || "");
-
-  if (!fs.existsSync(sslKeyPath) || !fs.existsSync(sslCertPath)) {
-    throw new Error("SSL key/cert file not found");
-  }
-
-  const sslOptions = {
-    key: fs.readFileSync(sslKeyPath),
-    cert: fs.readFileSync(sslCertPath),
-  };
-
-  server = https.createServer(sslOptions, app);
-  server.listen(PORT, () => {
-    console.log(`🚀 HTTPS Server running at https://localhost:${PORT}`);
-    connectDB();
-  });
-} catch (err) {
-  console.warn("⚠️ HTTPS failed, fallback to HTTP:", err.message);
-  server = http.createServer(app);
-  server.listen(PORT, () => {
-    console.log(`🚀 HTTP Server running at http://localhost:${PORT}`);
-    connectDB();
-  });
-}
+// ✅ KHỞI CHẠY SERVER CHUẨN CHO RENDER (Render tự thêm HTTPS)
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  connectDB();
+});
