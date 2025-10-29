@@ -29,9 +29,24 @@ dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
+
+// ✅ Sửa duy nhất phần CORS (phần còn lại giữ nguyên)
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  "http://localhost:5173",
+  "https://localhost:5173",
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "https://localhost:5173",
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn("❌ Blocked by CORS:", origin);
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );
