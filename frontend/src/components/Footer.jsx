@@ -83,8 +83,55 @@ const Footer = () => {
               />
             </motion.a>
           </div>
-        </div>
+          {/* ✅ Chính sách quyền riêng tư */}
+<div className="mt-10 text-left">
+  <h2 className="text-3xl font-bold mb-4">Chính sách quyền riêng tư</h2>
+  <ul className="space-y-2">
+    <li>
+      <Link
+        to="/privacy#introduction"
+        className="hover:text-blue-400 transition-colors text-base"
+      >
+        Giới thiệu
+      </Link>
+    </li>
+    <li>
+      <Link
+        to="/privacy#collect"
+        className="hover:text-blue-400 transition-colors text-base"
+      >
+        Thu thập thông tin
+      </Link>
+    </li>
+    <li>
+      <Link
+        to="/privacy#usage"
+        className="hover:text-blue-400 transition-colors text-base"
+      >
+        Cách sử dụng thông tin
+      </Link>
+    </li>
+    <li>
+      <Link
+        to="/privacy#protection"
+        className="hover:text-blue-400 transition-colors text-base"
+      >
+        Bảo mật dữ liệu
+      </Link>
+    </li>
+    <li>
+      <Link
+        to="/privacy#rights"
+        className="hover:text-blue-400 transition-colors text-base"
+      >
+        Quyền của người dùng
+      </Link>
+    </li>
+  </ul>
+</div>
 
+        </div>
+        
         <div className="space-y-3 text-left">
           <h2 className="text-3xl font-bold mb-4">Các trang</h2>
           <ul className="space-y-2">
@@ -156,6 +203,7 @@ const Footer = () => {
                 Chính sách vận chuyển
               </Link>
             </li>
+            
           </ul>
         </div>
 
