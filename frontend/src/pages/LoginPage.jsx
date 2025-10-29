@@ -36,17 +36,28 @@ const LoginPage = () => {
 
   // --- Facebook login (không dùng async function trực tiếp) ---
   const handleFacebookLogin = () => {
-    setFbLoading(true);
-    FB.login((response) => {
+  setFbLoading(true);
+  FB.login(
+    (response) => {
       if (response.authResponse) {
         const accessToken = response.authResponse.accessToken;
 
-        fetch("https://localhost:5000/auth/facebook/login", {
+        // ✅ dùng biến môi trường API URL
+        const apiBase = import.meta.env.VITE_API_URL;
+
+        fetch(`${apiBase}/auth/facebook/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include", // ✅ cho phép gửi cookie từ server về
           body: JSON.stringify({ accessToken }),
         })
-          .then((res) => res.json())
+          .then(async (res) => {
+            if (!res.ok) {
+              const errText = await res.text();
+              throw new Error(errText || "Request failed");
+            }
+            return res.json();
+          })
           .then((data) => {
             if (data.token) {
               localStorage.setItem("token", data.token);
@@ -56,7 +67,7 @@ const LoginPage = () => {
             }
           })
           .catch((err) => {
-            console.error("Facebook login error:", err);
+            console.error("❌ Facebook login error:", err);
             alert("Đăng nhập Facebook thất bại");
           })
           .finally(() => setFbLoading(false));
@@ -64,8 +75,11 @@ const LoginPage = () => {
         alert("Bạn đã hủy đăng nhập Facebook");
         setFbLoading(false);
       }
-    }, { scope: "email" });
-  };
+    },
+    { scope: "email" }
+  );
+};
+
 
   return (
     <div className="min-h-screen flex flex-col justify-center bg-gray-50 py-12 sm:px-6 lg:px-8 pt-0">
