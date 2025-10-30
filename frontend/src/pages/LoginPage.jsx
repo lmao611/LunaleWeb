@@ -60,13 +60,23 @@ const LoginPage = () => {
             return res.json();
           })
           .then((data) => {
-            if (data.token) {
-              localStorage.setItem("token", data.token);
-              setUser(data.user);
-            } else {
-              alert(data.message || "Đăng nhập Facebook thất bại");
-            }
-          })
+  if (data.user) {
+    setUser(data.user);
+
+    // ✅ Gọi checkAuth để sync toàn app
+    import("../stores/useUserStore").then(({ useUserStore }) => {
+      useUserStore.getState().checkAuth();
+    });
+
+    // ⚡ Nếu vẫn chưa re-render (vì cross-domain cookie delay) → reload nhẹ
+    setTimeout(() => {
+      window.location.reload();
+    }, 500);
+  } else {
+    alert(data.message || "Đăng nhập Facebook thất bại");
+  }
+})
+
           .catch((err) => {
             console.error("❌ Facebook login error:", err);
             alert("Đăng nhập Facebook thất bại");
