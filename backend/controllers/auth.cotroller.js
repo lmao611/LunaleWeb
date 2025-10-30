@@ -17,19 +17,23 @@ const storeRefreshToken = async (userId, refreshToken) => {
 };
 
 const setCookies = (res, accessToken, refreshToken) => {
-	res.cookie("accessToken", accessToken, {
-		httpOnly: true,
-		secure: process.env.NODE_ENV === "production",
-		sameSite: "strict",
-		maxAge: 60 * 60 * 1000, // 1 giờ
-	});
-	res.cookie("refreshToken", refreshToken, {
-		httpOnly: true,
-		secure: process.env.NODE_ENV === "production",
-		sameSite: "strict",
-		maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
-	});
+  const isProd = process.env.NODE_ENV === "production";
+
+  res.cookie("accessToken", accessToken, {
+    httpOnly: true,
+    secure: isProd, // ✅ chỉ true khi deploy HTTPS
+    sameSite: isProd ? "none" : "lax", // ✅ cho phép gửi cookie cross-site khi dev
+    maxAge: 60 * 60 * 1000, // 1h
+  });
+
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7d
+  });
 };
+
 
 // =======================
 // 🔹 FACEBOOK LOGIN
@@ -67,9 +71,9 @@ export const facebookLogin = async (req, res) => {
     await storeRefreshToken(user._id, refreshToken);
     setCookies(res, jwtAccess, refreshToken);
 
-    // ✅ gửi cả token + user để frontend có thể set
+    // ⚠️ KHÔNG cần trả token nữa, chỉ cần user
     res.json({
-      token: jwtAccess,
+      message: "Facebook login successful",
       user: {
         _id: user._id,
         name: user.name,
@@ -83,6 +87,7 @@ export const facebookLogin = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 
 // =======================

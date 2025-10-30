@@ -57,7 +57,7 @@ app.use("/api/collections", collectionRoutes);
 app.use("/api/banner", bannerRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/orders", ordersRoutes);
-app.use("/auth/facebook", facebookRoutes);
+
 
 // ✅ Serve frontend (production)
 if (process.env.NODE_ENV === "production") {

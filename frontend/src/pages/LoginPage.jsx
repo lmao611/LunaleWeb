@@ -45,7 +45,8 @@ const LoginPage = () => {
         // ✅ dùng biến môi trường API URL
         const apiBase = import.meta.env.VITE_API_URL;
 
-        fetch(`${apiBase}/auth/facebook/login`, {
+        fetch(`${apiBase}/api/auth/facebook/login`, {
+
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include", // ✅ cho phép gửi cookie từ server về
