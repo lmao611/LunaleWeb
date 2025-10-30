@@ -35,51 +35,55 @@ const setCookies = (res, accessToken, refreshToken) => {
 // 🔹 FACEBOOK LOGIN
 // =======================
 export const facebookLogin = async (req, res) => {
-	try {
-		const { accessToken } = req.body;
-		if (!accessToken) {
-			return res.status(400).json({ message: "Access token is required" });
-		}
+  try {
+    const { accessToken } = req.body;
+    if (!accessToken) {
+      return res.status(400).json({ message: "Access token is required" });
+    }
 
-		// 📡 Lấy thông tin từ Facebook Graph API
-		const fbResponse = await fetch(
-			`https://graph.facebook.com/me?fields=id,name,email&access_token=${accessToken}`
-		);
-		const fbData = await fbResponse.json();
+    // 📡 Lấy thông tin từ Facebook Graph API
+    const fbResponse = await fetch(
+      `https://graph.facebook.com/me?fields=id,name,email&access_token=${accessToken}`
+    );
+    const fbData = await fbResponse.json();
 
-		if (fbData.error) {
-			return res.status(400).json({ message: "Invalid Facebook token" });
-		}
+    if (fbData.error) {
+      return res.status(400).json({ message: "Invalid Facebook token" });
+    }
 
-		let user = await User.findOne({ email: fbData.email });
+    let user = await User.findOne({ email: fbData.email });
 
-		// Nếu user chưa tồn tại -> tạo mới
-		if (!user) {
-			user = await User.create({
-				name: fbData.name,
-				email: fbData.email || `${fbData.id}@facebook.com`, // fallback nếu FB không trả về email
-				provider: "facebook",
-				facebookId: fbData.id,
-			});
-		}
+    if (!user) {
+      user = await User.create({
+        name: fbData.name,
+        email: fbData.email || `${fbData.id}@facebook.com`,
+        provider: "facebook",
+        facebookId: fbData.id,
+      });
+    }
 
-		// Tạo JWT + Lưu Redis + Gửi Cookie
-		const { accessToken: jwtAccess, refreshToken } = generateTokens(user._id);
-		await storeRefreshToken(user._id, refreshToken);
-		setCookies(res, jwtAccess, refreshToken);
+    // 🔹 Tạo JWT
+    const { accessToken: jwtAccess, refreshToken } = generateTokens(user._id);
+    await storeRefreshToken(user._id, refreshToken);
+    setCookies(res, jwtAccess, refreshToken);
 
-		res.json({
-			_id: user._id,
-			name: user.name,
-			email: user.email,
-			provider: user.provider,
-			role: user.role,
-		});
-	} catch (error) {
-		console.log("Error in facebookLogin:", error.message);
-		res.status(500).json({ message: "Server error", error: error.message });
-	}
+    // ✅ gửi cả token + user để frontend có thể set
+    res.json({
+      token: jwtAccess,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        provider: user.provider,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    console.log("Error in facebookLogin:", error.message);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
 };
+
 
 // =======================
 // 🔹 SIGNUP (Đăng ký thường)

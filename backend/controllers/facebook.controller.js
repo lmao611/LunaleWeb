@@ -26,33 +26,34 @@ export const facebookLogin = async (req, res) => {
       user = await User.create({
         name,
         email,
-        password: id, // có thể random chuỗi khác nếu muốn
+        password: id, // hoặc random
         avatar: picture?.data?.url || "",
       });
     }
 
-    // 🔐 Tạo JWT
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "7d",
-    });
+    // 🔐 Tạo JWT đồng bộ với middleware
+    const token = jwt.sign(
+      { userId: user._id },
+      process.env.ACCESS_TOKEN_SECRET,
+      { expiresIn: "7d" }
+    );
 
-    // 🍪 Gửi cookie JWT về client
-    res.cookie("token", token, {
+    // 🍪 Set cookie đúng tên
+    res.cookie("accessToken", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production", // chỉ HTTPS khi production
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // cho phép cookie cross-domain
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     return res.status(200).json({
       message: "Facebook login successful",
       user,
-      token,
     });
   } catch (err) {
-    // 🔍 ✅ Chỉ thay đổi phần này để log lỗi chi tiết
     const fbError = err.response?.data?.error?.message || err.message;
     console.error("❌ Facebook login error:", fbError);
     res.status(500).json({ message: `Facebook login failed: ${fbError}` });
   }
 };
+
