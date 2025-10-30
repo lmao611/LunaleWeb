@@ -13,7 +13,7 @@ import collectionRoutes from "./routes/collection.routes.js";
 import { connectDB } from "./lib/db.js";
 import ordersRoutes from "./routes/orders.routes.js";
 import userRoutes from "./routes/user.routes.js";
-import facebookRoutes from "./routes/facebook.routes.js";
+
 
 dotenv.config();
 const app = express();
