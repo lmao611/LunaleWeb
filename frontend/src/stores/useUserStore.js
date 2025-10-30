@@ -7,7 +7,11 @@ export const useUserStore = create((set, get) => ({
   loading: false,
   checkingAuth: true,
 
-  setUser: (updatedUser) => set({ user: updatedUser }),
+  setUser: (updatedUser) => {
+    set({ user: updatedUser });
+    // ✅ Kích hoạt event để các component khác (Navbar, App, v.v.) update ngay
+    window.dispatchEvent(new Event("user-logged-in"));
+  },
 
   signup: async ({ name, email, password, confirmPassword }) => {
     set({ loading: true });
@@ -20,9 +24,10 @@ export const useUserStore = create((set, get) => ({
     try {
       const res = await axios.post("/auth/signup", { name, email, password });
       set({ user: res.data, loading: false });
+      window.dispatchEvent(new Event("user-logged-in"));
     } catch (error) {
       set({ loading: false });
-      return toast.error(error.response.data.message || "Lỗi xảy ra");
+      return toast.error(error.response?.data?.message || "Lỗi xảy ra");
     }
   },
 
@@ -32,6 +37,7 @@ export const useUserStore = create((set, get) => ({
     try {
       const res = await axios.post("/auth/login", { email, password });
       set({ user: res.data, loading: false });
+      window.dispatchEvent(new Event("user-logged-in"));
     } catch (error) {
       set({ loading: false });
       return toast.error(error.response?.data?.message || "Lỗi xảy ra");
@@ -55,21 +61,34 @@ export const useUserStore = create((set, get) => ({
     } catch (error) {
       set({ checkingAuth: false, user: null });
     }
-  }
+  },
+
+  // ✅ Bổ sung refreshToken cho interceptor
+  refreshToken: async () => {
+    try {
+      await axios.get("/auth/refresh");
+    } catch (error) {
+      console.error("❌ Refresh token failed:", error);
+      set({ user: null });
+    }
+  },
 }));
 
-// Axios interceptor for token refresh
+// ========================================
+// 🔁 Axios Interceptor cho token refresh
+// ========================================
 let refreshPromise = null;
 
 axios.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
-        // Nếu đang có refresh request thì đợi nó xong
+        // Nếu đang có refresh request → đợi
         if (refreshPromise) {
           await refreshPromise;
           return axios(originalRequest);
@@ -82,7 +101,6 @@ axios.interceptors.response.use(
 
         return axios(originalRequest);
       } catch (refreshError) {
-        // Nếu refresh thất bại thì logout
         useUserStore.getState().logout();
         return Promise.reject(refreshError);
       }
@@ -91,3 +109,11 @@ axios.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// ========================================
+// 🧠 Lắng nghe event "user-logged-in"
+// để auto gọi checkAuth trên toàn app
+// ========================================
+window.addEventListener("user-logged-in", () => {
+  useUserStore.getState().checkAuth();
+});

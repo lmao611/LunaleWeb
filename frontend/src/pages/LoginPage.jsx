@@ -60,18 +60,13 @@ const LoginPage = () => {
             return res.json();
           })
           .then((data) => {
-  if (data.token) {
-    localStorage.setItem("token", data.token);
-    setUser(data.user);
-    // ✅ Gọi lại checkAuth để app sync trạng thái ngay lập tức
-    setTimeout(() => {
-      get().checkAuth?.(); // dùng nếu bạn import get từ store
-    }, 300);
-  } else {
-    toast.error(data.message || "Đăng nhập Facebook thất bại");
-  }
-})
-
+            if (data.token) {
+              localStorage.setItem("token", data.token);
+              setUser(data.user);
+            } else {
+              alert(data.message || "Đăng nhập Facebook thất bại");
+            }
+          })
           .catch((err) => {
             console.error("❌ Facebook login error:", err);
             alert("Đăng nhập Facebook thất bại");
