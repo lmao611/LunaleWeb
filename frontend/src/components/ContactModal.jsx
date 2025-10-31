@@ -9,6 +9,12 @@ const ContactModal = ({ product, onClose }) => {
   const [quantity, setQuantity] = useState(1);
 
   const handleCopy = () => {
+    // 🔒 Kiểm tra đăng nhập
+    if (!user) {
+      toast.error("Vui lòng đăng nhập để sao chép thông tin!", { id: "need-login" });
+      return;
+    }
+
     const message = `- Họ tên: ${user?.name || "Chưa có"}
 - SĐT: ${user?.phoneNumber || "Chưa có"}
 - Địa chỉ: ${user?.direction || "Chưa có"}
