@@ -6,6 +6,8 @@ export const useUserStore = create((set, get) => ({
   user: null,
   loading: false,
   checkingAuth: true,
+  showUserBox: false, // mở form thông tin cá nhân từ mọi nơi
+setShowUserBox: (value) => set({ showUserBox: value }),
 
   setUser: (updatedUser) => {
     set({ user: updatedUser });

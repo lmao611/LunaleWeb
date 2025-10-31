@@ -6,8 +6,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
 const Navbar = () => {
-  const user = useUserStore((state) => state.user);
-  const { logout } = useUserStore();
+  const { user, logout, showUserBox, setShowUserBox } = useUserStore();
   const { cart } = useCartStore();
   const isAdmin = user?.role === "admin";
   const location = useLocation();
@@ -19,7 +18,8 @@ const Navbar = () => {
   const [editDirection, setEditDirection] = useState(user?.direction || "");
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
-  const [showUserBox, setShowUserBox] = useState(false);
+  
+
   const setUser = useUserStore((state) => state.setUser);
 
   useEffect(() => {
