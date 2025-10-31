@@ -4,20 +4,43 @@ import { X } from "lucide-react";
 import toast from "react-hot-toast";
 
 const ContactModal = ({ product, onClose }) => {
-  const { user } = useUserStore();
+  const { user, setShowUserBox } = useUserStore(); // ✅ thêm
   const [size, setSize] = useState("M");
   const [quantity, setQuantity] = useState(1);
 
   const handleCopy = () => {
-    // 🔒 Kiểm tra đăng nhập
     if (!user) {
-      toast.error("Vui lòng đăng nhập để sao chép thông tin!", { id: "need-login" });
+      toast.error("⚠️ Vui lòng đăng nhập để sao chép thông tin!");
       return;
     }
 
-    const message = `- Họ tên: ${user?.name || "Chưa có"}
-- SĐT: ${user?.phoneNumber || "Chưa có"}
-- Địa chỉ: ${user?.direction || "Chưa có"}
+    // Kiểm tra thiếu thông tin
+    if (!user.name || !user.phoneNumber || !user.direction) {
+      toast.custom(
+        (t) => (
+          <div className="bg-white shadow-md rounded-lg p-4 text-sm">
+            <p className="text-gray-800 mb-2">
+              ⚠️ Bạn cần điền đầy đủ <b>Họ tên, SĐT và Địa chỉ</b> trước khi liên hệ mua hàng.
+            </p>
+            <button
+              onClick={() => {
+                toast.dismiss(t.id);
+                setShowUserBox(true); // ✅ Mở hộp thông tin Navbar
+              }}
+              className="bg-black text-white px-3 py-1.5 rounded hover:bg-gray-800 transition"
+            >
+              Điền ngay
+            </button>
+          </div>
+        ),
+        { duration: 5000 }
+      );
+      return;
+    }
+
+    const message = `- Họ tên: ${user?.name}
+- SĐT: ${user?.phoneNumber}
+- Địa chỉ: ${user?.direction}
 - Tên sản phẩm: ${product?.name || "Không có tên"}
 - Link: ${window.location.href}
 - Size: ${size}
