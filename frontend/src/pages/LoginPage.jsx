@@ -37,35 +37,26 @@ const LoginPage = () => {
   // --- Facebook login (không dùng async function trực tiếp) ---
 // --- Facebook login ---
 const handleFacebookLogin = () => {
+  const appId = "1365209865023366"; // 👉 App ID của bạn
+  const apiBase = import.meta.env.VITE_API_URL;
+  const redirectUri = encodeURIComponent(`${apiBase}/api/auth/facebook/callback`);
+  const scope = "email,public_profile";
+
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-  // Nếu là thiết bị di động → thử mở app Facebook
+  // 👉 Nếu là mobile → dùng URL chính thức, Facebook sẽ tự xử lý mở app hoặc web
   if (isMobile) {
-    const appId = "1365209865023366"; // App ID của bạn
-    const redirectUri = encodeURIComponent("https://your-domain.com/auth/facebook/callback"); // 🔁 thay đúng URL redirect thật của bạn
-    const scope = "email,public_profile";
-    const fbAppUrl = `fb://authorize?client_id=${appId}&redirect_uri=${redirectUri}&scope=${scope}`;
-    const fbWebUrl = `https://www.facebook.com/dialog/oauth?client_id=${appId}&redirect_uri=${redirectUri}&scope=${scope}`;
-
-    const timeout = setTimeout(() => {
-      // Nếu không mở được app sau 1s → fallback sang web
-      window.location.href = fbWebUrl;
-    }, 1000);
-
-    window.location.href = fbAppUrl;
-
-    // Nếu người dùng có app, khi chuyển sang app thì window sẽ mất focus, clear timeout
-    window.addEventListener("blur", () => clearTimeout(timeout));
+    const fbMobileUrl = `https://www.facebook.com/v17.0/dialog/oauth?client_id=${appId}&redirect_uri=${redirectUri}&scope=${scope}&display=touch&response_type=token`;
+    window.location.href = fbMobileUrl;
     return;
   }
 
-  // Ngược lại (PC) → dùng SDK như cũ
+  // 👉 Nếu là PC → dùng SDK như bình thường
   setFbLoading(true);
   FB.login(
     (response) => {
       if (response.authResponse) {
         const accessToken = response.authResponse.accessToken;
-        const apiBase = import.meta.env.VITE_API_URL;
 
         fetch(`${apiBase}/api/auth/facebook/login`, {
           method: "POST",
@@ -86,9 +77,7 @@ const handleFacebookLogin = () => {
               import("../stores/useUserStore").then(({ useUserStore }) => {
                 useUserStore.getState().checkAuth();
               });
-              setTimeout(() => {
-                window.location.reload();
-              }, 500);
+              setTimeout(() => window.location.reload(), 500);
             } else {
               alert(data.message || "Đăng nhập Facebook thất bại");
             }
@@ -103,9 +92,10 @@ const handleFacebookLogin = () => {
         setFbLoading(false);
       }
     },
-    { scope: "email" }
+    { scope: "email,public_profile" }
   );
 };
+
 
 
 
