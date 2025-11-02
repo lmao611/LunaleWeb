@@ -16,6 +16,9 @@ export default function OrdersManager() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [filterStatus, setFilterStatus] = useState("");
+const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
+const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+
 
   useEffect(() => {
     fetchAll();
@@ -274,6 +277,16 @@ async function exportToExcel() {
   saveAs(blob, `DonHang_${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
 
+  // 🔍 Lọc đơn hàng theo tháng và năm
+const filteredByMonth = orders.filter((o) => {
+  if (!o.receivedDate) return false;
+  const d = new Date(o.receivedDate);
+  return (
+    d.getMonth() + 1 === currentMonth &&
+    d.getFullYear() === currentYear &&
+    (filterStatus ? o.status === filterStatus : true)
+  );
+});
 
   const filtered = orders.filter((o) => (filterStatus ? o.status === filterStatus : true));
 
@@ -334,7 +347,7 @@ async function exportToExcel() {
         </tr>
       </thead>
       <tbody>
-        {filtered.map((o, idx) => {
+        {filteredByMonth.map((o, idx) => {
           const statusColor =
             o.status === "chưa giao"
               ? "bg-red-100 text-red-700"
@@ -419,7 +432,7 @@ async function exportToExcel() {
             </tr>
           );
         })}
-        {filtered.length === 0 && (
+        {filteredByMonth.length === 0 && (
           <tr>
             <td colSpan={13} className="px-3 py-6 text-center text-gray-500">
               Không có đơn hàng
@@ -429,6 +442,33 @@ async function exportToExcel() {
       </tbody>
     </table>
   </div>
+  <div className="flex justify-center items-center gap-2 mt-6">
+  <button
+    onClick={() => {
+      if (currentMonth === 1) {
+        setCurrentMonth(12);
+        setCurrentYear((y) => y - 1);
+      } else setCurrentMonth((m) => m - 1);
+    }}
+    className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+  >
+    ◀ Trước
+  </button>
+  <div className="font-semibold text-lg">
+    {currentMonth}/{currentYear}
+  </div>
+  <button
+    onClick={() => {
+      if (currentMonth === 12) {
+        setCurrentMonth(1);
+        setCurrentYear((y) => y + 1);
+      } else setCurrentMonth((m) => m + 1);
+    }}
+    className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+  >
+    Sau ▶
+  </button>
+</div>
 </div>
 
       )}
