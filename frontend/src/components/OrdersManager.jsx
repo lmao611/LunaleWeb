@@ -280,13 +280,26 @@ async function exportToExcel() {
   // 🔍 Lọc đơn hàng theo tháng và năm
 const filteredByMonth = orders.filter((o) => {
   if (!o.receivedDate) return false;
-  const d = new Date(o.receivedDate);
+
+  let d;
+  if (o.receivedDate.includes("/")) {
+    // Dạng dd/mm/yyyy
+    const [day, month, year] = o.receivedDate.split("/").map(Number);
+    d = new Date(year, month - 1, day);
+  } else {
+    // Dạng yyyy-mm-dd hoặc ISO
+    d = new Date(o.receivedDate);
+  }
+
+  if (isNaN(d)) return false; // bỏ qua ngày lỗi
+
   return (
     d.getMonth() + 1 === currentMonth &&
     d.getFullYear() === currentYear &&
     (filterStatus ? o.status === filterStatus : true)
   );
 });
+
 
   const filtered = orders.filter((o) => (filterStatus ? o.status === filterStatus : true));
 
