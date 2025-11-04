@@ -48,6 +48,9 @@ const OrderReceipt = () => {
       }
     };
     fetchData();
+    console.log("Customers API:", custRes.data);
+console.log("Products API:", prodRes.data);
+
   }, []);
 
   // ===== Handle select customer =====
