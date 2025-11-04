@@ -119,18 +119,32 @@ const handleCustomerSelect = (id) => {
 
   // ===== Capture as image =====
   const handleExportImage = async () => {
-    if (!receiptRef.current) return;
+  if (!receiptRef.current) return;
+
+  // ✅ ép màu nền thành trắng trước khi chụp (tránh oklch)
+  const oldBg = receiptRef.current.style.backgroundColor;
+  receiptRef.current.style.backgroundColor = "#ffffff";
+
+  try {
     const canvas = await html2canvas(receiptRef.current, {
       scale: 2,
-      backgroundColor: "#ffffff",
+      backgroundColor: "#ffffff", // ép màu nền trắng rõ ràng
+      useCORS: true, // nếu có ảnh logo hoặc ảnh ngoài domain
     });
-    const img = canvas.toDataURL("image/png");
 
+    const img = canvas.toDataURL("image/png");
     const link = document.createElement("a");
     link.href = img;
     link.download = `phieu_dat_hang_${Date.now()}.png`;
     link.click();
-  };
+  } catch (err) {
+    console.error("❌ Export error:", err);
+  } finally {
+    // ✅ khôi phục lại background cũ
+    receiptRef.current.style.backgroundColor = oldBg;
+  }
+};
+
 
   // ===== UI =====
   return (
