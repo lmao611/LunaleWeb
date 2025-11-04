@@ -27,7 +27,7 @@ const OrderReceipt = () => {
     const fetchData = async () => {
       try {
         const [custRes, prodRes] = await Promise.all([
-          axios.get("/api/customers"),
+          axios.get("/api/users"),
           axios.get("/api/products"),
         ]);
 
@@ -48,8 +48,7 @@ const OrderReceipt = () => {
       }
     };
     fetchData();
-    console.log("Customers API:", custRes.data);
-console.log("Products API:", prodRes.data);
+
 
   }, []);
 
