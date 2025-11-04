@@ -1,4 +1,10 @@
-import { PlusCircle, ShoppingBasket, Images, UploadCloud, FileText } from "lucide-react";
+import {
+  PlusCircle,
+  ShoppingBasket,
+  Images,
+  UploadCloud,
+  FileText,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import CreateProductForm from "../components/CreateProductForm";
@@ -7,6 +13,7 @@ import CreateCollectionForm from "../components/CreateCollectionForm";
 import CollectionsList from "../components/CollectionsList";
 import BannerUploadForm from "../components/BannerUploadForm";
 import OrdersManager from "../components/OrdersManager";
+import OrderReceipt from "../components/OrderReceipt"; // ✅ thêm component mới
 import { useProductStore } from "../stores/useProductStore";
 
 const tabs = [
@@ -16,6 +23,7 @@ const tabs = [
   { id: "collectionsList", label: "Danh sách bộ sưu tầm", icon: Images },
   { id: "banner", label: "Tải ảnh banner", icon: UploadCloud },
   { id: "orders", label: "Quản lý đơn hàng", icon: FileText },
+  { id: "receipt", label: "Phiếu đặt hàng", icon: FileText }, // ✅ thêm tab mới
 ];
 
 const AdminPage = () => {
@@ -129,6 +137,17 @@ const AdminPage = () => {
               exit={{ opacity: 0, y: -8 }}
             >
               <OrdersManager />
+            </motion.div>
+          )}
+
+          {activeTab === "receipt" && (
+            <motion.div
+              key="receipt"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+            >
+              <OrderReceipt />
             </motion.div>
           )}
         </AnimatePresence>
