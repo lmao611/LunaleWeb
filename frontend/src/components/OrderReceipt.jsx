@@ -20,21 +20,26 @@ const OrderReceipt = () => {
   });
 
   // ===== Fetch data from DB =====
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [custRes, prodRes] = await Promise.all([
-          axios.get("/api/customers"),
-          axios.get("/api/products"),
-        ]);
-        setCustomers(custRes.data);
-        setProducts(prodRes.data);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-    fetchData();
-  }, []);
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const [custRes, prodRes] = await Promise.all([
+        axios.get("/api/customers"),
+        axios.get("/api/products"),
+      ]);
+
+      // ✅ kiểm tra dữ liệu và fallback về []
+      setCustomers(Array.isArray(custRes.data) ? custRes.data : custRes.data.customers || []);
+      setProducts(Array.isArray(prodRes.data) ? prodRes.data : prodRes.data.products || []);
+    } catch (err) {
+      console.error(err);
+      setCustomers([]);
+      setProducts([]);
+    }
+  };
+  fetchData();
+}, []);
+
 
   // ===== Handle select customer =====
   const handleCustomerSelect = (id) => {
