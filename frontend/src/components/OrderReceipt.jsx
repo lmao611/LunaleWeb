@@ -3,6 +3,7 @@ import axios from "axios";
 import { motion } from "framer-motion";
 import { PlusCircle, Trash2, ImageDown } from "lucide-react";
 import html2canvas from "html2canvas";
+import domtoimage from "dom-to-image-more";
 
 const OrderReceipt = () => {
   const [customers, setCustomers] = useState([]);
@@ -118,32 +119,31 @@ const handleCustomerSelect = (id) => {
   };
 
   // ===== Capture as image =====
-  const handleExportImage = async () => {
+  // ===== Capture as image =====
+const handleExportImage = async () => {
   if (!receiptRef.current) return;
 
-  // ✅ ép màu nền thành trắng trước khi chụp (tránh oklch)
-  const oldBg = receiptRef.current.style.backgroundColor;
-  receiptRef.current.style.backgroundColor = "#ffffff";
-
   try {
-    const canvas = await html2canvas(receiptRef.current, {
-      scale: 2,
-      backgroundColor: "#ffffff", // ép màu nền trắng rõ ràng
-      useCORS: true, // nếu có ảnh logo hoặc ảnh ngoài domain
+    const dataUrl = await domtoimage.toPng(receiptRef.current, {
+      quality: 1,
+      bgcolor: "#ffffff",
+      cacheBust: true,
+      style: {
+        transform: "scale(1)",
+        transformOrigin: "top left",
+      },
     });
 
-    const img = canvas.toDataURL("image/png");
     const link = document.createElement("a");
-    link.href = img;
+    link.href = dataUrl;
     link.download = `phieu_dat_hang_${Date.now()}.png`;
     link.click();
   } catch (err) {
     console.error("❌ Export error:", err);
-  } finally {
-    // ✅ khôi phục lại background cũ
-    receiptRef.current.style.backgroundColor = oldBg;
+    alert("Không thể xuất ảnh, vui lòng thử lại.");
   }
 };
+
 
 
   // ===== UI =====

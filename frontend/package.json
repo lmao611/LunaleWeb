@@ -13,6 +13,7 @@
     "@headlessui/react": "^2.2.9",
     "@react-oauth/google": "^0.12.2",
     "@tailwindcss/vite": "^4.1.13",
+    "dom-to-image-more": "^3.7.2",
     "exceljs": "^4.4.0",
     "file-saver": "^2.0.5",
     "framer-motion": "^11.18.2",
