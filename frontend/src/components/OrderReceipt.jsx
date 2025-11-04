@@ -190,7 +190,8 @@ const handleCustomerSelect = (id) => {
           <div>
             <label className="block text-sm mb-1 font-medium">Ngày giao</label>
             <input
-              type="date"
+              type="text"
+              placeholder="dd/mm/yyyy"
               value={form.deliverDate}
               onChange={(e) =>
                 setForm((f) => ({ ...f, deliverDate: e.target.value }))
@@ -202,7 +203,8 @@ const handleCustomerSelect = (id) => {
           <div>
             <label className="block text-sm mb-1 font-medium">Ngày đến</label>
             <input
-              type="date"
+              type="text"
+              placeholder="dd/mm/yyyy"
               value={form.receivedDate}
               onChange={(e) =>
                 setForm((f) => ({ ...f, receivedDate: e.target.value }))
