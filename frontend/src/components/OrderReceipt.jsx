@@ -51,27 +51,29 @@ const OrderReceipt = () => {
   }, []);
 
   // ===== Handle select customer =====
-  const handleCustomerSelect = (id) => {
-    if (!id) {
-      setForm((f) => ({
-        ...f,
-        customerId: "",
-        customerName: "",
-        address: "",
-        phone: "",
-      }));
-      return;
-    }
-
-    const selected = customers.find((c) => c._id === id);
+  // ===== Handle select customer =====
+const handleCustomerSelect = (id) => {
+  if (!id) {
     setForm((f) => ({
       ...f,
-      customerId: id,
-      customerName: selected?.name || "",
-      address: selected?.address || selected?.addressLine || "",
-      phone: selected?.phone || selected?.phoneNumber || "",
+      customerId: "",
+      customerName: "",
+      address: "",
+      phone: "",
     }));
-  };
+    return;
+  }
+
+  const c = customers.find((x) => String(x._id ?? x.id) === String(id));
+
+  setForm((f) => ({
+    ...f,
+    customerId: id,
+    customerName: c?.name || f.customerName,
+    address: c?.direction || f.address,      // ✅ đúng field trong DB
+    phone: c?.phoneNumber || f.phone,        // ✅ đúng field trong DB
+  }));
+};
 
   // ===== Handle product add / remove =====
   const addProduct = () => {
