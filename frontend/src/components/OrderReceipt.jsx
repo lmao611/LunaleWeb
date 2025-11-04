@@ -20,7 +20,7 @@ const OrderReceipt = () => {
     items: [],
   });
 
-  const receiptRef = useRef(null); // 👉 Dùng để chụp ảnh
+  const receiptRef = useRef(null);
 
   // ===== Fetch data from DB =====
   useEffect(() => {
@@ -48,34 +48,30 @@ const OrderReceipt = () => {
       }
     };
     fetchData();
-
-
   }, []);
 
   // ===== Handle select customer =====
-const handleCustomerSelect = (id) => {
-  if (!id) {
+  const handleCustomerSelect = (id) => {
+    if (!id) {
+      setForm((f) => ({
+        ...f,
+        customerId: "",
+        customerName: "",
+        address: "",
+        phone: "",
+      }));
+      return;
+    }
+
+    const selected = customers.find((c) => c._id === id);
     setForm((f) => ({
       ...f,
-      customerId: "",
-      customerName: "",
-      address: "",
-      phone: "",
+      customerId: id,
+      customerName: selected?.name || "",
+      address: selected?.address || selected?.addressLine || "",
+      phone: selected?.phone || selected?.phoneNumber || "",
     }));
-    return;
-  }
-
-  const selected = customers.find((c) => c._id === id);
-
-  setForm((f) => ({
-    ...f,
-    customerId: id,
-    customerName: selected?.name || "",
-    address: selected?.address || selected?.addressLine || "", // ✅ fallback nếu trường khác
-    phone: selected?.phone || selected?.phoneNumber || "",     // ✅ fallback nếu dùng phoneNumber
-  }));
-};
-
+  };
 
   // ===== Handle product add / remove =====
   const addProduct = () => {
@@ -107,6 +103,18 @@ const handleCustomerSelect = (id) => {
 
   const totalWithShip = calcTotal() + (form.shipFee || 0);
 
+  // ===== Date format helper =====
+  const formatDate = (input) => {
+    if (!input) return "";
+    const parts = input.split(/[/-]/);
+    if (parts.length !== 3) return input;
+    const [day, month, year] =
+      Number(parts[0]) > 12
+        ? parts
+        : [parts[1], parts[0], parts[2]]; // auto fix nếu nhập nhầm kiểu
+    return `${day.padStart(2, "0")}/${month.padStart(2, "0")}/${year}`;
+  };
+
   // ===== Capture as image =====
   const handleExportImage = async () => {
     if (!receiptRef.current) return;
@@ -116,7 +124,6 @@ const handleCustomerSelect = (id) => {
     });
     const img = canvas.toDataURL("image/png");
 
-    // Tạo link download
     const link = document.createElement("a");
     link.href = img;
     link.download = `phieu_dat_hang_${Date.now()}.png`;
@@ -130,7 +137,6 @@ const handleCustomerSelect = (id) => {
       animate={{ opacity: 1, y: 0 }}
       className="relative bg-white border border-gray-200 shadow-md rounded-2xl p-8 max-w-4xl mx-auto"
     >
-      {/* === Nút xuất ảnh === */}
       <div className="flex justify-end mb-4">
         <button
           onClick={handleExportImage}
@@ -141,7 +147,6 @@ const handleCustomerSelect = (id) => {
         </button>
       </div>
 
-      {/* === Nội dung phiếu === */}
       <div ref={receiptRef}>
         <h2 className="text-2xl font-bold text-center mb-6 text-blue-700">
           Phiếu Đặt Hàng
@@ -194,7 +199,10 @@ const handleCustomerSelect = (id) => {
               placeholder="dd/mm/yyyy"
               value={form.deliverDate}
               onChange={(e) =>
-                setForm((f) => ({ ...f, deliverDate: e.target.value }))
+                setForm((f) => ({
+                  ...f,
+                  deliverDate: formatDate(e.target.value),
+                }))
               }
               className="w-full border rounded px-3 py-2"
             />
@@ -207,7 +215,10 @@ const handleCustomerSelect = (id) => {
               placeholder="dd/mm/yyyy"
               value={form.receivedDate}
               onChange={(e) =>
-                setForm((f) => ({ ...f, receivedDate: e.target.value }))
+                setForm((f) => ({
+                  ...f,
+                  receivedDate: formatDate(e.target.value),
+                }))
               }
               className="w-full border rounded px-3 py-2"
             />
@@ -361,7 +372,6 @@ const handleCustomerSelect = (id) => {
           </div>
         </div>
 
-        {/* Logo */}
         <div className="absolute bottom-4 left-4 opacity-70">
           <img src="/lunale.png" alt="Lunale Logo" className="h-10" />
         </div>
