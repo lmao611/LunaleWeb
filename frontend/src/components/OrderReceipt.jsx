@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { motion } from "framer-motion";
 import { PlusCircle, Trash2, ImageDown } from "lucide-react";
+import html2canvas from "html2canvas";
 import domtoimage from "dom-to-image-more";
 
 const OrderReceipt = () => {
@@ -12,7 +13,7 @@ const OrderReceipt = () => {
     customerName: "",
     address: "",
     phone: "",
-    terms: "Giao hàng thu cod",
+    terms: "",
     deliverDate: "",
     receivedDate: "",
     salePercent: 0,
@@ -22,6 +23,7 @@ const OrderReceipt = () => {
 
   const receiptRef = useRef(null);
 
+  // ===== Fetch data from DB =====
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -49,29 +51,32 @@ const OrderReceipt = () => {
     fetchData();
   }, []);
 
-  const handleCustomerSelect = (id) => {
-    if (!id) {
-      setForm((f) => ({
-        ...f,
-        customerId: "",
-        customerName: "",
-        address: "",
-        phone: "",
-      }));
-      return;
-    }
-
-    const c = customers.find((x) => String(x._id ?? x.id) === String(id));
-
+  // ===== Handle select customer =====
+  // ===== Handle select customer =====
+const handleCustomerSelect = (id) => {
+  if (!id) {
     setForm((f) => ({
       ...f,
-      customerId: id,
-      customerName: c?.name || f.customerName,
-      address: c?.direction || f.address,
-      phone: c?.phoneNumber || f.phone,
+      customerId: "",
+      customerName: "",
+      address: "",
+      phone: "",
     }));
-  };
+    return;
+  }
 
+  const c = customers.find((x) => String(x._id ?? x.id) === String(id));
+
+  setForm((f) => ({
+    ...f,
+    customerId: id,
+    customerName: c?.name || f.customerName,
+    address: c?.direction || f.address,      // ✅ đúng field trong DB
+    phone: c?.phoneNumber || f.phone,        // ✅ đúng field trong DB
+  }));
+};
+
+  // ===== Handle product add / remove =====
   const addProduct = () => {
     setForm((f) => ({
       ...f,
@@ -86,57 +91,67 @@ const OrderReceipt = () => {
     }));
   };
 
+  // ===== Calculate totals =====
   const calcSubtotal = (item) => {
     const product = products.find((p) => p._id === item.productId);
     if (!product) return 0;
-    const base = product.price * (item.quantity || 1);
-    const discount = (base * (form.salePercent || 0)) / 100;
-    return base - discount;
+    return product.price * (item.quantity || 1);
   };
 
   const calcTotal = () => {
     const subtotal = form.items.reduce((acc, it) => acc + calcSubtotal(it), 0);
-    return subtotal;
+    const discount = (subtotal * (form.salePercent || 0)) / 100;
+    return subtotal - discount;
   };
 
   const totalWithShip = calcTotal() + (form.shipFee || 0);
 
+  // ===== Date format helper =====
   const formatDate = (input) => {
     if (!input) return "";
     const parts = input.split(/[/-]/);
     if (parts.length !== 3) return input;
     const [day, month, year] =
-      Number(parts[0]) > 12 ? parts : [parts[1], parts[0], parts[2]];
+      Number(parts[0]) > 12
+        ? parts
+        : [parts[1], parts[0], parts[2]]; // auto fix nếu nhập nhầm kiểu
     return `${day.padStart(2, "0")}/${month.padStart(2, "0")}/${year}`;
   };
 
-  const handleExportImage = async () => {
-    if (!receiptRef.current) return;
-    try {
-      const dataUrl = await domtoimage.toPng(receiptRef.current, {
-        quality: 1,
-        bgcolor: "#ffffff",
-        cacheBust: true,
-        style: {
-          transform: "scale(1)",
-          transformOrigin: "top left",
-        },
-      });
-      const link = document.createElement("a");
-      link.href = dataUrl;
-      link.download = `phieu_dat_hang_${Date.now()}.png`;
-      link.click();
-    } catch (err) {
-      console.error("❌ Export error:", err);
-      alert("Không thể xuất ảnh, vui lòng thử lại.");
-    }
-  };
+  // ===== Capture as image =====
+  // ===== Capture as image =====
+const handleExportImage = async () => {
+  if (!receiptRef.current) return;
 
+  try {
+    const dataUrl = await domtoimage.toPng(receiptRef.current, {
+      quality: 1,
+      bgcolor: "#ffffff",
+      cacheBust: true,
+      style: {
+        transform: "scale(1)",
+        transformOrigin: "top left",
+      },
+    });
+
+    const link = document.createElement("a");
+    link.href = dataUrl;
+    link.download = `phieu_dat_hang_${Date.now()}.png`;
+    link.click();
+  } catch (err) {
+    console.error("❌ Export error:", err);
+    alert("Không thể xuất ảnh, vui lòng thử lại.");
+  }
+};
+
+
+
+  // ===== UI =====
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="relative bg-white border border-gray-200 shadow-md rounded-2xl p-8 max-w-5xl mx-auto"
+      className="relative bg-white border border-gray-200 shadow-md rounded-2xl p-8 max-w-4xl mx-auto"
     >
       <div className="flex justify-end mb-4">
         <button
@@ -148,115 +163,233 @@ const OrderReceipt = () => {
         </button>
       </div>
 
-      <div ref={receiptRef} className="p-6 bg-white text-gray-800">
-        {/* HEADER */}
-        <div className="flex justify-between items-start mb-4">
-          <div>
-            <p className="text-lg">
-              <b>Khách Hàng :</b> {form.customerName || "Chưa chọn"}
-            </p>
-            <h1 className="text-3xl font-extrabold text-blue-700">
-              Đơn Đặt Hàng
-            </h1>
-          </div>
-          <img src="/lunale.png" alt="Lunale" className="h-10 object-contain" />
-        </div>
+      <div ref={receiptRef}>
+        <h2 className="text-2xl font-bold text-center mb-6 text-blue-700">
+          Phiếu Đặt Hàng
+        </h2>
 
-        {/* THÔNG TIN NGÀY & ĐIỀU KHOẢN */}
-        <div className="flex justify-between text-sm border-b border-gray-300 pb-2 mb-3">
+        {/* Thông tin khách hàng */}
+        <div className="grid sm:grid-cols-2 gap-4 mb-6">
           <div>
-            <p className="font-semibold">Ngày Nhận Đơn</p>
-            <p>{form.receivedDate || "..."}</p>
-          </div>
-          <div>
-            <p className="font-semibold">Ngày giao hàng</p>
-            <p>{form.deliverDate || "..."}</p>
-          </div>
-          <div>
-            <p className="font-semibold">Điều khoản</p>
-            <p>{form.terms || "..."}</p>
-          </div>
-        </div>
-
-        {/* ĐỊA CHỈ */}
-        <div className="grid grid-cols-2 gap-6 text-sm mb-4">
-          <div>
-            <p className="font-semibold text-blue-700">Nhà Cung Cấp</p>
-            <p>Lunale</p>
-            <a
-              href="https://www.instagram.com/lunale.vn/"
-              target="_blank"
-              className="text-blue-500 underline"
+            <label className="block text-sm mb-1 font-medium">Khách hàng</label>
+            <select
+              value={form.customerId}
+              onChange={(e) => handleCustomerSelect(e.target.value)}
+              className="w-full border rounded px-3 py-2"
             >
-              https://www.instagram.com/lunale.vn/
-            </a>
-            <p>Gò Vấp, Hồ Chí Minh City</p>
+              <option value="">-- Chọn khách hàng --</option>
+              {customers.map((c) => (
+                <option key={c._id} value={c._id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            <input
+              type="text"
+              placeholder="Hoặc nhập tên khách hàng"
+              value={form.customerName}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, customerName: e.target.value }))
+              }
+              className="w-full border rounded px-3 py-2 mt-2"
+            />
           </div>
+
           <div>
-            <p className="font-semibold text-blue-700">Giao Hàng Đến</p>
-            <p>
-              <b>Khách Hàng:</b> {form.customerName || "Chưa chọn"}
-            </p>
-            <p>
-              <b>Địa Chỉ:</b> {form.address || "Chưa có"}
-            </p>
-            <p>
-              <b>Điện Thoại:</b> {form.phone || "Chưa có"}
-            </p>
+            <label className="block text-sm mb-1 font-medium">Điều khoản</label>
+            <input
+              type="text"
+              placeholder="Nhập điều khoản..."
+              value={form.terms}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, terms: e.target.value }))
+              }
+              className="w-full border rounded px-3 py-2"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm mb-1 font-medium">Ngày giao</label>
+            <input
+              type="text"
+              placeholder="dd/mm/yyyy"
+              value={form.deliverDate}
+              onChange={(e) =>
+                setForm((f) => ({
+                  ...f,
+                  deliverDate: formatDate(e.target.value),
+                }))
+              }
+              className="w-full border rounded px-3 py-2"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm mb-1 font-medium">Ngày đến</label>
+            <input
+              type="text"
+              placeholder="dd/mm/yyyy"
+              value={form.receivedDate}
+              onChange={(e) =>
+                setForm((f) => ({
+                  ...f,
+                  receivedDate: formatDate(e.target.value),
+                }))
+              }
+              className="w-full border rounded px-3 py-2"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm mb-1 font-medium">Địa chỉ</label>
+            <input
+              type="text"
+              placeholder="Nhập địa chỉ"
+              value={form.address}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, address: e.target.value }))
+              }
+              className="w-full border rounded px-3 py-2"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm mb-1 font-medium">Điện thoại</label>
+            <input
+              type="text"
+              placeholder="Nhập số điện thoại"
+              value={form.phone}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, phone: e.target.value }))
+              }
+              className="w-full border rounded px-3 py-2"
+            />
           </div>
         </div>
 
-        {/* BẢNG SẢN PHẨM */}
-        <table className="w-full text-sm border-t border-gray-300">
-          <thead>
-            <tr className="text-left text-blue-700 border-b border-gray-300">
-              <th className="py-2 px-2">Tên Sản Phẩm</th>
-              <th className="py-2 px-2">Size</th>
-              <th className="py-2 px-2">Số lượng</th>
-              <th className="py-2 px-2">Đơn Giá</th>
-              <th className="py-2 px-2 text-red-600">Sale {form.salePercent}%</th>
-              <th className="py-2 px-2 text-right">Tổng giá</th>
-            </tr>
-          </thead>
-          <tbody>
-            {form.items.length === 0 ? (
-              <tr>
-                <td colSpan="6" className="py-3 text-center text-gray-500">
-                  Chưa có sản phẩm nào
-                </td>
-              </tr>
-            ) : (
-              form.items.map((item, i) => {
-                const product = products.find((p) => p._id === item.productId);
-                const name = product?.name || "Chưa chọn";
-                const price = product?.price || 0;
-                const total = calcSubtotal(item);
-                return (
-                  <tr key={i} className="border-b border-gray-200">
-                    <td className="py-2 px-2 font-medium">{name}</td>
-                    <td className="py-2 px-2">-</td>
-                    <td className="py-2 px-2">{item.quantity}</td>
-                    <td className="py-2 px-2">{price.toLocaleString()} ₫</td>
-                    <td className="py-2 px-2 text-red-600">
-                      {(price * (1 - form.salePercent / 100)).toLocaleString()} ₫
-                    </td>
-                    <td className="py-2 px-2 text-right font-semibold">
-                      {total.toLocaleString()} ₫
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+        {/* Sản phẩm */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-lg text-blue-700">Sản phẩm</h3>
+            <button
+              onClick={addProduct}
+              className="flex items-center gap-1 text-blue-600 hover:text-blue-800"
+            >
+              <PlusCircle className="w-5 h-5" />
+              Thêm sản phẩm
+            </button>
+          </div>
 
-        {/* TỔNG KẾT */}
-        <div className="text-right text-sm mt-3">
-          <p>Thành Tiền: {calcTotal().toLocaleString()} ₫</p>
-          <p>Phí Ship: +{(form.shipFee || 0).toLocaleString()} ₫</p>
-          <p className="text-xl font-bold text-pink-600">
-            Tổng Cộng: {totalWithShip.toLocaleString()} ₫
-          </p>
+          {form.items.length === 0 && (
+            <p className="text-gray-500 italic">Chưa có sản phẩm nào.</p>
+          )}
+
+          <div className="space-y-3">
+            {form.items.map((item, i) => {
+              const product = products.find((p) => p._id === item.productId);
+              return (
+                <div
+                  key={i}
+                  className="grid sm:grid-cols-4 gap-3 border rounded-lg p-3 relative"
+                >
+                  <div>
+                    <select
+                      value={item.productId}
+                      onChange={(e) =>
+                        setForm((f) => {
+                          const newItems = [...f.items];
+                          newItems[i].productId = e.target.value;
+                          return { ...f, items: newItems };
+                        })
+                      }
+                      className="w-full border rounded px-2 py-1"
+                    >
+                      <option value="">-- Chọn sản phẩm --</option>
+                      {products.map((p) => (
+                        <option key={p._id} value={p._id}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <input
+                      type="number"
+                      min="1"
+                      value={item.quantity}
+                      onChange={(e) =>
+                        setForm((f) => {
+                          const newItems = [...f.items];
+                          newItems[i].quantity = Number(e.target.value);
+                          return { ...f, items: newItems };
+                        })
+                      }
+                      className="w-full border rounded px-2 py-1"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">
+                      {product ? `${product.price.toLocaleString()}₫` : "-"}
+                    </span>
+                    <span className="font-semibold">
+                      {calcSubtotal(item).toLocaleString()}₫
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => removeProduct(i)}
+                    className="absolute -top-2 -right-2 bg-red-100 hover:bg-red-200 p-1 rounded-full"
+                  >
+                    <Trash2 className="w-4 h-4 text-red-600" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Sale, ship, tổng */}
+        <div className="grid sm:grid-cols-3 gap-4 mb-6">
+          <div>
+            <label className="block text-sm mb-1 font-medium">Sale (%)</label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              value={form.salePercent}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, salePercent: Number(e.target.value) }))
+              }
+              className="w-full border rounded px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm mb-1 font-medium">
+              Phí ship (₫)
+            </label>
+            <input
+              type="number"
+              value={form.shipFee}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, shipFee: Number(e.target.value) }))
+              }
+              className="w-full border rounded px-3 py-2"
+            />
+          </div>
+          <div className="text-right">
+            <div className="text-sm text-gray-600">
+              Thành tiền: {calcTotal().toLocaleString()}₫
+            </div>
+            <div className="text-sm text-gray-600">
+              Phí ship: +{(form.shipFee || 0).toLocaleString()}₫
+            </div>
+            <div className="text-lg font-bold text-blue-700">
+              Tổng cộng: {totalWithShip.toLocaleString()}₫
+            </div>
+          </div>
+        </div>
+
+        <div className="absolute bottom-4 left-4 opacity-70">
+          <img src="/lunale.png" alt="Lunale Logo" className="h-10" />
         </div>
       </div>
     </motion.div>
