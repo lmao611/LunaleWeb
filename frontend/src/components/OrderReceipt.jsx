@@ -76,7 +76,7 @@ const OrderReceipt = () => {
   const addProduct = () =>
     setForm((f) => ({
       ...f,
-      items: [...f.items, { productId: "", quantity: 1 }],
+      items: [...f.items, { productId: "", quantity: 1, size: "" }],
     }));
 
   const removeProduct = (index) =>
@@ -110,48 +110,44 @@ const OrderReceipt = () => {
     return `${day.padStart(2, "0")}/${month.padStart(2, "0")}/${year}`;
   };
 
-  // ===== Export image (pretty view) =====
-const handleExportImage = async () => {
-  if (!printRef.current) return;
+  // ===== Export image =====
+  const handleExportImage = async () => {
+    if (!printRef.current) return;
 
-  try {
-    // Hiển thị vùng in tạm thời để DOM có thể render
-    const el = printRef.current;
-    el.style.opacity = "1";
-    el.style.pointerEvents = "auto";
-    el.style.position = "relative";
-    el.style.top = "0";
-    el.style.left = "0";
+    try {
+      const el = printRef.current;
+      el.style.opacity = "1";
+      el.style.pointerEvents = "auto";
+      el.style.position = "relative";
+      el.style.top = "0";
+      el.style.left = "0";
 
-    // Đợi React render hoàn chỉnh
-    await new Promise((r) => setTimeout(r, 300));
+      await new Promise((r) => setTimeout(r, 300));
 
-    const dataUrl = await domtoimage.toPng(el, {
-      quality: 1,
-      bgcolor: "#ffffff",
-      cacheBust: true,
-      width: el.scrollWidth,
-      height: el.scrollHeight,
-      style: { transform: "scale(1)", transformOrigin: "top left" },
-    });
+      const dataUrl = await domtoimage.toPng(el, {
+        quality: 1,
+        bgcolor: "#ffffff",
+        cacheBust: true,
+        width: el.scrollWidth,
+        height: el.scrollHeight,
+        style: { transform: "scale(1)", transformOrigin: "top left" },
+      });
 
-    // Ẩn lại vùng in
-    el.style.opacity = "0";
-    el.style.pointerEvents = "none";
-    el.style.position = "absolute";
-    el.style.top = "-9999px";
-    el.style.left = "-9999px";
+      el.style.opacity = "0";
+      el.style.pointerEvents = "none";
+      el.style.position = "absolute";
+      el.style.top = "-9999px";
+      el.style.left = "-9999px";
 
-    const link = document.createElement("a");
-    link.href = dataUrl;
-    link.download = `phieu_dat_hang_${Date.now()}.png`;
-    link.click();
-  } catch (err) {
-    console.error("❌ Export error:", err);
-    alert("Không thể xuất ảnh, vui lòng thử lại.");
-  }
-};
-
+      const link = document.createElement("a");
+      link.href = dataUrl;
+      link.download = `phieu_dat_hang_${Date.now()}.png`;
+      link.click();
+    } catch (err) {
+      console.error("❌ Export error:", err);
+      alert("Không thể xuất ảnh, vui lòng thử lại.");
+    }
+  };
 
   // ===== UI =====
   return (
@@ -171,7 +167,7 @@ const handleExportImage = async () => {
         </button>
       </div>
 
-      {/* ===== FORM VIEW (giữ nguyên của bạn) ===== */}
+      {/* ===== FORM VIEW ===== */}
       <div ref={receiptRef}>
         <h2 className="text-2xl font-bold text-center mb-6 text-blue-700">
           Phiếu Đặt Hàng
@@ -294,8 +290,9 @@ const handleExportImage = async () => {
               return (
                 <div
                   key={i}
-                  className="grid sm:grid-cols-4 gap-3 border rounded-lg p-3 relative"
+                  className="grid sm:grid-cols-5 gap-3 border rounded-lg p-3 relative"
                 >
+                  {/* Product */}
                   <div>
                     <select
                       value={item.productId}
@@ -316,6 +313,29 @@ const handleExportImage = async () => {
                       ))}
                     </select>
                   </div>
+
+                  {/* Size */}
+                  <div>
+                    <select
+                      value={item.size}
+                      onChange={(e) =>
+                        setForm((f) => {
+                          const newItems = [...f.items];
+                          newItems[i].size = e.target.value;
+                          return { ...f, items: newItems };
+                        })
+                      }
+                      className="w-full border rounded px-2 py-1"
+                    >
+                      <option value="">Size</option>
+                      <option value="S">S</option>
+                      <option value="M">M</option>
+                      <option value="L">L</option>
+                      <option value="XL">XL</option>
+                    </select>
+                  </div>
+
+                  {/* Quantity */}
                   <div>
                     <input
                       type="number"
@@ -331,6 +351,8 @@ const handleExportImage = async () => {
                       className="w-full border rounded px-2 py-1"
                     />
                   </div>
+
+                  {/* Price */}
                   <div className="flex items-center justify-between">
                     <span className="text-gray-600">
                       {product ? `${product.price.toLocaleString()}₫` : "-"}
@@ -339,6 +361,7 @@ const handleExportImage = async () => {
                       {calcSubtotal(item).toLocaleString()}₫
                     </span>
                   </div>
+
                   <button
                     onClick={() => removeProduct(i)}
                     className="absolute -top-2 -right-2 bg-red-100 hover:bg-red-200 p-1 rounded-full"
@@ -397,17 +420,16 @@ const handleExportImage = async () => {
 
       {/* ===== HIDDEN PRINT VIEW ===== */}
       <div
-  ref={printRef}
-  style={{
-    position: "absolute",
-    top: "-9999px",
-    left: "-9999px",
-    opacity: 0,
-    pointerEvents: "none",
-  }}
-  className="w-[1000px] bg-white text-gray-900 font-sans p-8 border-2 border-gray-200 rounded-xl"
->
-
+        ref={printRef}
+        style={{
+          position: "absolute",
+          top: "-9999px",
+          left: "-9999px",
+          opacity: 0,
+          pointerEvents: "none",
+        }}
+        className="w-[1000px] bg-white text-gray-900 font-sans p-8 border-2 border-gray-200 rounded-xl"
+      >
         <div className="flex justify-between items-center mb-6">
           <img src="/lunale.png" alt="Logo" className="h-12" />
           <h2 className="text-2xl font-bold text-center text-blue-700 flex-1">
@@ -432,6 +454,7 @@ const handleExportImage = async () => {
           <thead>
             <tr className="bg-blue-50 border-b">
               <th className="p-2 text-left border">Sản phẩm</th>
+              <th className="p-2 border text-center">Size</th>
               <th className="p-2 border text-center">SL</th>
               <th className="p-2 border text-right">Đơn giá</th>
               <th className="p-2 border text-right">Thành tiền</th>
@@ -443,6 +466,7 @@ const handleExportImage = async () => {
               return (
                 <tr key={i} className="border-b">
                   <td className="p-2 border">{p?.name || "-"}</td>
+                  <td className="p-2 border text-center">{item.size || "-"}</td>
                   <td className="p-2 border text-center">{item.quantity}</td>
                   <td className="p-2 border text-right">
                     {p ? p.price.toLocaleString() : "-"}
