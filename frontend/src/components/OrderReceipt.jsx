@@ -271,155 +271,171 @@ return product.price * (item.quantity || 1) - discount;
 
         {/* Products */}
         <div className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-lg text-blue-700">Sản phẩm</h3>
-            <button
-              onClick={addProduct}
-              className="flex items-center gap-1 text-blue-600 hover:text-blue-800"
-            >
-              <PlusCircle className="w-5 h-5" />
-              Thêm sản phẩm
-            </button>
-          </div>
+  <div className="flex items-center justify-between mb-3">
+    <h3 className="font-semibold text-lg text-blue-700">Sản phẩm</h3>
+    <button
+      onClick={addProduct}
+      className="flex items-center gap-1 text-blue-600 hover:text-blue-800"
+    >
+      <PlusCircle className="w-5 h-5" />
+      Thêm sản phẩm
+    </button>
+  </div>
 
-          {form.items.length === 0 && (
-            <p className="text-gray-500 italic">Chưa có sản phẩm nào.</p>
-          )}
+  {form.items.length === 0 && (
+    <p className="text-gray-500 italic">Chưa có sản phẩm nào.</p>
+  )}
 
-          <div className="space-y-3">
-            {form.items.map((item, i) => {
-              const product = products.find((p) => p._id === item.productId);
-              return (
-                <div
-                  key={i}
-                  className="grid sm:grid-cols-6 gap-3 border rounded-lg p-3 relative"
-                >
-                  {/* Product */}
-                  <div>
-                    <select
-                      value={item.productId}
-                      onChange={(e) =>
-                        setForm((f) => {
-                          const newItems = [...f.items];
-                          newItems[i].productId = e.target.value;
-                          return { ...f, items: newItems };
-                        })
-                      }
-                      className="w-full border rounded px-2 py-1"
-                    >
-                      <option value="">-- Chọn sản phẩm --</option>
-                      {products.map((p) => (
-                        <option key={p._id} value={p._id}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+  {/* ==== HEADER ==== */}
+  <div className="grid sm:grid-cols-7 gap-3 text-sm font-semibold text-gray-600 mb-1">
+    <span>Tên sản phẩm</span>
+    <span>Size</span>
+    <span>Số lượng</span>
+    <span>Sale (%)</span>
+    <span>Giá gốc</span>
+    <span>Giá sau sale</span>
+    <span>Xóa</span>
+  </div>
 
-                  {/* Size */}
-                  <div>
-                    <select
-                      value={item.size}
-                      onChange={(e) =>
-                        setForm((f) => {
-                          const newItems = [...f.items];
-                          newItems[i].size = e.target.value;
-                          return { ...f, items: newItems };
-                        })
-                      }
-                      className="w-full border rounded px-2 py-1"
-                    >
-                      <option value="">Size</option>
-                      <option value="S">S</option>
-                      <option value="M">M</option>
-                      <option value="L">L</option>
-                      <option value="XL">XL</option>
-                    </select>
-                  </div>
-
-                  {/* Quantity */}
-                  <div>
-                    <input
-                      type="number"
-                      min="1"
-                      value={item.quantity}
-                      onChange={(e) =>
-                        setForm((f) => {
-                          const newItems = [...f.items];
-                          newItems[i].quantity = Number(e.target.value);
-                          return { ...f, items: newItems };
-                        })
-                      }
-                      className="w-full border rounded px-2 py-1"
-                    />
-                  </div>
-                   {/* Sale (%) */}
-<div>
-  <input
-    type="number"
-    min="0"
-    max="100"
-    value={item.sale}
-    onChange={(e) =>
-      setForm((f) => {
-        const newItems = [...f.items];
-        newItems[i].sale = Number(e.target.value);
-        return { ...f, items: newItems };
-      })
-    }
-    className="w-full border rounded px-2 py-1"
-    placeholder="Sale %"
-  />
-</div>
-     
-                  {/* Price */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">
-                      {product ? `${product.price.toLocaleString()}₫` : "-"}
-                    </span>
-                    <span className="font-semibold">
-                      {calcSubtotal(item).toLocaleString()}₫
-                    </span>
-                  </div>
-
-                  <button
-                    onClick={() => removeProduct(i)}
-                    className="absolute -top-2 -right-2 bg-red-100 hover:bg-red-200 p-1 rounded-full"
-                  >
-                    <Trash2 className="w-4 h-4 text-red-600" />
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Sale & total */}
-        <div className="grid sm:grid-cols-3 gap-4 mb-6">
-          
+  <div className="space-y-3">
+    {form.items.map((item, i) => {
+      const product = products.find((p) => p._id === item.productId);
+      const basePrice = product ? product.price * (item.quantity || 1) : 0;
+      const salePrice = calcSubtotal(item);
+      return (
+        <div
+          key={i}
+          className="grid sm:grid-cols-7 gap-3 border rounded-lg p-3 items-center"
+        >
+          {/* Product */}
           <div>
-            <label className="block text-sm mb-1 font-medium">Phí ship (₫)</label>
+            <select
+              value={item.productId}
+              onChange={(e) =>
+                setForm((f) => {
+                  const newItems = [...f.items];
+                  newItems[i].productId = e.target.value;
+                  return { ...f, items: newItems };
+                })
+              }
+              className="w-full border rounded px-2 py-1"
+            >
+              <option value="">-- Chọn sản phẩm --</option>
+              {products.map((p) => (
+                <option key={p._id} value={p._id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Size */}
+          <div>
+            <select
+              value={item.size}
+              onChange={(e) =>
+                setForm((f) => {
+                  const newItems = [...f.items];
+                  newItems[i].size = e.target.value;
+                  return { ...f, items: newItems };
+                })
+              }
+              className="w-full border rounded px-2 py-1"
+            >
+              <option value="">Size</option>
+              <option value="S">S</option>
+              <option value="M">M</option>
+              <option value="L">L</option>
+              <option value="XL">XL</option>
+            </select>
+          </div>
+
+          {/* Quantity */}
+          <div>
             <input
               type="number"
-              value={form.shipFee}
+              min="1"
+              value={item.quantity}
               onChange={(e) =>
-                setForm((f) => ({ ...f, shipFee: Number(e.target.value) }))
+                setForm((f) => {
+                  const newItems = [...f.items];
+                  newItems[i].quantity = Number(e.target.value);
+                  return { ...f, items: newItems };
+                })
               }
-              className="w-full border rounded px-3 py-2"
+              className="w-full border rounded px-2 py-1 text-center"
             />
           </div>
-          <div className="text-right">
-            <div className="text-sm text-gray-600">
-              Thành tiền: {calcTotal().toLocaleString()}₫
-            </div>
-            <div className="text-sm text-gray-600">
-              Phí ship: +{(form.shipFee || 0).toLocaleString()}₫
-            </div>
-            <div className="text-lg font-bold text-blue-700">
-              Tổng cộng: {totalWithShip.toLocaleString()}₫
-            </div>
+
+          {/* Sale (%) */}
+          <div>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              value={item.sale}
+              onChange={(e) =>
+                setForm((f) => {
+                  const newItems = [...f.items];
+                  newItems[i].sale = Number(e.target.value);
+                  return { ...f, items: newItems };
+                })
+              }
+              className="w-full border rounded px-2 py-1 text-center"
+            />
+          </div>
+
+          {/* Giá gốc */}
+          <div className="text-right text-gray-600">
+            {basePrice.toLocaleString()}₫
+          </div>
+
+          {/* Giá sau sale */}
+          <div className="text-right font-semibold text-blue-700">
+            {salePrice.toLocaleString()}₫
+          </div>
+
+          {/* Remove */}
+          <div className="flex justify-center">
+            <button
+              onClick={() => removeProduct(i)}
+              className="bg-red-100 hover:bg-red-200 p-1 rounded-full"
+            >
+              <Trash2 className="w-4 h-4 text-red-600" />
+            </button>
           </div>
         </div>
+      );
+    })}
+  </div>
+</div>
+
+{/* ==== TOTALS (bottom right) ==== */}
+<div className="relative mt-6">
+  <div className="absolute right-0 bottom-0 text-right space-y-1 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+    <p className="text-sm text-gray-600">
+      Thành tiền: {calcTotal().toLocaleString()}₫
+    </p>
+    <p className="text-sm text-gray-600">
+      Phí ship: +{(form.shipFee || 0).toLocaleString()}₫
+    </p>
+    <p className="text-lg font-bold text-blue-700 border-t pt-2">
+      Tổng cộng: {totalWithShip.toLocaleString()}₫
+    </p>
+  </div>
+
+  <div className="w-40">
+    <label className="block text-sm mb-1 font-medium">Phí ship (₫)</label>
+    <input
+      type="number"
+      value={form.shipFee}
+      onChange={(e) =>
+        setForm((f) => ({ ...f, shipFee: Number(e.target.value) }))
+      }
+      className="w-full border rounded px-3 py-2"
+    />
+  </div>
+</div>
 
         <div className="absolute bottom-4 left-4 opacity-70">
           <img src="/lunale.png" alt="Lunale Logo" className="h-10" />
