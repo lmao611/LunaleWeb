@@ -437,7 +437,7 @@ return product.price * (item.quantity || 1) - discount;
   </div>
 </div>
 
-        <div className="absolute bottom-7 left-4 opacity-70">
+        <div className="absolute left-4 opacity-70">
           <img src="/lunale.png" alt="Lunale Logo" className="h-10" />
         </div>
       </div>
