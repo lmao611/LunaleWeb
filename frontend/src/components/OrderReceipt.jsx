@@ -111,23 +111,47 @@ const OrderReceipt = () => {
   };
 
   // ===== Export image (pretty view) =====
-  const handleExportImage = async () => {
-    if (!printRef.current) return;
-    try {
-      const dataUrl = await domtoimage.toPng(printRef.current, {
-        quality: 1,
-        bgcolor: "#ffffff",
-        cacheBust: true,
-      });
-      const link = document.createElement("a");
-      link.href = dataUrl;
-      link.download = `phieu_dat_hang_${Date.now()}.png`;
-      link.click();
-    } catch (err) {
-      console.error("❌ Export error:", err);
-      alert("Không thể xuất ảnh, vui lòng thử lại.");
-    }
-  };
+const handleExportImage = async () => {
+  if (!printRef.current) return;
+
+  try {
+    // Hiển thị vùng in tạm thời để DOM có thể render
+    const el = printRef.current;
+    el.style.opacity = "1";
+    el.style.pointerEvents = "auto";
+    el.style.position = "relative";
+    el.style.top = "0";
+    el.style.left = "0";
+
+    // Đợi React render hoàn chỉnh
+    await new Promise((r) => setTimeout(r, 300));
+
+    const dataUrl = await domtoimage.toPng(el, {
+      quality: 1,
+      bgcolor: "#ffffff",
+      cacheBust: true,
+      width: el.scrollWidth,
+      height: el.scrollHeight,
+      style: { transform: "scale(1)", transformOrigin: "top left" },
+    });
+
+    // Ẩn lại vùng in
+    el.style.opacity = "0";
+    el.style.pointerEvents = "none";
+    el.style.position = "absolute";
+    el.style.top = "-9999px";
+    el.style.left = "-9999px";
+
+    const link = document.createElement("a");
+    link.href = dataUrl;
+    link.download = `phieu_dat_hang_${Date.now()}.png`;
+    link.click();
+  } catch (err) {
+    console.error("❌ Export error:", err);
+    alert("Không thể xuất ảnh, vui lòng thử lại.");
+  }
+};
+
 
   // ===== UI =====
   return (
