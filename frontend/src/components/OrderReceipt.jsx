@@ -76,7 +76,7 @@ const OrderReceipt = () => {
   const addProduct = () =>
     setForm((f) => ({
       ...f,
-      items: [...f.items, { productId: "", quantity: 1, size: "" }],
+      items: [...f.items, { productId: "", quantity: 1, size: "", sale:0 }],
     }));
 
   const removeProduct = (index) =>
@@ -89,7 +89,9 @@ const OrderReceipt = () => {
   const calcSubtotal = (item) => {
     const product = products.find((p) => p._id === item.productId);
     if (!product) return 0;
-    return product.price * (item.quantity || 1);
+    const discount = ((product.price * (item.sale || 0)) / 100) * (item.quantity || 1);
+return product.price * (item.quantity || 1) - discount;
+
   };
 
   const calcTotal = () => {
@@ -290,7 +292,7 @@ const OrderReceipt = () => {
               return (
                 <div
                   key={i}
-                  className="grid sm:grid-cols-5 gap-3 border rounded-lg p-3 relative"
+                  className="grid sm:grid-cols-6 gap-3 border rounded-lg p-3 relative"
                 >
                   {/* Product */}
                   <div>
@@ -351,7 +353,25 @@ const OrderReceipt = () => {
                       className="w-full border rounded px-2 py-1"
                     />
                   </div>
-
+                   {/* Sale (%) */}
+<div>
+  <input
+    type="number"
+    min="0"
+    max="100"
+    value={item.sale}
+    onChange={(e) =>
+      setForm((f) => {
+        const newItems = [...f.items];
+        newItems[i].sale = Number(e.target.value);
+        return { ...f, items: newItems };
+      })
+    }
+    className="w-full border rounded px-2 py-1"
+    placeholder="Sale %"
+  />
+</div>
+     
                   {/* Price */}
                   <div className="flex items-center justify-between">
                     <span className="text-gray-600">
@@ -376,19 +396,7 @@ const OrderReceipt = () => {
 
         {/* Sale & total */}
         <div className="grid sm:grid-cols-3 gap-4 mb-6">
-          <div>
-            <label className="block text-sm mb-1 font-medium">Sale (%)</label>
-            <input
-              type="number"
-              min="0"
-              max="100"
-              value={form.salePercent}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, salePercent: Number(e.target.value) }))
-              }
-              className="w-full border rounded px-3 py-2"
-            />
-          </div>
+          
           <div>
             <label className="block text-sm mb-1 font-medium">Phí ship (₫)</label>
             <input
@@ -458,6 +466,7 @@ const OrderReceipt = () => {
               <th className="p-2 text-left border">Sản phẩm</th>
               <th className="p-2 border text-center">Size</th>
               <th className="p-2 border text-center">SL</th>
+              <th className="p-2 border text-center">Sale (%)</th>
               <th className="p-2 border text-right">Đơn giá</th>
               <th className="p-2 border text-right">Thành tiền</th>
             </tr>
@@ -467,23 +476,23 @@ const OrderReceipt = () => {
               const p = products.find((x) => x._id === item.productId);
               return (
                 <tr key={i} className="border-b">
-                  <td className="p-2 border">{p?.name || "-"}</td>
-                  <td className="p-2 border text-center">{item.size || "-"}</td>
-                  <td className="p-2 border text-center">{item.quantity}</td>
-                  <td className="p-2 border text-right">
-                    {p ? p.price.toLocaleString() : "-"}
-                  </td>
-                  <td className="p-2 border text-right">
-                    {calcSubtotal(item).toLocaleString()}
-                  </td>
-                </tr>
+  <td className="p-2 border">{p?.name || "-"}</td>
+  <td className="p-2 border text-center">{item.size || "-"}</td>
+  <td className="p-2 border text-center">{item.quantity}</td>
+  <td className="p-2 border text-center">{item.sale || 0}</td>
+  <td className="p-2 border text-right">
+    {p ? p.price.toLocaleString() : "-"}
+  </td>
+  <td className="p-2 border text-right">
+    {calcSubtotal(item).toLocaleString()}
+  </td>
+</tr>
               );
             })}
           </tbody>
         </table>
 
         <div className="text-right text-sm space-y-1">
-          <p>Sale: {form.salePercent}%</p>
           <p>Phí ship: {form.shipFee.toLocaleString()}₫</p>
           <p className="font-bold text-lg">
             Tổng cộng: {totalWithShip.toLocaleString()}₫
