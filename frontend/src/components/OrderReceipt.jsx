@@ -420,16 +420,18 @@ const OrderReceipt = () => {
 
       {/* ===== HIDDEN PRINT VIEW ===== */}
       <div
-        ref={printRef}
-        style={{
-          position: "absolute",
-          top: "-9999px",
-          left: "-9999px",
-          opacity: 0,
-          pointerEvents: "none",
-        }}
-        className="w-[1000px] bg-white text-gray-900 font-sans p-8 border-2 border-gray-200 rounded-xl"
-      >
+  id="print-area"
+  ref={printRef}
+  style={{
+    position: "absolute",
+    top: "-9999px",
+    left: "-9999px",
+    opacity: 0,
+    pointerEvents: "none",
+  }}
+  className="w-[1000px] bg-white text-gray-900 font-sans p-8"
+>
+
         <div className="flex justify-between items-center mb-6">
           <img src="/lunale.png" alt="Logo" className="h-12" />
           <h2 className="text-2xl font-bold text-center text-blue-700 flex-1">

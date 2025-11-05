@@ -40,3 +40,23 @@ p {
 
 
 
+/* Ẩn khung viền khi xuất ảnh */
+#print-area,
+#print-area * {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Giữ border nhẹ cho bảng sản phẩm */
+#print-area table,
+#print-area th,
+#print-area td {
+  border: 1px solid #000 !important;
+}
+
+/* Nền trắng trơn, không bo góc */
+#print-area {
+  border-radius: 0 !important;
+  background: #fff !important;
+}
