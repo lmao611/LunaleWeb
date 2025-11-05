@@ -411,7 +411,7 @@ return product.price * (item.quantity || 1) - discount;
 </div>
 
 {/* ==== TOTALS (bottom right) ==== */}
-<div className="pt-20 relative mt-6">
+<div className="pt-16 relative mt-6">
   <div className="absolute right-0 bottom-0 text-right space-y-1 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
     <p className="text-sm text-gray-600">
       Thành tiền: {calcTotal().toLocaleString()}₫
@@ -437,7 +437,7 @@ return product.price * (item.quantity || 1) - discount;
   </div>
 </div>
 
-        <div className="absolute bottom-4 left-4 pt-10 opacity-70">
+        <div className="absolute bottom-4 left-4 top-10 opacity-70">
           <img src="/lunale.png" alt="Lunale Logo" className="h-10" />
         </div>
       </div>
