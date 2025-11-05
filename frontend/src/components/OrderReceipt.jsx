@@ -2,7 +2,6 @@ import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { motion } from "framer-motion";
 import { PlusCircle, Trash2, ImageDown } from "lucide-react";
-import html2canvas from "html2canvas";
 import domtoimage from "dom-to-image-more";
 
 const OrderReceipt = () => {
@@ -22,8 +21,9 @@ const OrderReceipt = () => {
   });
 
   const receiptRef = useRef(null);
+  const printRef = useRef(null);
 
-  // ===== Fetch data from DB =====
+  // ===== Fetch data =====
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -31,7 +31,6 @@ const OrderReceipt = () => {
           axios.get("/api/users"),
           axios.get("/api/products"),
         ]);
-
         setCustomers(
           Array.isArray(custRes.data)
             ? custRes.data
@@ -51,47 +50,42 @@ const OrderReceipt = () => {
     fetchData();
   }, []);
 
-  // ===== Handle select customer =====
-  // ===== Handle select customer =====
-const handleCustomerSelect = (id) => {
-  if (!id) {
+  // ===== Select customer =====
+  const handleCustomerSelect = (id) => {
+    if (!id) {
+      setForm((f) => ({
+        ...f,
+        customerId: "",
+        customerName: "",
+        address: "",
+        phone: "",
+      }));
+      return;
+    }
+    const c = customers.find((x) => String(x._id ?? x.id) === String(id));
     setForm((f) => ({
       ...f,
-      customerId: "",
-      customerName: "",
-      address: "",
-      phone: "",
+      customerId: id,
+      customerName: c?.name || f.customerName,
+      address: c?.direction || f.address,
+      phone: c?.phoneNumber || f.phone,
     }));
-    return;
-  }
+  };
 
-  const c = customers.find((x) => String(x._id ?? x.id) === String(id));
-
-  setForm((f) => ({
-    ...f,
-    customerId: id,
-    customerName: c?.name || f.customerName,
-    address: c?.direction || f.address,      // ✅ đúng field trong DB
-    phone: c?.phoneNumber || f.phone,        // ✅ đúng field trong DB
-  }));
-};
-
-  // ===== Handle product add / remove =====
-  const addProduct = () => {
+  // ===== Add/remove products =====
+  const addProduct = () =>
     setForm((f) => ({
       ...f,
       items: [...f.items, { productId: "", quantity: 1 }],
     }));
-  };
 
-  const removeProduct = (index) => {
+  const removeProduct = (index) =>
     setForm((f) => ({
       ...f,
       items: f.items.filter((_, i) => i !== index),
     }));
-  };
 
-  // ===== Calculate totals =====
+  // ===== Calculations =====
   const calcSubtotal = (item) => {
     const product = products.find((p) => p._id === item.productId);
     if (!product) return 0;
@@ -106,45 +100,34 @@ const handleCustomerSelect = (id) => {
 
   const totalWithShip = calcTotal() + (form.shipFee || 0);
 
-  // ===== Date format helper =====
+  // ===== Format date =====
   const formatDate = (input) => {
     if (!input) return "";
     const parts = input.split(/[/-]/);
     if (parts.length !== 3) return input;
     const [day, month, year] =
-      Number(parts[0]) > 12
-        ? parts
-        : [parts[1], parts[0], parts[2]]; // auto fix nếu nhập nhầm kiểu
+      Number(parts[0]) > 12 ? parts : [parts[1], parts[0], parts[2]];
     return `${day.padStart(2, "0")}/${month.padStart(2, "0")}/${year}`;
   };
 
-  // ===== Capture as image =====
-  // ===== Capture as image =====
-const handleExportImage = async () => {
-  if (!receiptRef.current) return;
-
-  try {
-    const dataUrl = await domtoimage.toPng(receiptRef.current, {
-      quality: 1,
-      bgcolor: "#ffffff",
-      cacheBust: true,
-      style: {
-        transform: "scale(1)",
-        transformOrigin: "top left",
-      },
-    });
-
-    const link = document.createElement("a");
-    link.href = dataUrl;
-    link.download = `phieu_dat_hang_${Date.now()}.png`;
-    link.click();
-  } catch (err) {
-    console.error("❌ Export error:", err);
-    alert("Không thể xuất ảnh, vui lòng thử lại.");
-  }
-};
-
-
+  // ===== Export image (pretty view) =====
+  const handleExportImage = async () => {
+    if (!printRef.current) return;
+    try {
+      const dataUrl = await domtoimage.toPng(printRef.current, {
+        quality: 1,
+        bgcolor: "#ffffff",
+        cacheBust: true,
+      });
+      const link = document.createElement("a");
+      link.href = dataUrl;
+      link.download = `phieu_dat_hang_${Date.now()}.png`;
+      link.click();
+    } catch (err) {
+      console.error("❌ Export error:", err);
+      alert("Không thể xuất ảnh, vui lòng thử lại.");
+    }
+  };
 
   // ===== UI =====
   return (
@@ -153,6 +136,7 @@ const handleExportImage = async () => {
       animate={{ opacity: 1, y: 0 }}
       className="relative bg-white border border-gray-200 shadow-md rounded-2xl p-8 max-w-4xl mx-auto"
     >
+      {/* Export button */}
       <div className="flex justify-end mb-4">
         <button
           onClick={handleExportImage}
@@ -163,12 +147,12 @@ const handleExportImage = async () => {
         </button>
       </div>
 
+      {/* ===== FORM VIEW (giữ nguyên của bạn) ===== */}
       <div ref={receiptRef}>
         <h2 className="text-2xl font-bold text-center mb-6 text-blue-700">
           Phiếu Đặt Hàng
         </h2>
 
-        {/* Thông tin khách hàng */}
         <div className="grid sm:grid-cols-2 gap-4 mb-6">
           <div>
             <label className="block text-sm mb-1 font-medium">Khách hàng</label>
@@ -201,9 +185,7 @@ const handleExportImage = async () => {
               type="text"
               placeholder="Nhập điều khoản..."
               value={form.terms}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, terms: e.target.value }))
-              }
+              onChange={(e) => setForm((f) => ({ ...f, terms: e.target.value }))}
               className="w-full border rounded px-3 py-2"
             />
           </div>
@@ -259,15 +241,13 @@ const handleExportImage = async () => {
               type="text"
               placeholder="Nhập số điện thoại"
               value={form.phone}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, phone: e.target.value }))
-              }
+              onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
               className="w-full border rounded px-3 py-2"
             />
           </div>
         </div>
 
-        {/* Sản phẩm */}
+        {/* Products */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-lg text-blue-700">Sản phẩm</h3>
@@ -347,7 +327,7 @@ const handleExportImage = async () => {
           </div>
         </div>
 
-        {/* Sale, ship, tổng */}
+        {/* Sale & total */}
         <div className="grid sm:grid-cols-3 gap-4 mb-6">
           <div>
             <label className="block text-sm mb-1 font-medium">Sale (%)</label>
@@ -363,9 +343,7 @@ const handleExportImage = async () => {
             />
           </div>
           <div>
-            <label className="block text-sm mb-1 font-medium">
-              Phí ship (₫)
-            </label>
+            <label className="block text-sm mb-1 font-medium">Phí ship (₫)</label>
             <input
               type="number"
               value={form.shipFee}
@@ -390,6 +368,69 @@ const handleExportImage = async () => {
 
         <div className="absolute bottom-4 left-4 opacity-70">
           <img src="/lunale.png" alt="Lunale Logo" className="h-10" />
+        </div>
+      </div>
+
+      {/* ===== HIDDEN PRINT VIEW ===== */}
+      <div
+        ref={printRef}
+        style={{ display: "none" }}
+        className="w-[1000px] bg-white text-gray-900 font-sans p-8 border-2 border-gray-200 rounded-xl"
+      >
+        <div className="flex justify-between items-center mb-6">
+          <img src="/lunale.png" alt="Logo" className="h-12" />
+          <h2 className="text-2xl font-bold text-center text-blue-700 flex-1">
+            PHIẾU ĐẶT HÀNG
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 text-sm mb-6">
+          <div>
+            <p><strong>Khách hàng:</strong> {form.customerName}</p>
+            <p><strong>Địa chỉ:</strong> {form.address}</p>
+            <p><strong>Điện thoại:</strong> {form.phone}</p>
+          </div>
+          <div>
+            <p><strong>Ngày giao:</strong> {form.deliverDate}</p>
+            <p><strong>Ngày đến:</strong> {form.receivedDate}</p>
+            <p><strong>Điều khoản:</strong> {form.terms}</p>
+          </div>
+        </div>
+
+        <table className="w-full border-collapse text-sm mb-6">
+          <thead>
+            <tr className="bg-blue-50 border-b">
+              <th className="p-2 text-left border">Sản phẩm</th>
+              <th className="p-2 border text-center">SL</th>
+              <th className="p-2 border text-right">Đơn giá</th>
+              <th className="p-2 border text-right">Thành tiền</th>
+            </tr>
+          </thead>
+          <tbody>
+            {form.items.map((item, i) => {
+              const p = products.find((x) => x._id === item.productId);
+              return (
+                <tr key={i} className="border-b">
+                  <td className="p-2 border">{p?.name || "-"}</td>
+                  <td className="p-2 border text-center">{item.quantity}</td>
+                  <td className="p-2 border text-right">
+                    {p ? p.price.toLocaleString() : "-"}
+                  </td>
+                  <td className="p-2 border text-right">
+                    {calcSubtotal(item).toLocaleString()}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+
+        <div className="text-right text-sm space-y-1">
+          <p>Sale: {form.salePercent}%</p>
+          <p>Phí ship: {form.shipFee.toLocaleString()}₫</p>
+          <p className="font-bold text-lg">
+            Tổng cộng: {totalWithShip.toLocaleString()}₫
+          </p>
         </div>
       </div>
     </motion.div>
