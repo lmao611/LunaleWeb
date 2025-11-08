@@ -217,7 +217,7 @@ return product.price * (item.quantity || 1) - discount;
             <input
               type="text"
               placeholder="dd/mm/yyyy"
-              value={form.deliverDate}
+              
               onChange={(e) =>
                 setForm((f) => ({
                   ...f,
@@ -233,7 +233,7 @@ return product.price * (item.quantity || 1) - discount;
             <input
               type="text"
               placeholder="dd/mm/yyyy"
-              value={form.receivedDate}
+              
               onChange={(e) =>
                 setForm((f) => ({
                   ...f,
