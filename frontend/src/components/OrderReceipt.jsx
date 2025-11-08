@@ -291,7 +291,7 @@ return product.price * (item.quantity || 1) - discount;
     <span>Tên sản phẩm</span>
     <span>Size</span>
     <span>Số lượng</span>
-    <span>Sale (%)</span>
+    <span className="text-red-600 border-black">Sale (%)</span>
     <span>Giá gốc</span>
     <span>Giá sau sale</span>
     <span>Xóa</span>
@@ -381,7 +381,7 @@ return product.price * (item.quantity || 1) - discount;
                   return { ...f, items: newItems };
                 })
               }
-              className="w-full border rounded px-2 py-1 text-center"
+              className="w-full border rounded px-2 py-1 text-center text-red-600 border-black"
             />
           </div>
 
@@ -480,7 +480,7 @@ return product.price * (item.quantity || 1) - discount;
               <th className="p-2 text-left border">Sản phẩm</th>
               <th className="p-2 border text-center">Size</th>
               <th className="p-2 border text-center">SL</th>
-              <th className="p-2 border text-center">Sale (%)</th>
+              <th className="p-2 border text-center text-red-600 border-black">Sale (%)</th>
               <th className="p-2 border text-right">Đơn giá</th>
               <th className="p-2 border text-right">Thành tiền</th>
             </tr>
@@ -493,7 +493,7 @@ return product.price * (item.quantity || 1) - discount;
   <td className="p-2 border">{p?.name || "-"}</td>
   <td className="p-2 border text-center">{item.size || "-"}</td>
   <td className="p-2 border text-center">{item.quantity}</td>
-  <td className="p-2 border text-center">{item.sale || 0}</td>
+  <td className="p-2 border text-center text-red-600 border-black">{item.sale || 0}</td>
   <td className="p-2 border text-right">
     {p ? p.price.toLocaleString() : "-"}
   </td>
@@ -513,7 +513,74 @@ return product.price * (item.quantity || 1) - discount;
           </p>
         </div>
       </div>
+      <h1 className="text-blue-700 text-center pt-7 font-bold pb-4 ">Preview</h1>
+
+
+        <div className="flex justify-center border-4 border-blue-600 rounded-xl overflow-hidden  ">
+  <div className="w-[1000px] bg-white text-gray-900 font-sans p-8">
+
+        <div className="flex justify-between items-center mb-6">
+          <img src="/lunale.png" alt="Logo" className="h-12" />
+          <h2 className="text-2xl font-bold text-center text-blue-700 flex-1">
+            PHIẾU ĐẶT HÀNG
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 text-sm mb-6">
+          <div>
+            <p><strong>Khách hàng:</strong> {form.customerName}</p>
+            <p><strong>Địa chỉ:</strong> {form.address}</p>
+            <p><strong>Điện thoại:</strong> {form.phone}</p>
+          </div>
+          <div>
+            <p><strong>Ngày giao:</strong> {form.deliverDate}</p>
+            <p><strong>Ngày đến:</strong> {form.receivedDate}</p>
+            <p><strong>Điều khoản:</strong> {form.terms}</p>
+          </div>
+        </div>
+
+        <table className="w-full border-collapse text-sm mb-6">
+          <thead>
+            <tr className="bg-blue-50 border-b">
+              <th className="p-2 text-left border">Sản phẩm</th>
+              <th className="p-2 border text-center">Size</th>
+              <th className="p-2 border text-center">SL</th>
+              <th className="p-2 border text-center text-red-600 border-black">Sale (%)</th>
+              <th className="p-2 border text-right">Đơn giá</th>
+              <th className="p-2 border text-right">Thành tiền</th>
+            </tr>
+          </thead>
+          <tbody>
+            {form.items.map((item, i) => {
+              const p = products.find((x) => x._id === item.productId);
+              return (
+                <tr key={i} className="border-b">
+  <td className="p-2 border">{p?.name || "-"}</td>
+  <td className="p-2 border text-center">{item.size || "-"}</td>
+  <td className="p-2 border text-center">{item.quantity}</td>
+  <td className="p-2 border text-center text-red-600 border-black">{item.sale || 0}</td>
+  <td className="p-2 border text-right">
+    {p ? p.price.toLocaleString() : "-"}
+  </td>
+  <td className="p-2 border text-right">
+    {calcSubtotal(item).toLocaleString()}
+  </td>
+</tr>
+              );
+            })}
+          </tbody>
+        </table>
+
+        <div className="text-right text-sm space-y-1">
+          <p>Phí ship: {form.shipFee.toLocaleString()}₫</p>
+          <p className="font-bold text-lg">
+            Tổng cộng: {totalWithShip.toLocaleString()}₫
+          </p>
+        </div>
+      </div>
+      </div>
     </motion.div>
+    
   );
 };
 
