@@ -104,12 +104,7 @@ return product.price * (item.quantity || 1) - discount;
 
   // ===== Format date =====
   const formatDate = (input) => {
-    if (!input) return "";
-    const parts = input.split(/[/-]/);
-    if (parts.length !== 3) return input;
-    const [day, month, year] =
-      Number(parts[0]) > 12 ? parts : [parts[1], parts[0], parts[2]];
-    return `${day.padStart(2, "0")}/${month.padStart(2, "0")}/${year}`;
+    
   };
 
   // ===== Export image =====
