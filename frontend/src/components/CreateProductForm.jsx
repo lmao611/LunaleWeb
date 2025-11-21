@@ -18,7 +18,7 @@ const CreateProductForm = () => {
     category: "",
     image: "",
     thumbnails: [],
-    productLink: "", // 👈 thêm field mới
+    productLink: "",
   });
 
   const { createProduct, loading } = useProductStore();
@@ -37,7 +37,7 @@ const CreateProductForm = () => {
         productLink: "",
       });
     } catch (error) {
-      console.error("❌ Lỗi khi tạo sản phẩm:", error);
+      console.error("Lỗi khi tạo sản phẩm:", error);
     }
   };
 
@@ -173,7 +173,6 @@ const CreateProductForm = () => {
           </select>
         </div>
 
-        {/* 👇 Hiện input Link sản phẩm chỉ khi chọn feedback */}
         {newProduct.category === "feedback" && (
           <div>
             <label
@@ -200,7 +199,6 @@ const CreateProductForm = () => {
           </div>
         )}
 
-        {/* Ảnh chính */}
         <div className="mt-1 flex items-center">
           <input
             type="file"
@@ -221,7 +219,6 @@ const CreateProductForm = () => {
           )}
         </div>
 
-        {/* Ảnh phụ */}
         <div className="mt-3">
           <input
             type="file"
@@ -251,7 +248,6 @@ const CreateProductForm = () => {
           </div>
         </div>
 
-        {/* Nút Submit */}
         <button
           type="submit"
           className="w-full flex justify-center py-2 px-4 rounded-md shadow-sm text-sm font-medium 

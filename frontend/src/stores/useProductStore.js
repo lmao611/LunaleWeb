@@ -10,23 +10,22 @@ export const useProductStore = create((set, get) => ({
 
   setProducts: (products) => set({ products }),
 
-  // 🟢 Tạo sản phẩm mới
   createProduct: async (productData) => {
     set({ loading: true });
     try {
       const res = await axios.post("/products", productData);
       set((state) => ({
-        products: [...state.products, res.data],
+        // 👇 Đưa sản phẩm mới lên đầu mảng
+        products: [res.data, ...state.products],
         loading: false,
       }));
-      toast.success("Đã tạo sản phẩm thành công!");
+      toast.success("Created successfully");
     } catch (error) {
-      toast.error(error.response?.data?.error || "Không thể tạo sản phẩm");
+      toast.error(error.response?.data?.error || "Failed to create");
       set({ loading: false });
     }
   },
 
-  // 🟢 Lấy tất cả sản phẩm
   fetchAllProducts: async () => {
     set({ loading: true });
     try {
@@ -34,11 +33,10 @@ export const useProductStore = create((set, get) => ({
       set({ products: response.data.products, loading: false });
     } catch (error) {
       set({ error: "Failed to fetch products", loading: false });
-      toast.error(error.response?.data?.error || "Không thể tải sản phẩm");
+      toast.error(error.response?.data?.error || "Failed to fetch products");
     }
   },
 
-  // 🟢 Lấy sản phẩm theo category
   fetchProductsByCategory: async (category) => {
     set({ loading: true });
     try {
@@ -46,13 +44,10 @@ export const useProductStore = create((set, get) => ({
       set({ products: response.data.products, loading: false });
     } catch (error) {
       set({ error: "Failed to fetch products", loading: false });
-      toast.error(
-        error.response?.data?.error || "Không thể tải sản phẩm theo loại"
-      );
+      toast.error(error.response?.data?.error || "Failed to fetch products by category");
     }
   },
 
-  // 🟢 Lấy 1 sản phẩm theo ID
   fetchProductById: async (id) => {
     set({ loading: true });
     try {
@@ -61,12 +56,11 @@ export const useProductStore = create((set, get) => ({
       return response.data;
     } catch (error) {
       set({ loading: false });
-      toast.error(error.response?.data?.error || "Không thể tải sản phẩm");
+      toast.error(error.response?.data?.error || "Failed to fetch product");
       return null;
     }
   },
 
-  // 🟢 Xóa 1 sản phẩm
   deleteProduct: async (productId) => {
     set({ loading: true });
     try {
@@ -75,14 +69,13 @@ export const useProductStore = create((set, get) => ({
         products: state.products.filter((p) => p._id !== productId),
         loading: false,
       }));
-      toast.success("Đã xóa sản phẩm");
+      toast.success("Deleted successfully");
     } catch (error) {
       set({ loading: false });
-      toast.error(error.response?.data?.error || "Không thể xóa sản phẩm");
+      toast.error(error.response?.data?.error || "Failed to delete");
     }
   },
 
-  // 🟢 Toggle Featured (Nổi bật)
   toggleFeaturedProduct: async (productId) => {
     set({ loading: true });
     try {
@@ -97,13 +90,10 @@ export const useProductStore = create((set, get) => ({
       }));
     } catch (error) {
       set({ loading: false });
-      toast.error(
-        error.response?.data?.error || "Không thể cập nhật trạng thái nổi bật"
-      );
+      toast.error(error.response?.data?.error || "Failed to update featured status");
     }
   },
 
-  // 🟣 Toggle Pre-order (Đặt trước)
   togglePreOrderProduct: async (productId, newState) => {
     set({ loading: true });
     try {
@@ -119,15 +109,13 @@ export const useProductStore = create((set, get) => ({
         ),
         loading: false,
       }));
-      toast.success("Đã cập nhật trạng thái Pre-order!");
+      toast.success("Updated Pre-order status");
     } catch (error) {
-      console.error("❌ togglePreOrderProduct error:", error);
       set({ loading: false });
-      toast.error(error.response?.data?.error || "Không thể cập nhật Pre-order");
+      toast.error(error.response?.data?.error || "Failed to update Pre-order");
     }
   },
 
-  // 🟢 Cập nhật sản phẩm
   updateProduct: async (productId, updatedData) => {
     set({ loading: true });
     try {
@@ -144,16 +132,25 @@ export const useProductStore = create((set, get) => ({
         loading: false,
       }));
 
-      toast.success("Cập nhật sản phẩm thành công!");
+      toast.success("Updated successfully");
       return updated;
     } catch (error) {
-      console.error("❌ updateProduct error:", error);
       set({ loading: false });
-      toast.error(error.response?.data?.error || "Không thể cập nhật sản phẩm");
+      toast.error(error.response?.data?.error || "Failed to update");
     }
   },
 
-  // 🟢 Lấy sản phẩm nổi bật
+  reorderProducts: async (newOrder) => {
+    set({ products: newOrder });
+    try {
+      await axios.put("/products/reorder", {
+        orderedIds: newOrder.map((p) => p._id),
+      });
+    } catch (error) {
+      toast.error("Failed to save order");
+    }
+  },
+
   fetchFeaturedProducts: async () => {
     set({ loading: true });
     try {
@@ -173,9 +170,7 @@ export const useProductStore = create((set, get) => ({
         loading: false,
         products: [],
       });
-      toast.error(
-        error.response?.data?.error || "Không thể tải sản phẩm nổi bật"
-      );
+      toast.error(error.response?.data?.error || "Failed to fetch featured products");
     }
   },
 }));
