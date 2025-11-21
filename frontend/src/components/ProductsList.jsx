@@ -296,10 +296,8 @@ const ProductRow = ({ product, categories, collections, toggleFeaturedProduct, h
   const col = collections.find((col) => (col.products || []).some((p) => p._id === product._id));
   const categoryLabel = categories.find((c) => c.id === product.category)?.label || product.category;
   
-  // 🟢 Ref để lưu interval cuộn trang
   const scrollInterval = useRef(null);
 
-  // Hàm dừng cuộn
   const stopAutoScroll = () => {
     if (scrollInterval.current) {
       clearInterval(scrollInterval.current);
@@ -307,29 +305,30 @@ const ProductRow = ({ product, categories, collections, toggleFeaturedProduct, h
     }
   };
 
-  // Hàm xử lý khi kéo
   const handleDrag = (e, info) => {
-    const { y } = info.point;
-    const threshold = 100; // Khoảng cách 100px từ mép
-    const speed = 15; // Tốc độ cuộn
+    // ⚡️ SỬ DỤNG e.clientY ĐỂ LẤY TOẠ ĐỘ VIEWPORT CHÍNH XÁC
+    const clientY = e.clientY; 
+    const threshold = 80; // Giảm vùng kích hoạt còn 80px để đỡ nhạy
+    const speed = 15;
+    const viewportHeight = window.innerHeight;
 
-    // Kéo lên gần mép trên
-    if (y < threshold) {
+    // Kéo lên gần đỉnh (Top)
+    if (clientY < threshold) {
       if (!scrollInterval.current) {
         scrollInterval.current = setInterval(() => {
           window.scrollBy({ top: -speed, behavior: "auto" });
         }, 10);
       }
     } 
-    // Kéo xuống gần mép dưới
-    else if (y > window.innerHeight - threshold) {
+    // Kéo xuống gần đáy (Bottom)
+    else if (clientY > viewportHeight - threshold) {
       if (!scrollInterval.current) {
         scrollInterval.current = setInterval(() => {
           window.scrollBy({ top: speed, behavior: "auto" });
         }, 10);
       }
     } 
-    // Ở vùng an toàn thì dừng cuộn
+    // Ở vùng an toàn
     else {
       stopAutoScroll();
     }
@@ -359,8 +358,8 @@ const ProductRow = ({ product, categories, collections, toggleFeaturedProduct, h
       value={product}
       dragListener={false}
       dragControls={controls}
-      onDrag={handleDrag}        // 🟢 Gọi hàm check vị trí
-      onDragEnd={stopAutoScroll} // 🟢 Dừng cuộn khi thả chuột
+      onDrag={handleDrag}        
+      onDragEnd={stopAutoScroll} 
       className="hover:bg-blue-50 transition-colors duration-200 select-none"
     >
       <td className="px-6 py-4 whitespace-nowrap">
@@ -434,23 +433,27 @@ const ProductCard = ({ product, categories, collections, toggleFeaturedProduct, 
   const col = collections.find((col) => (col.products || []).some((p) => p._id === product._id));
   const cat = categories.find((c) => c.id === product.category)?.label || product.category;
 
-  // 🟢 Logic auto-scroll giống hệt ProductRow
   const scrollInterval = useRef(null);
+
   const stopAutoScroll = () => {
     if (scrollInterval.current) {
       clearInterval(scrollInterval.current);
       scrollInterval.current = null;
     }
   };
+
   const handleDrag = (e, info) => {
-    const { y } = info.point;
-    const threshold = 100;
+    // ⚡️ SỬ DỤNG e.clientY
+    const clientY = e.clientY;
+    const threshold = 80;
     const speed = 15;
-    if (y < threshold) {
+    const viewportHeight = window.innerHeight;
+
+    if (clientY < threshold) {
       if (!scrollInterval.current) {
         scrollInterval.current = setInterval(() => window.scrollBy({ top: -speed, behavior: "auto" }), 10);
       }
-    } else if (y > window.innerHeight - threshold) {
+    } else if (clientY > viewportHeight - threshold) {
       if (!scrollInterval.current) {
         scrollInterval.current = setInterval(() => window.scrollBy({ top: speed, behavior: "auto" }), 10);
       }
@@ -482,8 +485,8 @@ const ProductCard = ({ product, categories, collections, toggleFeaturedProduct, 
       value={product}
       dragListener={false}
       dragControls={controls}
-      onDrag={handleDrag}        // 🟢
-      onDragEnd={stopAutoScroll} // 🟢
+      onDrag={handleDrag}       
+      onDragEnd={stopAutoScroll}
       className="border rounded-lg p-3 flex flex-col sm:flex-row sm:items-center gap-3 shadow-sm bg-white select-none"
     >
       <img src={product.image} alt={product.name} className="w-full sm:w-24 h-40 sm:h-24 object-cover rounded" />
