@@ -12,23 +12,6 @@ const categories = [
   { id: "feedback", label: "Feedback" },
 ];
 
-// --- Hàm xử lý Auto Scroll ---
-// Hàm này sẽ được gọi liên tục khi user đang kéo (drag)
-const handleAutoScroll = (info) => {
-  const { y } = info.point; // Tọa độ Y của con trỏ chuột
-  const threshold = 150; // Khoảng cách tính từ mép màn hình để bắt đầu cuộn
-  const speed = 10; // Tốc độ cuộn
-
-  // Nếu kéo lên gần đỉnh (Y < 150px)
-  if (y < threshold) {
-    window.scrollBy({ top: -speed, behavior: "auto" });
-  }
-  // Nếu kéo xuống gần đáy (Y > chiều cao màn hình - 150px)
-  else if (y > window.innerHeight - threshold) {
-    window.scrollBy({ top: speed, behavior: "auto" });
-  }
-};
-
 const EditProductModal = ({ product, collections, onClose }) => {
   const { updateProduct } = useProductStore();
   const { addProductToCollection, removeProductFromCollection } = useCollectionStore();
@@ -312,6 +295,45 @@ const ProductRow = ({ product, categories, collections, toggleFeaturedProduct, h
   const controls = useDragControls();
   const col = collections.find((col) => (col.products || []).some((p) => p._id === product._id));
   const categoryLabel = categories.find((c) => c.id === product.category)?.label || product.category;
+  
+  // 🟢 Ref để lưu interval cuộn trang
+  const scrollInterval = useRef(null);
+
+  // Hàm dừng cuộn
+  const stopAutoScroll = () => {
+    if (scrollInterval.current) {
+      clearInterval(scrollInterval.current);
+      scrollInterval.current = null;
+    }
+  };
+
+  // Hàm xử lý khi kéo
+  const handleDrag = (e, info) => {
+    const { y } = info.point;
+    const threshold = 100; // Khoảng cách 100px từ mép
+    const speed = 15; // Tốc độ cuộn
+
+    // Kéo lên gần mép trên
+    if (y < threshold) {
+      if (!scrollInterval.current) {
+        scrollInterval.current = setInterval(() => {
+          window.scrollBy({ top: -speed, behavior: "auto" });
+        }, 10);
+      }
+    } 
+    // Kéo xuống gần mép dưới
+    else if (y > window.innerHeight - threshold) {
+      if (!scrollInterval.current) {
+        scrollInterval.current = setInterval(() => {
+          window.scrollBy({ top: speed, behavior: "auto" });
+        }, 10);
+      }
+    } 
+    // Ở vùng an toàn thì dừng cuộn
+    else {
+      stopAutoScroll();
+    }
+  };
 
   const statusColor =
     product.isPreOrder === "preorder"
@@ -337,8 +359,8 @@ const ProductRow = ({ product, categories, collections, toggleFeaturedProduct, h
       value={product}
       dragListener={false}
       dragControls={controls}
-      // 🟢 Thêm onDrag để gọi hàm auto-scroll
-      onDrag={(e, info) => handleAutoScroll(info)}
+      onDrag={handleDrag}        // 🟢 Gọi hàm check vị trí
+      onDragEnd={stopAutoScroll} // 🟢 Dừng cuộn khi thả chuột
       className="hover:bg-blue-50 transition-colors duration-200 select-none"
     >
       <td className="px-6 py-4 whitespace-nowrap">
@@ -412,6 +434,31 @@ const ProductCard = ({ product, categories, collections, toggleFeaturedProduct, 
   const col = collections.find((col) => (col.products || []).some((p) => p._id === product._id));
   const cat = categories.find((c) => c.id === product.category)?.label || product.category;
 
+  // 🟢 Logic auto-scroll giống hệt ProductRow
+  const scrollInterval = useRef(null);
+  const stopAutoScroll = () => {
+    if (scrollInterval.current) {
+      clearInterval(scrollInterval.current);
+      scrollInterval.current = null;
+    }
+  };
+  const handleDrag = (e, info) => {
+    const { y } = info.point;
+    const threshold = 100;
+    const speed = 15;
+    if (y < threshold) {
+      if (!scrollInterval.current) {
+        scrollInterval.current = setInterval(() => window.scrollBy({ top: -speed, behavior: "auto" }), 10);
+      }
+    } else if (y > window.innerHeight - threshold) {
+      if (!scrollInterval.current) {
+        scrollInterval.current = setInterval(() => window.scrollBy({ top: speed, behavior: "auto" }), 10);
+      }
+    } else {
+      stopAutoScroll();
+    }
+  };
+
   const statusColor =
     product.isPreOrder === "preorder"
       ? "bg-purple-500 text-white"
@@ -435,8 +482,8 @@ const ProductCard = ({ product, categories, collections, toggleFeaturedProduct, 
       value={product}
       dragListener={false}
       dragControls={controls}
-      // 🟢 Thêm onDrag để gọi hàm auto-scroll
-      onDrag={(e, info) => handleAutoScroll(info)}
+      onDrag={handleDrag}        // 🟢
+      onDragEnd={stopAutoScroll} // 🟢
       className="border rounded-lg p-3 flex flex-col sm:flex-row sm:items-center gap-3 shadow-sm bg-white select-none"
     >
       <img src={product.image} alt={product.name} className="w-full sm:w-24 h-40 sm:h-24 object-cover rounded" />
