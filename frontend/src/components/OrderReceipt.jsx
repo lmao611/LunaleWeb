@@ -507,9 +507,10 @@ return product.price * (item.quantity || 1) - discount;
         </table>
 
         <div className="text-right text-sm space-y-1">
+          <p>Thành tiền: {calcTotal().toLocaleString()}₫</p>
           <p>Phí ship: {form.shipFee.toLocaleString()}₫</p>
-          <p className="font-bold text-lg">
-            Tổng cộng: {totalWithShip.toLocaleString()}₫
+          <p className="font-bold text-30px text-red-500">
+            {totalWithShip.toLocaleString()}₫
           </p>
         </div>
       </div>
@@ -572,9 +573,10 @@ return product.price * (item.quantity || 1) - discount;
         </table>
 
         <div className="text-right text-sm space-y-1">
+          <p>Thành tiền: {calcTotal().toLocaleString()}₫</p>
           <p>Phí ship: {form.shipFee.toLocaleString()}₫</p>
-          <p className="font-bold text-lg">
-            Tổng cộng: {totalWithShip.toLocaleString()}₫
+          <p className="font-bold text-30px text-red-500">
+            {totalWithShip.toLocaleString()}₫
           </p>
         </div>
       </div>
