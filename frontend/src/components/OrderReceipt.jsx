@@ -519,10 +519,13 @@ return product.price * (item.quantity || 1) - discount;
     <span className="text-gray-600">Phí ship:</span>
     <span className="font-bold">{form.shipFee.toLocaleString()}₫</span>
   </div>
-          <p className="font-bold text-3xl text-red-500">
-            {totalWithShip.toLocaleString()}₫
-          </p>
-        </div>
+
+  {/* Dòng Tổng tiền - Đã thêm text-right */}
+  <p className="font-bold text-3xl text-red-500 pt-4 text-right">
+    {totalWithShip.toLocaleString()}₫
+  </p>
+
+</div>
       </div>
       <h1 className="text-blue-700 text-center pt-7 font-bold pb-4 ">Preview</h1>
 
@@ -595,10 +598,13 @@ return product.price * (item.quantity || 1) - discount;
     <span className="text-gray-600">Phí ship:</span>
     <span className="font-bold">{form.shipFee.toLocaleString()}₫</span>
   </div>
-          <p className="font-bold text-3xl text-red-500">
-            {totalWithShip.toLocaleString()}₫
-          </p>
-        </div>
+
+  {/* Dòng Tổng tiền - Đã thêm text-right */}
+  <p className="font-bold text-3xl text-red-500 pt-4 text-right">
+    {totalWithShip.toLocaleString()}₫
+  </p>
+
+</div>
       </div>
       </div>
     </motion.div>
