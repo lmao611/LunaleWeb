@@ -1,9 +1,17 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { motion, Reorder, useDragControls, AnimatePresence } from "framer-motion";
-import { Trash, Star, Settings, GripVertical, Save, RotateCcw, Upload, Plus } from "lucide-react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { motion, Reorder, AnimatePresence, useDragControls } from "framer-motion";
+import { Trash, Star, Settings, GripVertical, Save, RotateCcw, Plus, Upload, Filter } from "lucide-react";
 import { useProductStore } from "../stores/useProductStore";
 import { useCollectionStore } from "../stores/useCollectionStore";
 import axios from "axios";
+
+// ⚡️ 1. Cấu hình thứ tự ưu tiên của các nhóm
+const CATEGORY_PRIORITY = {
+  dress: 1,
+  shirt: 2,
+  set: 3,
+  feedback: 4,
+};
 
 const categories = [
   { id: "dress", label: "Đầm nữ" },
@@ -12,12 +20,10 @@ const categories = [
   { id: "feedback", label: "Feedback" },
 ];
 
-const instantTransition = {
-  duration: 0,
-  ease: "linear"
-};
+const instantTransition = { duration: 0, ease: "linear" };
 
-const ProductRow = ({ product, categories, collections, toggleFeaturedProduct, handleTogglePreorder, setEditingProduct, handleDelete, deletingId, onDragStart, onDragEnd }) => {
+// -------------------- COMPONENT ROW (DESKTOP) --------------------
+const ProductRow = ({ product, categories, collections, toggleFeaturedProduct, handleTogglePreorder, setEditingProduct, handleDelete, deletingId, isDraggable }) => {
   const controls = useDragControls();
   const col = collections.find((col) => (col.products || []).some((p) => p._id === product._id));
   const categoryLabel = categories.find((c) => c.id === product.category)?.label || product.category;
@@ -38,19 +44,12 @@ const ProductRow = ({ product, categories, collections, toggleFeaturedProduct, h
     <Reorder.Item
       as="tr"
       value={product}
-      dragListener={false}
+      dragListener={isDraggable}
       dragControls={controls}
-      onDrag={(e, info) => onDragStart(e, info)}
-      onDragEnd={onDragEnd}
       layout
       transition={instantTransition}
-      className="hover:bg-blue-50 border-b last:border-b-0 select-none relative bg-white group"
-      whileDrag={{
-        scale: 1.0,
-        boxShadow: "0px 5px 15px rgba(0,0,0,0.15)",
-        backgroundColor: "#f0f9ff",
-        zIndex: 100,
-      }}
+      className={`hover:bg-blue-50 border-b last:border-b-0 relative bg-white group ${isDraggable ? "cursor-grab active:cursor-grabbing" : ""}`}
+      whileDrag={{ scale: 1.0, boxShadow: "0px 5px 15px rgba(0,0,0,0.15)", backgroundColor: "#f0f9ff", zIndex: 100 }}
     >
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex items-center">
@@ -59,7 +58,15 @@ const ProductRow = ({ product, categories, collections, toggleFeaturedProduct, h
         </div>
       </td>
       <td className="px-6 py-4 whitespace-nowrap">{product.price.toLocaleString()} ₫</td>
-      <td className="px-6 py-4 whitespace-nowrap">{categoryLabel}</td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <span className={`px-2 py-1 rounded-full text-xs font-semibold 
+          ${product.category === 'dress' ? 'bg-pink-100 text-pink-800' : 
+            product.category === 'shirt' ? 'bg-blue-100 text-blue-800' :
+            product.category === 'set' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'
+          }`}>
+          {categoryLabel}
+        </span>
+      </td>
 
       <td className="px-6 py-4 whitespace-nowrap">
         <button onClick={() => toggleFeaturedProduct(product._id)} className={`p-1 rounded-full ${product.isFeatured ? "bg-yellow-400 text-gray-900" : "bg-gray-200 text-gray-500"} hover:scale-105 transition-transform`}>
@@ -78,21 +85,24 @@ const ProductRow = ({ product, categories, collections, toggleFeaturedProduct, h
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex gap-3 text-sm font-medium">
           <button onClick={() => setEditingProduct(product)} className="text-gray-700 hover:text-blue-600"><Settings className="h-5 w-5" /></button>
-          {deletingId === product._id ? <span className="text-gray-400 italic">Đang xóa...</span> : 
+          {deletingId === product._id ? <span className="text-gray-400 italic">Xóa...</span> : 
             <button onClick={() => handleDelete(product._id)} className="text-red-500 hover:text-red-400"><Trash className="h-5 w-5" /></button>}
         </div>
       </td>
 
       <td className="px-6 py-4 whitespace-nowrap">
-        <div onPointerDown={(e) => controls.start(e)} className="cursor-grab active:cursor-grabbing p-4 -m-2 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600 flex justify-center items-center transition-colors">
-          <GripVertical className="h-5 w-5" />
-        </div>
+        {isDraggable && (
+          <div onPointerDown={(e) => controls.start(e)} className="p-2 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600 flex justify-center items-center transition-colors">
+            <GripVertical className="h-5 w-5" />
+          </div>
+        )}
       </td>
     </Reorder.Item>
   );
 };
 
-const ProductCard = ({ product, categories, collections, toggleFeaturedProduct, handleTogglePreorder, setEditingProduct, handleDelete, deletingId, onDragStart, onDragEnd }) => {
+// -------------------- COMPONENT CARD (MOBILE) --------------------
+const ProductCard = ({ product, categories, collections, toggleFeaturedProduct, handleTogglePreorder, setEditingProduct, handleDelete, deletingId, isDraggable }) => {
   const controls = useDragControls();
   const col = collections.find((col) => (col.products || []).some((p) => p._id === product._id));
   const cat = categories.find((c) => c.id === product.category)?.label || product.category;
@@ -112,14 +122,12 @@ const ProductCard = ({ product, categories, collections, toggleFeaturedProduct, 
   return (
     <Reorder.Item
       value={product}
-      dragListener={false}
+      dragListener={isDraggable}
       dragControls={controls}
-      onDrag={(e, info) => onDragStart(e, info)}
-      onDragEnd={onDragEnd}
       layout
       transition={instantTransition}
       whileDrag={{ scale: 1.02, zIndex: 100, boxShadow: "0px 10px 20px rgba(0,0,0,0.1)" }}
-      className="border rounded-lg p-3 flex flex-col sm:flex-row sm:items-center gap-3 shadow-sm bg-white select-none touch-none"
+      className="border rounded-lg p-3 flex flex-col sm:flex-row sm:items-center gap-3 shadow-sm bg-white touch-none"
     >
       <img src={product.image} alt={product.name} className="w-full sm:w-24 h-40 sm:h-24 object-cover rounded" />
       <div className="flex-1">
@@ -138,16 +146,19 @@ const ProductCard = ({ product, categories, collections, toggleFeaturedProduct, 
           <button onClick={() => setEditingProduct(product)} className="p-2 bg-blue-100 text-blue-600 rounded-full"><Settings className="h-5 w-5" /></button>
           <button onClick={() => handleDelete(product._id)} className="p-2 bg-red-100 text-red-500 rounded-full">{deletingId === product._id ? "…" : <Trash className="h-5 w-5" />}</button>
         </div>
-        <div className="ml-auto sm:ml-0">
-          <div onPointerDown={(e) => controls.start(e)} className="cursor-grab active:cursor-grabbing p-3 hover:bg-gray-100 rounded text-gray-500 flex justify-center items-center">
-            <GripVertical className="h-6 w-6" />
+        {isDraggable && (
+          <div className="ml-auto sm:ml-0">
+            <div onPointerDown={(e) => controls.start(e)} className="p-3 hover:bg-gray-100 rounded text-gray-500 flex justify-center items-center">
+              <GripVertical className="h-6 w-6" />
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </Reorder.Item>
   );
 };
 
+// -------------------- EDIT MODAL --------------------
 const EditProductModal = ({ product, collections, onClose }) => {
   const { updateProduct } = useProductStore();
   const { addProductToCollection, removeProductFromCollection } = useCollectionStore();
@@ -224,7 +235,7 @@ const EditProductModal = ({ product, collections, onClose }) => {
   if (!product) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex justify-center items-start pt-10 sm:pt-20 z-50">
+    <div className="fixed inset-0 bg-black/50 flex justify-center items-start pt-10 sm:pt-20 z-[1001]">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white p-4 sm:p-6 rounded-lg w-full max-w-lg shadow-xl space-y-4 overflow-y-auto max-h-[95vh]">
         <h2 className="text-xl font-semibold mb-2 text-blue-800">⚙️ Chỉnh sửa: {product.name}</h2>
         
@@ -308,6 +319,7 @@ const EditProductModal = ({ product, collections, onClose }) => {
   );
 };
 
+// -------------------- MAIN LIST COMPONENT --------------------
 const ProductsList = () => {
   const { products, deleteProduct, toggleFeaturedProduct, updateProduct, reorderProducts } = useProductStore();
   const { collections, fetchCollections, removeProductFromCollection } = useCollectionStore();
@@ -315,76 +327,106 @@ const ProductsList = () => {
   const [deletingId, setDeletingId] = useState(null);
   const [deletingAll, setDeletingAll] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [filterCategory, setFilterCategory] = useState("all");
+  
+  // State hiển thị cục bộ (để hiển thị tức thời khi kéo thả)
   const [localProducts, setLocalProducts] = useState([]);
   
   const [isOrderChanged, setIsOrderChanged] = useState(false);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
 
-  const scrollVelocity = useRef(0);
-  const isDragging = useRef(false);
-  const frameId = useRef(null);
-
   useEffect(() => { fetchCollections(); }, [fetchCollections]);
   
-  useEffect(() => { 
-    setLocalProducts(products); 
-    setIsOrderChanged(false);
-  }, [products]);
+  // ⚡️ 2. Logic phân loại và sắp xếp ban đầu
+  // Mỗi khi danh sách gốc (products) hoặc bộ lọc thay đổi, ta tính toán lại localProducts
+  useEffect(() => {
+    let processed = [...products];
 
-  const processScroll = () => {
-    if (isDragging.current && scrollVelocity.current !== 0) {
-      window.scrollBy(0, scrollVelocity.current);
-      frameId.current = requestAnimationFrame(processScroll);
+    if (filterCategory === "all") {
+      // Nếu xem tất cả: Sắp xếp theo nhóm ưu tiên -> Sau đó theo thứ tự (order)
+      processed.sort((a, b) => {
+        const prioA = CATEGORY_PRIORITY[a.category] || 99;
+        const prioB = CATEGORY_PRIORITY[b.category] || 99;
+        if (prioA !== prioB) return prioA - prioB; // Xếp theo nhóm
+        return a.order - b.order; // Xếp theo thứ tự trong nhóm
+      });
     } else {
-      frameId.current = null;
+      // Nếu lọc: Chỉ lấy nhóm đó, xếp theo order
+      processed = processed
+        .filter(p => p.category === filterCategory)
+        .sort((a, b) => a.order - b.order);
     }
-  };
 
-  const handleDragStart = useCallback((e, info) => {
-    isDragging.current = true;
-    const clientY = e.clientY;
-    const h = window.innerHeight;
-    const threshold = 150;
-    const maxSpeed = 25;
+    setLocalProducts(processed);
+    setIsOrderChanged(false); // Reset trạng thái chưa lưu
+  }, [products, filterCategory]);
 
-    if (clientY < threshold) {
-      const intensity = 1 - clientY / threshold; 
-      scrollVelocity.current = -maxSpeed * intensity; 
-      if (!frameId.current) processScroll();
-    } else if (clientY > h - threshold) {
-      const intensity = (clientY - (h - threshold)) / threshold;
-      scrollVelocity.current = maxSpeed * intensity;
-      if (!frameId.current) processScroll();
-    } else {
-      scrollVelocity.current = 0;
-    }
-  }, []);
-
-  const handleDragEnd = useCallback(() => {
-    isDragging.current = false;
-    scrollVelocity.current = 0;
-    if (frameId.current) {
-      cancelAnimationFrame(frameId.current);
-      frameId.current = null;
-    }
-  }, []);
-
+  // Xử lý khi kéo thả xong (chỉ cập nhật UI)
   const handleReorder = (newOrder) => {
+    // Nếu đang xem tất cả thì không cho phép kéo thả làm thay đổi vị trí (để giữ structure)
+    // Hoặc nếu bạn muốn cho phép, logic sẽ phức tạp hơn. Ở đây tôi làm theo yêu cầu:
+    // "lọc ra nhóm muốn thay đổi thứ tự" -> Nghĩa là chỉ kéo thả khi đã Filter.
+    if (filterCategory === "all") return; 
+
     setLocalProducts(newOrder);
     setIsOrderChanged(true);
   };
 
+  // ⚡️ 3. Logic Lưu thông minh
   const handleSaveOrder = async () => {
     setIsSavingOrder(true);
+    
+    let finalOrderList = [];
+
+    if (filterCategory === "all") {
+        // Nếu đang ở chế độ All (trường hợp hiếm nếu cho phép kéo thả), cứ lưu nguyên list
+        finalOrderList = localProducts;
+    } else {
+        // Nếu đang lọc 1 nhóm (ví dụ: dress)
+        // Ta phải ghép danh sách dress mới (localProducts)
+        // với các sản phẩm còn lại (shirt, set...) từ danh sách gốc (products)
+        // và ĐẢM BẢO giữ đúng thứ tự nhóm CATEGORY_PRIORITY
+        
+        // Lấy các sản phẩm KHÔNG thuộc nhóm đang lọc từ store gốc
+        const otherProducts = products.filter(p => p.category !== filterCategory);
+        
+        // Gộp lại thành 1 mảng lớn
+        const mergedList = [...localProducts, ...otherProducts];
+
+        // Sắp xếp lại mảng lớn này theo đúng quy luật nhóm ưu tiên
+        mergedList.sort((a, b) => {
+            const prioA = CATEGORY_PRIORITY[a.category] || 99;
+            const prioB = CATEGORY_PRIORITY[b.category] || 99;
+            // Lưu ý: Trong cùng 1 nhóm, giữ nguyên thứ tự hiện tại của mảng
+            // (vì localProducts đã được user sắp xếp, còn otherProducts giữ nguyên từ store)
+            if (prioA !== prioB) return prioA - prioB;
+            return 0; // Giữ nguyên vị trí tương đối nếu cùng nhóm
+        });
+
+        finalOrderList = mergedList;
+    }
+
     if (reorderProducts) {
-      await reorderProducts(localProducts);
+      await reorderProducts(finalOrderList);
     }
     setIsOrderChanged(false);
     setIsSavingOrder(false);
   };
 
   const handleCancelOrder = () => {
-    setLocalProducts(products);
+    // Reset lại bằng cách trigger useEffect dependency
+    // Đơn giản nhất là set lại từ products gốc đã lọc
+    let processed = [...products];
+    if (filterCategory !== "all") {
+        processed = processed.filter(p => p.category === filterCategory).sort((a, b) => a.order - b.order);
+    } else {
+        processed.sort((a, b) => {
+            const prioA = CATEGORY_PRIORITY[a.category] || 99;
+            const prioB = CATEGORY_PRIORITY[b.category] || 99;
+            return prioA !== prioB ? prioA - prioB : a.order - b.order;
+        });
+    }
+    setLocalProducts(processed);
     setIsOrderChanged(false);
   };
 
@@ -416,47 +458,105 @@ const ProductsList = () => {
   return (
     <>
       <motion.div className="bg-white shadow-lg rounded-lg overflow-hidden max-w-6xl mx-auto border border-gray-200 relative" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="flex justify-end items-center px-4 sm:px-6 pt-4 gap-3">
-          <AnimatePresence>
-            {isOrderChanged && (
-              <motion.div 
-                initial={{ opacity: 0, x: 20 }} 
-                animate={{ opacity: 1, x: 0 }} 
-                exit={{ opacity: 0, x: 20 }} 
-                className="flex items-center gap-2"
-              >
-                <button onClick={handleCancelOrder} className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors flex items-center gap-1">
-                  <RotateCcw className="w-4 h-4" /> Hủy
+        
+        {/* ⚡️ THANH CÔNG CỤ (Toolbar) */}
+        <div className="bg-gray-50 border-b px-4 py-3 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-30">
+            
+            {/* Bộ lọc Tabs */}
+            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+                <button
+                    onClick={() => setFilterCategory("all")}
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${filterCategory === "all" ? "bg-blue-600 text-white shadow-sm" : "bg-white text-gray-600 hover:bg-gray-200 border border-gray-200"}`}
+                >
+                    Tất cả
                 </button>
-                <button onClick={handleSaveOrder} disabled={isSavingOrder} className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow-sm transition-all flex items-center gap-2">
-                  {isSavingOrder ? "Đang lưu..." : <><Save className="w-4 h-4" /> Lưu thay đổi</>}
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                {categories.map(c => (
+                    <button
+                        key={c.id}
+                        onClick={() => setFilterCategory(c.id)}
+                        className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${filterCategory === c.id ? "bg-blue-600 text-white shadow-sm" : "bg-white text-gray-600 hover:bg-gray-200 border border-gray-200"}`}
+                    >
+                        {c.label}
+                    </button>
+                ))}
+            </div>
 
-          <button onClick={handleDeleteAll} disabled={deletingAll || !products.length} className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-300 flex gap-2 items-center text-sm shadow-sm transition-all">
-            <Trash className="h-4 w-4" /> Xóa tất cả
-          </button>
+            {/* Khu vực hành động */}
+            <div className="flex items-center gap-3 ml-auto">
+                <AnimatePresence>
+                    {isOrderChanged && (
+                        <motion.div 
+                            initial={{ opacity: 0, x: 20 }} 
+                            animate={{ opacity: 1, x: 0 }} 
+                            exit={{ opacity: 0, x: 20 }} 
+                            className="flex items-center gap-2 bg-yellow-50 px-2 py-1 rounded border border-yellow-200"
+                        >
+                            <span className="text-xs text-yellow-700 font-medium hidden sm:block">Thứ tự đã đổi</span>
+                            <button onClick={handleCancelOrder} className="p-1.5 text-gray-500 hover:text-gray-800 hover:bg-white rounded transition-colors" title="Hủy">
+                                <RotateCcw className="w-4 h-4" />
+                            </button>
+                            <button onClick={handleSaveOrder} disabled={isSavingOrder} className="px-3 py-1.5 text-xs bg-green-600 hover:bg-green-700 text-white rounded shadow-sm transition-all flex items-center gap-1 font-bold">
+                                {isSavingOrder ? "..." : <><Save className="w-3 h-3" /> Lưu</>}
+                            </button>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                <button onClick={handleDeleteAll} disabled={deletingAll || !products.length} className="px-3 py-1.5 bg-white border border-red-200 text-red-600 rounded hover:bg-red-50 disabled:opacity-50 flex gap-1 items-center text-xs font-medium transition-all">
+                    <Trash className="h-3 w-3" /> Xóa hết
+                </button>
+            </div>
         </div>
 
-        <div className="hidden md:block mt-2">
+        {/* DESKTOP VIEW */}
+        <div className="hidden md:block">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-blue-900 text-white">
-              <tr>{["Sản phẩm", "Giá", "Loại", "Nổi bật", "Trạng thái", "BST", "Hành động", "Sắp xếp"].map((h) => (<th key={h} className="px-6 py-3 text-left text-xs font-semibold uppercase">{h}</th>))}</tr>
+            <thead className="bg-gray-100 text-gray-600">
+              <tr>{["Sản phẩm", "Giá", "Loại", "Nổi bật", "Trạng thái", "BST", "Hành động", "Kéo"].map((h) => (<th key={h} className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider">{h}</th>))}</tr>
             </thead>
-            <Reorder.Group as="tbody" axis="y" values={localProducts} onReorder={handleReorder} layoutScroll className="bg-white">
+            <Reorder.Group as="tbody" axis="y" values={localProducts} onReorder={handleReorder} layoutScroll className="bg-white divide-y divide-gray-100">
               {localProducts.map((product) => (
-                <ProductRow key={product._id} product={product} categories={categories} collections={collections} toggleFeaturedProduct={toggleFeaturedProduct} handleTogglePreorder={handleTogglePreorder} setEditingProduct={setEditingProduct} handleDelete={handleDelete} deletingId={deletingId} onDragStart={handleDragStart} onDragEnd={handleDragEnd} />
+                <ProductRow 
+                  key={product._id} 
+                  product={product} 
+                  categories={categories} 
+                  collections={collections} 
+                  toggleFeaturedProduct={toggleFeaturedProduct} 
+                  handleTogglePreorder={handleTogglePreorder} 
+                  setEditingProduct={setEditingProduct} 
+                  handleDelete={handleDelete} 
+                  deletingId={deletingId}
+                  isDraggable={filterCategory !== "all"} 
+                />
               ))}
             </Reorder.Group>
           </table>
+          
+          {/* Thông báo nếu list trống */}
+          {localProducts.length === 0 && (
+            <div className="p-8 text-center text-gray-500 text-sm">Không có sản phẩm nào trong danh mục này.</div>
+          )}
         </div>
 
-        <Reorder.Group axis="y" values={localProducts} onReorder={handleReorder} layoutScroll className="md:hidden grid gap-4 p-4 mt-2">
+        {/* MOBILE VIEW */}
+        <Reorder.Group axis="y" values={localProducts} onReorder={handleReorder} layoutScroll className="md:hidden grid gap-3 p-3 bg-gray-50">
           {localProducts.map((product) => (
-            <ProductCard key={product._id} product={product} categories={categories} collections={collections} toggleFeaturedProduct={toggleFeaturedProduct} handleTogglePreorder={handleTogglePreorder} setEditingProduct={setEditingProduct} handleDelete={handleDelete} deletingId={deletingId} onDragStart={handleDragStart} onDragEnd={handleDragEnd} />
+            <ProductCard 
+              key={product._id} 
+              product={product} 
+              categories={categories} 
+              collections={collections} 
+              toggleFeaturedProduct={toggleFeaturedProduct} 
+              handleTogglePreorder={handleTogglePreorder} 
+              setEditingProduct={setEditingProduct} 
+              handleDelete={handleDelete} 
+              deletingId={deletingId} 
+              isDraggable={filterCategory !== "all"} 
+            />
           ))}
+          {localProducts.length === 0 && (
+            <div className="p-8 text-center text-gray-500 text-sm">Không có sản phẩm.</div>
+          )}
         </Reorder.Group>
       </motion.div>
 
