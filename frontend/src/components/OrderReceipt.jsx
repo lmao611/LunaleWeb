@@ -506,16 +506,16 @@ return product.price * (item.quantity || 1) - discount;
           </tbody>
         </table>
 
-<div className="text-sm space-y-2"> 
+<div className="ml-auto w-64 text-sm space-y-2">
   
   {/* Dòng Thành tiền */}
-  <div className="flex justify-between items-center w-56"> {/* Tăng w-40 lên w-56 (224px) để rộng rãi hơn chút */}
+  <div className="flex justify-between items-center">
     <span className="text-gray-600">Thành tiền:</span>
     <span className="font-bold">{calcTotal().toLocaleString()}₫</span>
   </div>
 
   {/* Dòng Phí ship */}
-  <div className="flex justify-between items-center w-56">
+  <div className="flex justify-between items-center">
     <span className="text-gray-600">Phí ship:</span>
     <span className="font-bold">{form.shipFee.toLocaleString()}₫</span>
   </div>
@@ -582,16 +582,16 @@ return product.price * (item.quantity || 1) - discount;
           </tbody>
         </table>
 
-<div className="text-sm space-y-2"> 
+<div className="ml-auto w-64 text-sm space-y-2">
   
   {/* Dòng Thành tiền */}
-  <div className="flex justify-between items-center w-56"> {/* Tăng w-40 lên w-56 (224px) để rộng rãi hơn chút */}
+  <div className="flex justify-between items-center">
     <span className="text-gray-600">Thành tiền:</span>
     <span className="font-bold">{calcTotal().toLocaleString()}₫</span>
   </div>
 
   {/* Dòng Phí ship */}
-  <div className="flex justify-between items-center w-56">
+  <div className="flex justify-between items-center">
     <span className="text-gray-600">Phí ship:</span>
     <span className="font-bold">{form.shipFee.toLocaleString()}₫</span>
   </div>
