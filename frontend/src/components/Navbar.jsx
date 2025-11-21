@@ -1,4 +1,4 @@
-import { ShoppingCart, UserPlus, LogIn, LogOut, Lock, Home, User, X } from "lucide-react";
+import { ShoppingCart, UserPlus, LogIn, LogOut, Lock, Home, User, X, Clock } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useUserStore } from "../stores/useUserStore";
 import { useCartStore } from "../stores/useCartStore";
@@ -18,7 +18,7 @@ const Navbar = () => {
   const [editDirection, setEditDirection] = useState(user?.direction || "");
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
-  
+  const [tokenTimeLeft, setTokenTimeLeft] = useState(null);
 
   const setUser = useUserStore((state) => state.setUser);
 
@@ -47,6 +47,37 @@ const Navbar = () => {
       setIsScrolled(true);
     }
   }, [isHome]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const token = localStorage.getItem("accessToken");
+    if (!token) return;
+
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      if (!payload.exp) return;
+
+      const updateTimer = () => {
+        const now = Math.floor(Date.now() / 1000);
+        const timeLeft = payload.exp - now;
+
+        if (timeLeft <= 0) {
+          setTokenTimeLeft("Expired");
+        } else {
+          const m = Math.floor(timeLeft / 60);
+          const s = timeLeft % 60;
+          setTokenTimeLeft(`${m}:${s < 10 ? "0" : ""}${s}`);
+        }
+      };
+
+      updateTimer();
+      const interval = setInterval(updateTimer, 1000);
+      return () => clearInterval(interval);
+    } catch (error) {
+      console.error(error);
+    }
+  }, [isAdmin]);
 
   const handleLogoClick = () => {
     if (isHome) {
@@ -92,34 +123,29 @@ const Navbar = () => {
         alert(data.message || "Lỗi cập nhật");
       }
     } catch (err) {
-      console.error("Update error:", err);
+      console.error(err);
       alert("Lỗi máy chủ");
     }
   };
 
   return (
     <>
-      {/* ✅ Nút Go Back — Cố định trên navbar, chỉ hiện khi không ở trang Home */}
-{!isHome && (
-  <button
-    onClick={handleGoBack}
-    className={`
-      fixed z-[150] top-[12px] sm:top-[14px]
-      flex items-center justify-center transition-all
-      hover:opacity-80
-      ${isMobile ? "left-3" : "left-6"}
-    `}
-    title="Quay lại"
-  >
-    <img
-      src="/goback.png"
-      alt="Go Back"
-      className={`${isMobile ? "w-8 h-8" : "w-9 h-9"} object-contain`}
-    />
-  </button>
-)}
+      {!isHome && (
+        <button
+          onClick={handleGoBack}
+          className={`fixed z-[150] top-[12px] sm:top-[14px] flex items-center justify-center transition-all hover:opacity-80 ${
+            isMobile ? "left-3" : "left-6"
+          }`}
+          title="Quay lại"
+        >
+          <img
+            src="/goback.png"
+            alt="Go Back"
+            className={`${isMobile ? "w-8 h-8" : "w-9 h-9"} object-contain`}
+          />
+        </button>
+      )}
 
-      {/* ✅ Logo */}
       {isHome ? (
         <motion.div
           className="fixed z-[100] cursor-pointer"
@@ -160,7 +186,6 @@ const Navbar = () => {
         </div>
       )}
 
-      {/* ✅ Navbar */}
       <motion.header
         initial={{ y: 0 }}
         animate={{ y: 0 }}
@@ -183,15 +208,10 @@ const Navbar = () => {
           }`}
         >
           <div
-  className={`flex flex-col sm:flex-row items-center pb-2 ${
-    isMobile ? "gap-1 justify-center" : "justify-end"
-  }`}
->
-
-            {/* ✅ Nút Go Back PC */}
-            
-
-            {/* ✅ Nav */}
+            className={`flex flex-col sm:flex-row items-center pb-2 ${
+              isMobile ? "gap-1 justify-center" : "justify-end"
+            }`}
+          >
             <nav
               className={`flex flex-wrap items-center gap-4 mt-1 sm:mt-0 transition-colors duration-500 ${
                 !isScrolled && isHome ? "text-white" : "text-gray-800"
@@ -200,7 +220,9 @@ const Navbar = () => {
               <Link
                 to="/"
                 className={`flex items-end pb-[2px] transition ${
-                  isHome && !isScrolled ? "text-white" : "text-black hover:text-blue-700"
+                  isHome && !isScrolled
+                    ? "text-white"
+                    : "text-black hover:text-blue-700"
                 }`}
                 title="Trang Chủ"
               >
@@ -235,20 +257,7 @@ const Navbar = () => {
                       : "text-black hover:text-blue-700"
                   }`}
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="inline-block mr-1 w-[18px] h-[18px]"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1.293 2.293a1 1 0 00.707 1.707H17m-6 4a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2z"
-                    />
-                  </svg>
+                  <ShoppingCart size={18} className="mr-1" />
                   <span className="hidden sm:inline pt-1">Giỏ Hàng</span>
                   {cart.length > 0 && (
                     <span className="absolute -top-2 -left-3 bg-blue-600 text-white rounded-full px-2 py-0.5 text-xs">
@@ -259,13 +268,25 @@ const Navbar = () => {
               )}
 
               {isAdmin && (
-                <Link
-                  to="/secret-dashboard"
-                  className="bg-blue-700 hover:bg-blue-600 text-white px-3 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-md flex items-center transition"
-                >
-                  <Lock className="inline-block mr-1" size={16} />
-                  <span className="hidden sm:inline">Dashboard</span>
-                </Link>
+                <div className="flex items-center gap-2">
+                  <Link
+                    to="/secret-dashboard"
+                    className="bg-blue-700 hover:bg-blue-600 text-white px-3 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-md flex items-center transition"
+                  >
+                    <Lock className="inline-block mr-1" size={16} />
+                    <span className="hidden sm:inline">Dashboard</span>
+                  </Link>
+                  {tokenTimeLeft && (
+                    <div className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-mono border ${
+                      isHome && !isScrolled 
+                        ? "bg-black/30 text-white border-white/20" 
+                        : "bg-red-50 text-red-600 border-red-100"
+                    }`}>
+                      <Clock size={12} />
+                      <span>{tokenTimeLeft}</span>
+                    </div>
+                  )}
+                </div>
               )}
 
               {user ? (
@@ -299,7 +320,6 @@ const Navbar = () => {
         </div>
       </motion.header>
 
-      {/* ✅ Hộp thông tin cá nhân */}
       {showUserBox && user && (
         <div className="fixed inset-0 z-[999] bg-white flex flex-col items-center justify-center text-center px-6">
           <button
