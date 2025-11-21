@@ -320,7 +320,8 @@ const ProductRow = ({ product, categories, collections, toggleFeaturedProduct, h
       value={product}
       dragListener={false}
       dragControls={controls}
-      className="hover:bg-blue-50 transition-colors duration-200"
+      // ✅ Thêm select-none để không bị bôi đen khi kéo
+      className="hover:bg-blue-50 transition-colors duration-200 select-none"
     >
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex items-center">
@@ -416,7 +417,8 @@ const ProductCard = ({ product, categories, collections, toggleFeaturedProduct, 
       value={product}
       dragListener={false}
       dragControls={controls}
-      className="border rounded-lg p-3 flex flex-col sm:flex-row sm:items-center gap-3 shadow-sm bg-white"
+      // ✅ Thêm select-none để không bị bôi đen khi kéo
+      className="border rounded-lg p-3 flex flex-col sm:flex-row sm:items-center gap-3 shadow-sm bg-white select-none"
     >
       <img src={product.image} alt={product.name} className="w-full sm:w-24 h-40 sm:h-24 object-cover rounded" />
       <div className="flex-1">
