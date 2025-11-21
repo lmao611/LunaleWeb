@@ -507,8 +507,17 @@ return product.price * (item.quantity || 1) - discount;
         </table>
 
         <div className="text-right text-sm space-y-1">
-          <p>Thành tiền:                 {calcTotal().toLocaleString()}₫</p>
-          <p>Phí ship:               {form.shipFee.toLocaleString()}₫</p>
+          {/* Dòng Thành tiền */}
+<div className="flex justify-between items-center w-full mb-2">
+  <span className="text-gray-600">Thành tiền:</span>
+  <span className="font-semibold">{calcTotal().toLocaleString()}₫</span>
+</div>
+
+{/* Dòng Phí ship */}
+<div className="flex justify-between items-center w-full mb-2">
+  <span className="text-gray-600">Phí ship:</span>
+  <span className="font-semibold">{form.shipFee.toLocaleString()}₫</span>
+</div>
           <p className="font-bold text-3xl text-red-500">
             {totalWithShip.toLocaleString()}₫
           </p>
@@ -573,8 +582,17 @@ return product.price * (item.quantity || 1) - discount;
         </table>
 
         <div className="text-right text-sm space-y-1">
-          <p>Thành tiền:                 {calcTotal().toLocaleString()}₫</p>
-          <p>Phí ship:               {form.shipFee.toLocaleString()}₫</p>
+          {/* Dòng Thành tiền */}
+<div className="flex justify-between items-center w-full mb-2">
+  <span className="text-gray-600">Thành tiền:</span>
+  <span className="font-semibold">{calcTotal().toLocaleString()}₫</span>
+</div>
+
+{/* Dòng Phí ship */}
+<div className="flex justify-between items-center w-full mb-2">
+  <span className="text-gray-600">Phí ship:</span>
+  <span className="font-semibold">{form.shipFee.toLocaleString()}₫</span>
+</div>
           <p className="font-bold text-3xl text-red-500">
             {totalWithShip.toLocaleString()}₫
           </p>
