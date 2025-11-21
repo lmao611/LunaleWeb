@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, Reorder, useDragControls } from "framer-motion";
 import { Trash, Star, Settings, GripVertical } from "lucide-react";
 import { useProductStore } from "../stores/useProductStore";
@@ -11,6 +11,23 @@ const categories = [
   { id: "set", label: "Đồ bộ" },
   { id: "feedback", label: "Feedback" },
 ];
+
+// --- Hàm xử lý Auto Scroll ---
+// Hàm này sẽ được gọi liên tục khi user đang kéo (drag)
+const handleAutoScroll = (info) => {
+  const { y } = info.point; // Tọa độ Y của con trỏ chuột
+  const threshold = 150; // Khoảng cách tính từ mép màn hình để bắt đầu cuộn
+  const speed = 10; // Tốc độ cuộn
+
+  // Nếu kéo lên gần đỉnh (Y < 150px)
+  if (y < threshold) {
+    window.scrollBy({ top: -speed, behavior: "auto" });
+  }
+  // Nếu kéo xuống gần đáy (Y > chiều cao màn hình - 150px)
+  else if (y > window.innerHeight - threshold) {
+    window.scrollBy({ top: speed, behavior: "auto" });
+  }
+};
 
 const EditProductModal = ({ product, collections, onClose }) => {
   const { updateProduct } = useProductStore();
@@ -320,7 +337,8 @@ const ProductRow = ({ product, categories, collections, toggleFeaturedProduct, h
       value={product}
       dragListener={false}
       dragControls={controls}
-      // ✅ Thêm select-none để không bị bôi đen khi kéo
+      // 🟢 Thêm onDrag để gọi hàm auto-scroll
+      onDrag={(e, info) => handleAutoScroll(info)}
       className="hover:bg-blue-50 transition-colors duration-200 select-none"
     >
       <td className="px-6 py-4 whitespace-nowrap">
@@ -417,7 +435,8 @@ const ProductCard = ({ product, categories, collections, toggleFeaturedProduct, 
       value={product}
       dragListener={false}
       dragControls={controls}
-      // ✅ Thêm select-none để không bị bôi đen khi kéo
+      // 🟢 Thêm onDrag để gọi hàm auto-scroll
+      onDrag={(e, info) => handleAutoScroll(info)}
       className="border rounded-lg p-3 flex flex-col sm:flex-row sm:items-center gap-3 shadow-sm bg-white select-none"
     >
       <img src={product.image} alt={product.name} className="w-full sm:w-24 h-40 sm:h-24 object-cover rounded" />
