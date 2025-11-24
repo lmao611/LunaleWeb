@@ -14,12 +14,10 @@ import { connectDB } from "./lib/db.js";
 import ordersRoutes from "./routes/orders.routes.js";
 import userRoutes from "./routes/user.routes.js";
 
-
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// __dirname setup
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
@@ -27,7 +25,6 @@ dotenv.config({ path: path.resolve(__dirname, "../.env") });
 app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 
-// ✅ CORS cấu hình an toàn cho cả dev và Render
 const allowedOrigins = [
   process.env.CLIENT_URL,
   "http://localhost:5173",
@@ -40,7 +37,7 @@ app.use(
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        console.warn("❌ Blocked by CORS:", origin);
+        console.warn("Blocked by CORS:", origin);
         callback(new Error("Not allowed by CORS"));
       }
     },
@@ -48,7 +45,6 @@ app.use(
   })
 );
 
-// ✅ Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/cart", cartRoutes);
@@ -58,17 +54,7 @@ app.use("/api/banner", bannerRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/orders", ordersRoutes);
 
-
-// ✅ Serve frontend (production)
-if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "../frontend/dist")));
-  app.use((req, res) => {
-    res.sendFile(path.resolve(__dirname, "../frontend/dist", "index.html"));
-  });
-}
-
-// ✅ KHỞI CHẠY SERVER CHUẨN CHO RENDER (Render tự thêm HTTPS)
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
   connectDB();
 });
