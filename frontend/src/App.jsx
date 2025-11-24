@@ -6,7 +6,7 @@ import { Toaster } from "react-hot-toast";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import { useUserStore } from "./stores/useUserStore";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import LoadingSpinner from "./components/LoadingSpinner";
 import AdminPage from "./pages/AdminPage";
 import CategoryPage from "./pages/CategoryPage";
@@ -17,31 +17,37 @@ import CollectionDetailPage from "./pages/CollectionDetailPage";
 import PolicyPage from "./pages/PolicyPage";
 import ScrollToTop from "./components/ScrollToTop";
 import PrivacyPage from "./pages/PrivacyPage.jsx";
+
 function App() {
   const { user, checkAuth, checkingAuth } = useUserStore();
   const { getCartItems } = useCartStore();
+  const [isForceLoadingDone, setIsForceLoadingDone] = useState(false);
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsForceLoadingDone(true);
+    }, 2500);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
     if (!user) return;
     getCartItems();
   }, [getCartItems, user]);
 
-  if (checkingAuth) return <LoadingSpinner />;
+  if (checkingAuth && !isForceLoadingDone) return <LoadingSpinner />;
 
   return (
     <div className="min-h-screen bg-white text-gray-900 flex flex-col">
-      {/* ✅ Navbar trong suốt, đè lên banner */}
       <Navbar />
-
-      {/* ✅ Nội dung chính, không giới hạn width */}
       <ScrollToTop/>
       <div className="flex-1 w-full">
         <Routes>
-           
           <Route path="/" element={<HomePage />} />
           <Route
             path="/signup"
@@ -68,7 +74,6 @@ function App() {
           <Route path="/privacy" element={<PrivacyPage />} />
         </Routes>
       </div>
-
       <Footer />
       <Toaster />
     </div>
