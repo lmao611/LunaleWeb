@@ -99,7 +99,7 @@ nhất, LUNAE Store đưa ra 2 phương thức thanh toán để Quý khách d�
 1.2. Khách quét mã QR đễ thanh toán:
 => Quét mã để thanh toán
 
-Sau khi chuyển khoản thành công, LUNALE Store sẽ liên hệ xác nhận đến Quý khách hàng và tiến hành giao hàng. Trường hợp Khách hàng có thắc mắc, vui lòng liên hệ: 093234135
+Sau khi chuyển khoản thành công, LUNALE Store sẽ liên hệ xác nhận đến Quý khách hàng và tiến hành giao hàng. Trường hợp Khách hàng có thắc mắc, vui lòng liên hệ: 0932341355
  
 2/ Thanh toán khi nhận hàng
 Trường hợp Khách hàng muốn giao hàng và thanh toán tại nhà, nhân viên giao hàng của các đơn vị vận chuyển sẽ trực tiếp thu tiền ngay khi giao sản phẩm.`}
