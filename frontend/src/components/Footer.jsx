@@ -16,7 +16,7 @@ const Footer = () => {
   };
 
   return (
-    <footer className="bg-gradient-to-r from-rose-900 to-rose-900 text-white py-14 mt-20">
+    <footer className="bg-gradient-to-r from-black to-black text-white py-14 mt-20">
       <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-10">
         <div className="space-y-3 text-left">
           <h2 className="text-3xl font-bold mb-4">Thông tin liên hệ</h2>
