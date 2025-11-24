@@ -3,11 +3,10 @@ import CategoryItem from "../components/CategoryItem";
 import { useProductStore } from "../stores/useProductStore";
 import FeaturedProducts from "../components/FeaturedProducts";
 import CollectionsSection from "../components/CollectionsSection";
-import axios from "axios";
+import axios from "../lib/axios";
 
 const categories = [
   { href: "/dress", name: "Đầm nữ", imageUrl: "/dress.jpg" },
-  
   { href: "/shirt", name: "Áo nữ", imageUrl: "/shirt.jpg" },
   { href: "/set", name: "Set", imageUrl: "/set.jpg" },
   { href: "/feedback", name: "Feedback", imageUrl: "/feedback.jpg" },
@@ -22,10 +21,10 @@ const HomePage = () => {
 
     const fetchBanner = async () => {
       try {
-        const res = await axios.get("/api/banner");
+        const res = await axios.get("/banner");
         setBannerUrl(res.data.imageUrl);
       } catch (err) {
-        console.error("❌ Failed to load banner:", err.message);
+        console.error(err.message);
       }
     };
 
@@ -34,7 +33,6 @@ const HomePage = () => {
 
   return (
     <div className="bg-white text-gray-800 overflow-x-hidden">
-      {/* ✅ Banner full màn hình */}
       {bannerUrl && (
         <section className="relative w-screen h-screen overflow-hidden">
           <img
@@ -45,7 +43,6 @@ const HomePage = () => {
           <div className="absolute inset-0 bg-black/10"></div>
 
           <div className="relative z-10 flex flex-col items-center justify-center h-full text-center pt-130">
-            
             <p className="text-white text-xl sm:text-2xl mb-10">
               Khám phá bộ sưu tập mới
             </p>
@@ -62,7 +59,6 @@ const HomePage = () => {
         </section>
       )}
 
-      {/* ✅ Phần nội dung dưới banner */}
       <main
         id="homepage-content"
         className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20"

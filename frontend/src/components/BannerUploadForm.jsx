@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
+import axios from "../lib/axios";
 
 const BannerUploadForm = () => {
   const [image, setImage] = useState(null);
@@ -18,12 +18,12 @@ const BannerUploadForm = () => {
     formData.append("banner", image);
 
     try {
-      const res = await axios.post("/api/banner", formData, {
+      await axios.post("/banner", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      alert("✅ Banner uploaded!");
+      alert("Banner uploaded!");
     } catch (err) {
-      console.error("❌ Upload failed:", err.message);
+      console.error(err.message);
       alert("Upload failed");
     }
   };
