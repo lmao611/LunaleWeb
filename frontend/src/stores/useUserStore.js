@@ -66,16 +66,18 @@ setShowUserBox: (value) => set({ showUserBox: value }),
   },
 
   // ✅ Bổ sung refreshToken cho interceptor
-  refreshToken: async () => {
-    try {
-      // Đổi GET thành POST, đổi path thành /auth/refresh-token
-      await axios.post("/auth/refresh-token");
-    } catch (error) {
-      console.error("❌ Refresh token failed:", error);
-      set({ user: null });
-      throw error; // Ném lỗi để interceptor bắt được
-    }
-  },
+  // src/stores/useUserStore.js
+
+refreshToken: async () => {
+  try {
+    // SỬA: Đổi GET thành POST và sửa đúng đường dẫn khớp với backend
+    await axios.post("/auth/refresh-token");
+  } catch (error) {
+    console.error("❌ Refresh token failed:", error);
+    set({ user: null });
+    throw error; // Để interceptor bắt được lỗi này
+  }
+},
 }));
 
 // ========================================
