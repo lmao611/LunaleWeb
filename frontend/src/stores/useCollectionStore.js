@@ -1,8 +1,5 @@
 import { create } from "zustand";
-import axios from "axios";
-
-const API_URL = import.meta.env.VITE_API_URL + "/api/collections";
-console.log("👉 API_URL đang dùng:", API_URL);
+import axios from "../lib/axios"; // ✅ SỬA: Import từ file cấu hình chung
 
 export const useCollectionStore = create((set) => ({
   collections: [],
@@ -11,9 +8,10 @@ export const useCollectionStore = create((set) => ({
   fetchCollections: async () => {
     set({ isLoading: true });
     try {
-      const res = await axios.get(API_URL);
+      // ✅ SỬA: Chỉ cần gọi đường dẫn tương đối
+      const res = await axios.get("/collections");
+      
       console.log("📦 collections API:", res.data);
-      // ép dữ liệu thành array
       const data = Array.isArray(res.data) ? res.data : res.data.collections || [];
       set({ collections: data, isLoading: false });
     } catch (err) {
@@ -23,26 +21,30 @@ export const useCollectionStore = create((set) => ({
   },
 
   createCollection: async (data) => {
-    const res = await axios.post(API_URL, data);
+    // ✅ SỬA: Dùng axios instance
+    const res = await axios.post("/collections", data);
     set((state) => ({ collections: [...state.collections, res.data] }));
   },
 
   deleteCollection: async (id) => {
-    await axios.delete(`${API_URL}/${id}`);
+    // ✅ SỬA
+    await axios.delete(`/collections/${id}`);
     set((state) => ({
       collections: state.collections.filter((c) => c._id !== id),
     }));
   },
 
   addProductToCollection: async (id, product) => {
-    const res = await axios.post(`${API_URL}/${id}/products`, product);
+    // ✅ SỬA
+    const res = await axios.post(`/collections/${id}/products`, product);
     set((state) => ({
       collections: state.collections.map((c) => (c._id === id ? res.data : c)),
     }));
   },
 
   removeProductFromCollection: async (id, productId) => {
-    const res = await axios.delete(`${API_URL}/${id}/products/${productId}`);
+    // ✅ SỬA
+    const res = await axios.delete(`/collections/${id}/products/${productId}`);
     set((state) => ({
       collections: state.collections.map((c) => (c._id === id ? res.data : c)),
     }));
