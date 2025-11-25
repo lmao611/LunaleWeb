@@ -107,16 +107,13 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
   const isFeedback = product.category === "feedback";
 
   // -------------------------------
-  // 🔹 FEEDBACK CARD → link ngoài
+  // 🔹 FEEDBACK CARD
   // -------------------------------
   if (isFeedback) {
-    return (
-      <a
-        href={product.productLink || "#"}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="group relative block"
-      >
+    // 👇 Kiểm tra xem link feedback có phải link nội bộ không
+    const isInternalLink = product.productLink && product.productLink.includes(window.location.origin);
+    
+    const CardContent = (
         <div
           ref={cardRef}
           onMouseMove={handleMouseMove}
@@ -148,6 +145,27 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
             />
           </div>
         </div>
+    );
+
+    // Nếu là link nội bộ (cùng domain) -> Dùng Link để không load lại trang
+    if (isInternalLink) {
+        const internalPath = product.productLink.replace(window.location.origin, "");
+        return (
+            <Link to={internalPath} className="group relative block">
+                {CardContent}
+            </Link>
+        );
+    }
+
+    // Nếu là link ngoài (Facebook, Instagram...) -> Dùng thẻ a
+    return (
+      <a
+        href={product.productLink || "#"}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="group relative block"
+      >
+        {CardContent}
       </a>
     );
   }
@@ -155,7 +173,7 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
   // -------------------------------
   // 🔹 CARD MẶC ĐỊNH (CÓ / KHÔNG LINK)
   // -------------------------------
-  const CardContent = (
+  const DefaultCardContent = (
     <div
       ref={cardRef}
       onMouseMove={handleMouseMove}
@@ -220,12 +238,12 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
 
   // ✅ Nếu disableLink === true → không bọc Link
   if (disableLink) {
-    return <div className="group relative block">{CardContent}</div>;
+    return <div className="group relative block">{DefaultCardContent}</div>;
   }
 
   return (
     <Link to={`/product/${product._id}`} className="group relative block">
-      {CardContent}
+      {DefaultCardContent}
     </Link>
   );
 };
