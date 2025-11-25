@@ -60,20 +60,18 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/orders", ordersRoutes);
 
 // ---------------------------------------------------------------------
-// 👇 PHẦN QUAN TRỌNG ĐÃ SỬA:
-// 1. Bỏ 'if (process.env.NODE_ENV === "production")' để luôn chạy.
-// 2. Dùng app.use() không path làm chốt chặn cuối cùng.
+// 👇 PHẦN ĐÃ SỬA: XÓA ĐIỀU KIỆN IF NODE_ENV
 // ---------------------------------------------------------------------
 
 // Xác định đường dẫn tới folder build frontend
+// __dirname đang ở folder backend, nên cần ra ngoài 1 cấp (..) rồi vào frontend/dist
 const frontendDistPath = path.join(__dirname, "../frontend/dist");
 
 // 1. Phục vụ các file tĩnh (JS, CSS, Ảnh...)
 app.use(express.static(frontendDistPath));
 
 // 2. CATCH-ALL HANDLER (Xử lý lỗi Reload trang 404)
-// Đặt ở cuối cùng. Nếu request không khớp API nào ở trên và không phải file tĩnh,
-// Server sẽ trả về file index.html để React Router xử lý.
+// Đặt ở cuối cùng. BẮT BUỘC dùng app.use không tham số đường dẫn.
 app.use((req, res) => {
   res.sendFile(path.join(frontendDistPath, "index.html"));
 });
