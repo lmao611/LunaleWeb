@@ -55,12 +55,13 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/orders", ordersRoutes);
 
 // ----------------------------------------------
-// 👇 PHẦN QUAN TRỌNG ĐÃ THÊM: Cấu hình cho Deployment
+// 👇 PHẦN ĐÃ SỬA: Thay "*" bằng /.*/ (Regex)
 // ----------------------------------------------
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "../frontend/dist")));
 
-  app.get("*", (req, res) => {
+  // Sửa lỗi PathError bằng cách dùng Regex /.*/ thay vì string "*"
+  app.get(/.*/, (req, res) => {
     res.sendFile(path.resolve(__dirname, "../frontend", "dist", "index.html"));
   });
 }
