@@ -48,7 +48,7 @@ const ProductRow = ({ product, categories, collections, toggleFeaturedProduct, h
       dragControls={controls}
       layout
       transition={instantTransition}
-      className={`hover:bg-blue-50 border-b last:border-b-0 relative bg-white group ${isDraggable ? "cursor-grab active:cursor-grabbing" : ""}`}
+      className={`hover:bg-blue-5 border-b last:border-b-0 relative bg-white group ${isDraggable ? "cursor-grab active:cursor-grabbing" : ""}`}
       whileDrag={{ scale: 1.0, boxShadow: "0px 5px 15px rgba(0,0,0,0.15)", backgroundColor: "#f0f9ff", zIndex: 100 }}
     >
       <td className="px-6 py-4 whitespace-nowrap">
@@ -186,17 +186,20 @@ const EditProductModal = ({ product, collections, onClose }) => {
     }
   }, [product, collections]);
 
-  const handleMainImageChange = async (e) => {
+  // ✅ ĐÃ SỬA: Chỉ cập nhật State Preview, không gọi API ngay
+  const handleMainImageChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
     setUploadingMain(true);
     const reader = new FileReader();
-    reader.onloadend = async () => {
-      try {
-        const res = await axios.put(`/api/products/${product._id}`, { ...formData, image: reader.result });
-        setFormData({ ...formData, image: res.data.image });
-      } catch { alert("Lỗi update ảnh"); } finally { setUploadingMain(false); }
+    
+    reader.onloadend = () => {
+      // Chỉ set vào formData để hiển thị preview và chờ bấm Lưu
+      setFormData({ ...formData, image: reader.result });
+      setUploadingMain(false);
     };
+    
     reader.readAsDataURL(file);
   };
 
@@ -224,10 +227,13 @@ const EditProductModal = ({ product, collections, onClose }) => {
 
   const handleSave = async () => {
     try {
+      // 🚀 Ở đây formData (chứa ảnh Base64 mới) mới được gửi lên server
       await updateProduct(product._id, formData);
+      
       const oldCol = collections.find((col) => (col.products || []).some((p) => p._id === product._id));
       if (oldCol && oldCol._id !== formData.collectionId) await removeProductFromCollection(oldCol._id, product._id);
       if (formData.collectionId && (!oldCol || oldCol._id !== formData.collectionId)) await addProductToCollection(formData.collectionId, product);
+      
       onClose();
     } catch { alert("Lỗi update sản phẩm"); }
   };
@@ -274,7 +280,7 @@ const EditProductModal = ({ product, collections, onClose }) => {
                     <Upload className="w-6 h-6 mr-2" /> Thay ảnh
                     <input type="file" className="hidden" onChange={handleMainImageChange} disabled={uploadingMain} accept="image/*" />
                 </label>
-                {uploadingMain && <div className="absolute inset-0 bg-white/80 flex items-center justify-center text-sm font-medium">Đang tải...</div>}
+                {uploadingMain && <div className="absolute inset-0 bg-white/80 flex items-center justify-center text-sm font-medium">Đang xử lý ảnh...</div>}
             </div>
         </div>
 
