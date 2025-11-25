@@ -4,7 +4,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
-import fs from "fs"; // Thêm thư viện fs để kiểm tra file
+import fs from "fs"; // Thêm fs
 
 import bannerRoutes from "./routes/banner.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
@@ -39,7 +39,6 @@ app.use(
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        // Cho phép request từ Postman hoặc Server-to-Server
         callback(null, true);
       }
     },
@@ -57,23 +56,20 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/orders", ordersRoutes);
 
 // ---------------------------------------------------------------------
-// 👇 PHẦN CẦN THÊM ĐỂ FIX LỖI ROUTING VÀ RELOAD
+// 👇 PHẦN QUAN TRỌNG ĐỂ FIX LỖI RELOAD (SPA FALLBACK)
 // ---------------------------------------------------------------------
 
-// Xác định đường dẫn tới thư mục build của Frontend
 const frontendDistPath = path.join(__dirname, "../frontend/dist");
 
-// 1. Phục vụ file tĩnh (JS, CSS, Ảnh...)
+// 1. Phục vụ file tĩnh
 app.use(express.static(frontendDistPath));
 
-// 2. Chốt chặn cuối cùng: Trả về index.html cho mọi request không phải API
-// Sử dụng app.use không tham số để bắt tất cả request còn sót lại
+// 2. Catch-all Handler
 app.use((req, res) => {
   const indexPath = path.join(frontendDistPath, "index.html");
   if (fs.existsSync(indexPath)) {
     res.sendFile(indexPath);
   } else {
-    // Nếu chưa build frontend thì báo lỗi rõ ràng thay vì crash
     res.status(404).send("Frontend build not found. Please run 'npm run build' in frontend folder.");
   }
 });
