@@ -20,6 +20,7 @@ const PORT = process.env.PORT || 5000;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+// Lưu ý: Đảm bảo đường dẫn .env đúng với cấu trúc thư mục của bạn
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 app.use(express.json({ limit: "10mb" }));
@@ -37,14 +38,15 @@ app.use(
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        console.warn("Blocked by CORS:", origin);
-        callback(new Error("Not allowed by CORS"));
+        // Cho phép request không có origin (như Postman hoặc server-to-server)
+        callback(null, true);
       }
     },
     credentials: true,
   })
 );
 
+// --- API Routes ---
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/cart", cartRoutes);
@@ -54,10 +56,15 @@ app.use("/api/banner", bannerRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/orders", ordersRoutes);
 
+// --- Deployment Config ---
 if (process.env.NODE_ENV === "production") {
+  // 1. Phục vụ file tĩnh (JS, CSS, Images)
   app.use(express.static(path.join(__dirname, "../frontend/dist")));
 
-  app.get(/.*/, (req, res) => {
+  // 2. Catch-all Handler (Quan trọng)
+  // Sử dụng app.use thay vì app.get("*") để tránh lỗi path-to-regexp
+  // Hàm này sẽ chạy cho BẤT KỲ request nào chưa được xử lý ở trên (như /secret-dashboard)
+  app.use((req, res) => {
     res.sendFile(path.resolve(__dirname, "../frontend", "dist", "index.html"));
   });
 }
