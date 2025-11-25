@@ -160,7 +160,7 @@ const ProductCard = ({ product, categories, collections, toggleFeaturedProduct, 
 
 // -------------------- EDIT MODAL --------------------
 const EditProductModal = ({ product, collections, onClose }) => {
-  const { updateProduct } = useProductStore();
+  const { updateProduct, fetchAllProducts } = useProductStore();
   const { addProductToCollection, removeProductFromCollection } = useCollectionStore();
 
   const [formData, setFormData] = useState({
@@ -177,7 +177,8 @@ const EditProductModal = ({ product, collections, onClose }) => {
         price: product.price || 0, 
         category: product.category || "", 
         image: product.image || "", 
-        thumbnails: product.thumbnails || [], 
+        // 🛡️ Safe check: đảm bảo thumbnails luôn là mảng
+        thumbnails: Array.isArray(product.thumbnails) ? product.thumbnails : [], 
         description: product.description || "", 
         productLink: product.productLink || "", 
         collectionId: currentCol?._id || "", 
@@ -186,7 +187,6 @@ const EditProductModal = ({ product, collections, onClose }) => {
     }
   }, [product, collections]);
 
-  // ✅ ĐÃ SỬA: Chỉ cập nhật State Preview, không gọi API ngay
   const handleMainImageChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -195,7 +195,6 @@ const EditProductModal = ({ product, collections, onClose }) => {
     const reader = new FileReader();
     
     reader.onloadend = () => {
-      // Chỉ set vào formData để hiển thị preview và chờ bấm Lưu
       setFormData({ ...formData, image: reader.result });
       setUploadingMain(false);
     };
@@ -213,27 +212,36 @@ const EditProductModal = ({ product, collections, onClose }) => {
       formDataCloud.append("upload_preset", import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
       const res = await fetch(`https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`, { method: "POST", body: formDataCloud });
       const data = await res.json();
-      const newThumbs = [...formData.thumbnails]; 
+      
+      // 🛡️ Safe check trước khi copy mảng
+      const currentThumbs = Array.isArray(formData.thumbnails) ? formData.thumbnails : [];
+      const newThumbs = [...currentThumbs]; 
       newThumbs[index] = data.secure_url;
       setFormData({ ...formData, thumbnails: newThumbs });
     } catch { alert("Lỗi upload thumb"); } finally { setUploadingThumbIndex(null); }
   };
 
-  const addThumbnail = () => setFormData({ ...formData, thumbnails: [...formData.thumbnails, ""] });
+  const addThumbnail = () => {
+    const currentThumbs = Array.isArray(formData.thumbnails) ? formData.thumbnails : [];
+    setFormData({ ...formData, thumbnails: [...currentThumbs, ""] });
+  };
+
   const removeThumbnail = (index) => {
-    const newThumbs = formData.thumbnails.filter((_, i) => i !== index);
+    const currentThumbs = Array.isArray(formData.thumbnails) ? formData.thumbnails : [];
+    const newThumbs = currentThumbs.filter((_, i) => i !== index);
     setFormData({ ...formData, thumbnails: newThumbs });
   };
 
   const handleSave = async () => {
     try {
-      // 🚀 Ở đây formData (chứa ảnh Base64 mới) mới được gửi lên server
       await updateProduct(product._id, formData);
       
       const oldCol = collections.find((col) => (col.products || []).some((p) => p._id === product._id));
       if (oldCol && oldCol._id !== formData.collectionId) await removeProductFromCollection(oldCol._id, product._id);
       if (formData.collectionId && (!oldCol || oldCol._id !== formData.collectionId)) await addProductToCollection(formData.collectionId, product);
       
+      // Đồng bộ lại store sau khi save
+      await fetchAllProducts();
       onClose();
     } catch { alert("Lỗi update sản phẩm"); }
   };
@@ -286,13 +294,13 @@ const EditProductModal = ({ product, collections, onClose }) => {
 
         <div className="mt-4">
             <div className="flex justify-between items-center mb-2">
-                <label className="font-medium text-sm">Ảnh phụ ({formData.thumbnails.length})</label>
+                <label className="font-medium text-sm">Ảnh phụ ({(formData.thumbnails || []).length})</label>
                 <button onClick={addThumbnail} className="text-xs flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium px-2 py-1 rounded hover:bg-blue-50 transition-colors">
                     <Plus className="w-3 h-3" /> Thêm ảnh
                 </button>
             </div>
             <div className="grid grid-cols-3 gap-2">
-                {formData.thumbnails.map((thumb, index) => (
+                {(Array.isArray(formData.thumbnails) ? formData.thumbnails : []).map((thumb, index) => (
                     <div key={index} className="relative group aspect-square bg-gray-50 border rounded overflow-hidden">
                         {thumb ? (
                             <img src={thumb} alt={`thumb-${index}`} className="w-full h-full object-cover" />
@@ -335,94 +343,73 @@ const ProductsList = () => {
   const [editingProduct, setEditingProduct] = useState(null);
   const [filterCategory, setFilterCategory] = useState("all");
   
-  // State hiển thị cục bộ (để hiển thị tức thời khi kéo thả)
   const [localProducts, setLocalProducts] = useState([]);
-  
   const [isOrderChanged, setIsOrderChanged] = useState(false);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
 
   useEffect(() => { fetchCollections(); }, [fetchCollections]);
   
-  // ⚡️ 2. Logic phân loại và sắp xếp ban đầu
-  // Mỗi khi danh sách gốc (products) hoặc bộ lọc thay đổi, ta tính toán lại localProducts
+  // ⚡️⚡️ FIX QUAN TRỌNG: Kiểm tra Array.isArray()
+  // Chỗ này chính là chỗ gây ra lỗi màn hình trắng và "filter is not a function"
   useEffect(() => {
-    let processed = [...products];
+    // Nếu products là null/undefined, gán bằng mảng rỗng để không bị crash
+    const safeProducts = Array.isArray(products) ? [...products] : [];
+    
+    let processed = safeProducts;
 
     if (filterCategory === "all") {
-      // Nếu xem tất cả: Sắp xếp theo nhóm ưu tiên -> Sau đó theo thứ tự (order)
       processed.sort((a, b) => {
         const prioA = CATEGORY_PRIORITY[a.category] || 99;
         const prioB = CATEGORY_PRIORITY[b.category] || 99;
-        if (prioA !== prioB) return prioA - prioB; // Xếp theo nhóm
-        return a.order - b.order; // Xếp theo thứ tự trong nhóm
+        if (prioA !== prioB) return prioA - prioB;
+        return a.order - b.order;
       });
     } else {
-      // Nếu lọc: Chỉ lấy nhóm đó, xếp theo order
       processed = processed
         .filter(p => p.category === filterCategory)
         .sort((a, b) => a.order - b.order);
     }
 
     setLocalProducts(processed);
-    setIsOrderChanged(false); // Reset trạng thái chưa lưu
+    setIsOrderChanged(false);
   }, [products, filterCategory]);
 
-  // Xử lý khi kéo thả xong (chỉ cập nhật UI)
   const handleReorder = (newOrder) => {
-    // Nếu đang xem tất cả thì không cho phép kéo thả làm thay đổi vị trí (để giữ structure)
-    // Hoặc nếu bạn muốn cho phép, logic sẽ phức tạp hơn. Ở đây tôi làm theo yêu cầu:
-    // "lọc ra nhóm muốn thay đổi thứ tự" -> Nghĩa là chỉ kéo thả khi đã Filter.
     if (filterCategory === "all") return; 
-
     setLocalProducts(newOrder);
     setIsOrderChanged(true);
   };
 
-  // ⚡️ 3. Logic Lưu thông minh
   const handleSaveOrder = async () => {
     setIsSavingOrder(true);
-    
     let finalOrderList = [];
+    // 🛡️ Safe check
+    const safeProducts = Array.isArray(products) ? products : []; 
 
     if (filterCategory === "all") {
-        // Nếu đang ở chế độ All (trường hợp hiếm nếu cho phép kéo thả), cứ lưu nguyên list
         finalOrderList = localProducts;
     } else {
-        // Nếu đang lọc 1 nhóm (ví dụ: dress)
-        // Ta phải ghép danh sách dress mới (localProducts)
-        // với các sản phẩm còn lại (shirt, set...) từ danh sách gốc (products)
-        // và ĐẢM BẢO giữ đúng thứ tự nhóm CATEGORY_PRIORITY
-        
-        // Lấy các sản phẩm KHÔNG thuộc nhóm đang lọc từ store gốc
-        const otherProducts = products.filter(p => p.category !== filterCategory);
-        
-        // Gộp lại thành 1 mảng lớn
+        const otherProducts = safeProducts.filter(p => p.category !== filterCategory);
         const mergedList = [...localProducts, ...otherProducts];
 
-        // Sắp xếp lại mảng lớn này theo đúng quy luật nhóm ưu tiên
         mergedList.sort((a, b) => {
             const prioA = CATEGORY_PRIORITY[a.category] || 99;
             const prioB = CATEGORY_PRIORITY[b.category] || 99;
-            // Lưu ý: Trong cùng 1 nhóm, giữ nguyên thứ tự hiện tại của mảng
-            // (vì localProducts đã được user sắp xếp, còn otherProducts giữ nguyên từ store)
             if (prioA !== prioB) return prioA - prioB;
-            return 0; // Giữ nguyên vị trí tương đối nếu cùng nhóm
+            return 0;
         });
-
         finalOrderList = mergedList;
     }
 
-    if (reorderProducts) {
-      await reorderProducts(finalOrderList);
-    }
+    if (reorderProducts) await reorderProducts(finalOrderList);
     setIsOrderChanged(false);
     setIsSavingOrder(false);
   };
 
   const handleCancelOrder = () => {
-    // Reset lại bằng cách trigger useEffect dependency
-    // Đơn giản nhất là set lại từ products gốc đã lọc
-    let processed = [...products];
+    const safeProducts = Array.isArray(products) ? [...products] : [];
+    let processed = safeProducts;
+
     if (filterCategory !== "all") {
         processed = processed.filter(p => p.category === filterCategory).sort((a, b) => a.order - b.order);
     } else {
@@ -452,10 +439,11 @@ const ProductsList = () => {
   };
 
   const handleDeleteAll = async () => {
-    if (!products.length) return alert("Trống");
+    const safeProducts = Array.isArray(products) ? products : [];
+    if (!safeProducts.length) return alert("Trống");
     if (!confirm("Xóa hết?")) return;
     setDeletingAll(true);
-    for (const p of products) {
+    for (const p of safeProducts) {
         try { await deleteProduct(p._id); } catch (e) {}
     }
     setDeletingAll(false);
@@ -465,56 +453,29 @@ const ProductsList = () => {
     <>
       <motion.div className="bg-white shadow-lg rounded-lg overflow-hidden max-w-6xl mx-auto border border-gray-200 relative" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         
-        {/* ⚡️ THANH CÔNG CỤ (Toolbar) */}
+        {/* Toolbar */}
         <div className="bg-gray-50 border-b px-4 py-3 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-30">
-            
-            {/* Bộ lọc Tabs */}
             <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
-                <button
-                    onClick={() => setFilterCategory("all")}
-                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${filterCategory === "all" ? "bg-blue-600 text-white shadow-sm" : "bg-white text-gray-600 hover:bg-gray-200 border border-gray-200"}`}
-                >
-                    Tất cả
-                </button>
+                <button onClick={() => setFilterCategory("all")} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${filterCategory === "all" ? "bg-blue-600 text-white shadow-sm" : "bg-white text-gray-600 hover:bg-gray-200 border border-gray-200"}`}>Tất cả</button>
                 {categories.map(c => (
-                    <button
-                        key={c.id}
-                        onClick={() => setFilterCategory(c.id)}
-                        className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${filterCategory === c.id ? "bg-blue-600 text-white shadow-sm" : "bg-white text-gray-600 hover:bg-gray-200 border border-gray-200"}`}
-                    >
-                        {c.label}
-                    </button>
+                    <button key={c.id} onClick={() => setFilterCategory(c.id)} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${filterCategory === c.id ? "bg-blue-600 text-white shadow-sm" : "bg-white text-gray-600 hover:bg-gray-200 border border-gray-200"}`}>{c.label}</button>
                 ))}
             </div>
 
-            {/* Khu vực hành động */}
             <div className="flex items-center gap-3 ml-auto">
                 <AnimatePresence>
                     {isOrderChanged && (
-                        <motion.div 
-                            initial={{ opacity: 0, x: 20 }} 
-                            animate={{ opacity: 1, x: 0 }} 
-                            exit={{ opacity: 0, x: 20 }} 
-                            className="flex items-center gap-2 bg-yellow-50 px-2 py-1 rounded border border-yellow-200"
-                        >
+                        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="flex items-center gap-2 bg-yellow-50 px-2 py-1 rounded border border-yellow-200">
                             <span className="text-xs text-yellow-700 font-medium hidden sm:block">Thứ tự đã đổi</span>
-                            <button onClick={handleCancelOrder} className="p-1.5 text-gray-500 hover:text-gray-800 hover:bg-white rounded transition-colors" title="Hủy">
-                                <RotateCcw className="w-4 h-4" />
-                            </button>
-                            <button onClick={handleSaveOrder} disabled={isSavingOrder} className="px-3 py-1.5 text-xs bg-green-600 hover:bg-green-700 text-white rounded shadow-sm transition-all flex items-center gap-1 font-bold">
-                                {isSavingOrder ? "..." : <><Save className="w-3 h-3" /> Lưu</>}
-                            </button>
+                            <button onClick={handleCancelOrder} className="p-1.5 text-gray-500 hover:text-gray-800 hover:bg-white rounded transition-colors"><RotateCcw className="w-4 h-4" /></button>
+                            <button onClick={handleSaveOrder} disabled={isSavingOrder} className="px-3 py-1.5 text-xs bg-green-600 hover:bg-green-700 text-white rounded shadow-sm transition-all flex items-center gap-1 font-bold">{isSavingOrder ? "..." : <><Save className="w-3 h-3" /> Lưu</>}</button>
                         </motion.div>
                     )}
                 </AnimatePresence>
-
-                <button onClick={handleDeleteAll} disabled={deletingAll || !products.length} className="px-3 py-1.5 bg-white border border-red-200 text-red-600 rounded hover:bg-red-50 disabled:opacity-50 flex gap-1 items-center text-xs font-medium transition-all">
-                    <Trash className="h-3 w-3" /> Xóa hết
-                </button>
+                <button onClick={handleDeleteAll} disabled={deletingAll || !products?.length} className="px-3 py-1.5 bg-white border border-red-200 text-red-600 rounded hover:bg-red-50 disabled:opacity-50 flex gap-1 items-center text-xs font-medium transition-all"><Trash className="h-3 w-3" /> Xóa hết</button>
             </div>
         </div>
 
-        {/* DESKTOP VIEW */}
         <div className="hidden md:block">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-100 text-gray-600">
@@ -522,47 +483,18 @@ const ProductsList = () => {
             </thead>
             <Reorder.Group as="tbody" axis="y" values={localProducts} onReorder={handleReorder} layoutScroll className="bg-white divide-y divide-gray-100">
               {localProducts.map((product) => (
-                <ProductRow 
-                  key={product._id} 
-                  product={product} 
-                  categories={categories} 
-                  collections={collections} 
-                  toggleFeaturedProduct={toggleFeaturedProduct} 
-                  handleTogglePreorder={handleTogglePreorder} 
-                  setEditingProduct={setEditingProduct} 
-                  handleDelete={handleDelete} 
-                  deletingId={deletingId}
-                  isDraggable={filterCategory !== "all"} 
-                />
+                <ProductRow key={product._id} product={product} categories={categories} collections={collections} toggleFeaturedProduct={toggleFeaturedProduct} handleTogglePreorder={handleTogglePreorder} setEditingProduct={setEditingProduct} handleDelete={handleDelete} deletingId={deletingId} isDraggable={filterCategory !== "all"} />
               ))}
             </Reorder.Group>
           </table>
-          
-          {/* Thông báo nếu list trống */}
-          {localProducts.length === 0 && (
-            <div className="p-8 text-center text-gray-500 text-sm">Không có sản phẩm nào trong danh mục này.</div>
-          )}
+          {localProducts.length === 0 && <div className="p-8 text-center text-gray-500 text-sm">Không có sản phẩm nào.</div>}
         </div>
 
-        {/* MOBILE VIEW */}
         <Reorder.Group axis="y" values={localProducts} onReorder={handleReorder} layoutScroll className="md:hidden grid gap-3 p-3 bg-gray-50">
           {localProducts.map((product) => (
-            <ProductCard 
-              key={product._id} 
-              product={product} 
-              categories={categories} 
-              collections={collections} 
-              toggleFeaturedProduct={toggleFeaturedProduct} 
-              handleTogglePreorder={handleTogglePreorder} 
-              setEditingProduct={setEditingProduct} 
-              handleDelete={handleDelete} 
-              deletingId={deletingId} 
-              isDraggable={filterCategory !== "all"} 
-            />
+            <ProductCard key={product._id} product={product} categories={categories} collections={collections} toggleFeaturedProduct={toggleFeaturedProduct} handleTogglePreorder={handleTogglePreorder} setEditingProduct={setEditingProduct} handleDelete={handleDelete} deletingId={deletingId} isDraggable={filterCategory !== "all"} />
           ))}
-          {localProducts.length === 0 && (
-            <div className="p-8 text-center text-gray-500 text-sm">Không có sản phẩm.</div>
-          )}
+          {localProducts.length === 0 && <div className="p-8 text-center text-gray-500 text-sm">Không có sản phẩm.</div>}
         </Reorder.Group>
       </motion.div>
 
