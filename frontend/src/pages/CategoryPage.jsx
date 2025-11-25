@@ -131,7 +131,7 @@ const CategoryPage = () => {
             <button
               onClick={() => goToPage(currentPage - 1)}
               disabled={currentPage === 1}
-              className="px-3 py-1 rounded-md bg-blue-100 text-blue-600 hover:bg-blue-200 disabled:opacity-50"
+              className="px-3 py-1 rounded-md bg-gray-200 text-black-600 hover:bg-gray-600 disabled:opacity-50"
             >
               &lt;
             </button>
@@ -142,8 +142,8 @@ const CategoryPage = () => {
                 onClick={() => goToPage(page)}
                 className={`px-3 py-1 rounded-md ${
                   currentPage === page
-                    ? "bg-blue-600 text-white"
-                    : "bg-blue-100 text-blue-600 hover:bg-blue-200"
+                    ? "bg-black text-white"
+                    : "bg-gray-200 text-black hover:bg-gray-600"
                 }`}
               >
                 {page}
@@ -153,7 +153,7 @@ const CategoryPage = () => {
             <button
               onClick={() => goToPage(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className="px-3 py-1 rounded-md bg-blue-100 text-blue-600 hover:bg-blue-200 disabled:opacity-50"
+              className="px-3 py-1 rounded-md bg-gray-200 text-black hover:bg-gray-600 disabled:opacity-50"
             >
               &gt;
             </button>
