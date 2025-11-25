@@ -59,18 +59,26 @@ app.use("/api/banner", bannerRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/orders", ordersRoutes);
 
-// --- Cấu hình Deployment (QUAN TRỌNG) ---
-if (process.env.NODE_ENV === "production") {
-  // 1. Phục vụ file tĩnh (JS, CSS, Ảnh) từ thư mục frontend/dist
-  app.use(express.static(path.join(__dirname, "../frontend/dist")));
+// ---------------------------------------------------------------------
+// 👇 PHẦN QUAN TRỌNG ĐÃ SỬA:
+// 1. Bỏ 'if (process.env.NODE_ENV === "production")' để luôn chạy.
+// 2. Dùng app.use() không path làm chốt chặn cuối cùng.
+// ---------------------------------------------------------------------
 
-  // 2. FALLBACK HANDLER (Chốt chặn cuối cùng)
-  // Lưu ý: Dùng app.use KHÔNG CÓ path để tránh lỗi PathError của Express 5
-  // Bất kỳ request nào không khớp API ở trên và không phải file tĩnh sẽ lọt vào đây
-  app.use((req, res) => {
-    res.sendFile(path.resolve(__dirname, "../frontend", "dist", "index.html"));
-  });
-}
+// Xác định đường dẫn tới folder build frontend
+const frontendDistPath = path.join(__dirname, "../frontend/dist");
+
+// 1. Phục vụ các file tĩnh (JS, CSS, Ảnh...)
+app.use(express.static(frontendDistPath));
+
+// 2. CATCH-ALL HANDLER (Xử lý lỗi Reload trang 404)
+// Đặt ở cuối cùng. Nếu request không khớp API nào ở trên và không phải file tĩnh,
+// Server sẽ trả về file index.html để React Router xử lý.
+app.use((req, res) => {
+  res.sendFile(path.join(frontendDistPath, "index.html"));
+});
+
+// ---------------------------------------------------------------------
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
