@@ -1,11 +1,8 @@
 import { redis } from "../lib/redis.js";
 import User from "../models/user.model.js";
 import jwt from "jsonwebtoken";
-import fetch from "node-fetch"; // ⚠️ npm install node-fetch
+import fetch from "node-fetch";
 
-// =======================
-// 🔹 TOKEN UTILITIES
-// =======================
 const generateTokens = (userId) => {
 	const accessToken = jwt.sign({ userId }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "1h" });
 	const refreshToken = jwt.sign({ userId }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
@@ -13,7 +10,7 @@ const generateTokens = (userId) => {
 };
 
 const storeRefreshToken = async (userId, refreshToken) => {
-	await redis.set(`refresh_token:${userId}`, refreshToken, "EX", 7 * 24 * 60 * 60); // 7 ngày
+	await redis.set(`refresh_token:${userId}`, refreshToken, "EX", 7 * 24 * 60 * 60);
 };
 
 const setCookies = (res, accessToken, refreshToken) => {
@@ -21,23 +18,19 @@ const setCookies = (res, accessToken, refreshToken) => {
 
   res.cookie("accessToken", accessToken, {
     httpOnly: true,
-    secure: isProd, // ✅ chỉ true khi deploy HTTPS
-    sameSite: isProd ? "none" : "lax", // ✅ cho phép gửi cookie cross-site khi dev
-    maxAge: 60 * 60 * 1000, // 1h
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax",
+    maxAge: 60 * 60 * 1000,
   });
 
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
     secure: isProd,
     sameSite: isProd ? "none" : "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7d
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 };
 
-
-// =======================
-// 🔹 FACEBOOK LOGIN
-// =======================
 export const facebookLogin = async (req, res) => {
   try {
     const { accessToken } = req.body;
@@ -45,7 +38,6 @@ export const facebookLogin = async (req, res) => {
       return res.status(400).json({ message: "Access token is required" });
     }
 
-    // 📡 Lấy thông tin từ Facebook Graph API
     const fbResponse = await fetch(
       `https://graph.facebook.com/me?fields=id,name,email&access_token=${accessToken}`
     );
@@ -66,12 +58,10 @@ export const facebookLogin = async (req, res) => {
       });
     }
 
-    // 🔹 Tạo JWT
     const { accessToken: jwtAccess, refreshToken } = generateTokens(user._id);
     await storeRefreshToken(user._id, refreshToken);
     setCookies(res, jwtAccess, refreshToken);
 
-    // ⚠️ KHÔNG cần trả token nữa, chỉ cần user
     res.json({
       message: "Facebook login successful",
       user: {
@@ -88,11 +78,6 @@ export const facebookLogin = async (req, res) => {
   }
 };
 
-
-
-// =======================
-// 🔹 SIGNUP (Đăng ký thường)
-// =======================
 export const signup = async (req, res) => {
 	const { email, password, name, phoneNumber, direction } = req.body;
 	try {
@@ -123,9 +108,6 @@ export const signup = async (req, res) => {
 	}
 };
 
-// =======================
-// 🔹 LOGIN (Đăng nhập thường)
-// =======================
 export const login = async (req, res) => {
 	try {
 		const { email, password } = req.body;
@@ -153,9 +135,6 @@ export const login = async (req, res) => {
 	}
 };
 
-// =======================
-// 🔹 LOGOUT
-// =======================
 export const logout = async (req, res) => {
 	try {
 		const refreshToken = req.cookies.refreshToken;
@@ -172,9 +151,6 @@ export const logout = async (req, res) => {
 	}
 };
 
-// =======================
-// 🔹 REFRESH TOKEN
-// =======================
 export const refreshToken = async (req, res) => {
 	try {
 		const refreshToken = req.cookies.refreshToken;
@@ -207,9 +183,6 @@ export const refreshToken = async (req, res) => {
 	}
 };
 
-// =======================
-// 🔹 PROFILE
-// =======================
 export const getProfile = async (req, res) => {
 	try {
 		res.json(req.user);
@@ -218,9 +191,6 @@ export const getProfile = async (req, res) => {
 	}
 };
 
-// =======================
-// 🔹 UPDATE PROFILE
-// =======================
 export const updateProfile = async (req, res) => {
 	try {
 		const { name, email, phoneNumber, direction } = req.body;
@@ -232,6 +202,16 @@ export const updateProfile = async (req, res) => {
 
 		res.json(user);
 	} catch (error) {
+		res.status(500).json({ message: "Server error", error: error.message });
+	}
+};
+
+export const getAllUsers = async (req, res) => {
+	try {
+		const users = await User.find({}).select("-password");
+		res.json(users);
+	} catch (error) {
+		console.log("Error in getAllUsers controller", error.message);
 		res.status(500).json({ message: "Server error", error: error.message });
 	}
 };

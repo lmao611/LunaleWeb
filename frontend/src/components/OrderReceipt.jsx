@@ -1,8 +1,8 @@
 import { useEffect, useState, useRef } from "react";
-import axios from "axios";
 import { motion } from "framer-motion";
 import { PlusCircle, Trash2, ImageDown } from "lucide-react";
 import domtoimage from "dom-to-image-more";
+import axios from "../lib/axios";
 
 const OrderReceipt = () => {
   const [customers, setCustomers] = useState([]);
@@ -27,28 +27,16 @@ const OrderReceipt = () => {
     const fetchData = async () => {
       try {
         const [custRes, prodRes] = await Promise.all([
-          axios.get("/api/users"),
-          axios.get("/api/products"),
+          axios.get("/auth/users"), 
+          axios.get("/products"),
         ]);
 
-        let loadedCustomers = [];
-        const cData = custRes.data;
-        if (Array.isArray(cData)) loadedCustomers = cData;
-        else if (cData.users && Array.isArray(cData.users)) loadedCustomers = cData.users;
-        else if (cData.customers && Array.isArray(cData.customers)) loadedCustomers = cData.customers;
-        else if (cData.data && Array.isArray(cData.data)) loadedCustomers = cData.data;
-
-        let loadedProducts = [];
-        const pData = prodRes.data;
-        if (Array.isArray(pData)) loadedProducts = pData;
-        else if (pData.products && Array.isArray(pData.products)) loadedProducts = pData.products;
-        else if (pData.data && Array.isArray(pData.data)) loadedProducts = pData.data;
-
+        const loadedCustomers = Array.isArray(custRes.data) ? custRes.data : (custRes.data.users || []);
         setCustomers(loadedCustomers);
+
+        const loadedProducts = prodRes.data.products || (Array.isArray(prodRes.data) ? prodRes.data : []);
         setProducts(loadedProducts);
 
-        console.log("Customers loaded:", loadedCustomers.length);
-        console.log("Products loaded:", loadedProducts.length);
       } catch (err) {
         console.error(err);
       }
@@ -174,7 +162,7 @@ const OrderReceipt = () => {
               <option value="">-- Chọn khách hàng --</option>
               {customers.map((c) => (
                 <option key={c._id || c.id} value={c._id || c.id}>
-                  {c.name} {c.phone || c.phoneNumber ? `(${c.phone || c.phoneNumber})` : ""}
+                  {c.name} {c.phoneNumber ? `(${c.phoneNumber})` : ""}
                 </option>
               ))}
             </select>
