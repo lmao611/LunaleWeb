@@ -3,11 +3,10 @@ import axios from "axios";
 import { motion } from "framer-motion";
 import { PlusCircle, Trash2, ImageDown } from "lucide-react";
 import domtoimage from "dom-to-image-more";
-import { useProductStore } from "../stores/useProductStore";
 
 const OrderReceipt = () => {
-  const { products, fetchAllProducts } = useProductStore();
   const [customers, setCustomers] = useState([]);
+  const [products, setProducts] = useState([]);
   const [form, setForm] = useState({
     customerId: "",
     customerName: "",
@@ -25,18 +24,37 @@ const OrderReceipt = () => {
   const printRef = useRef(null);
 
   useEffect(() => {
-    const initData = async () => {
-      await fetchAllProducts();
+    const fetchData = async () => {
       try {
-        const res = await axios.get("/api/users");
-        const userData = res.data.users || res.data.customers || res.data || [];
-        setCustomers(Array.isArray(userData) ? userData : []);
-      } catch (error) {
-        console.error(error);
+        const [custRes, prodRes] = await Promise.all([
+          axios.get("/api/users"),
+          axios.get("/api/products"),
+        ]);
+
+        let loadedCustomers = [];
+        const cData = custRes.data;
+        if (Array.isArray(cData)) loadedCustomers = cData;
+        else if (cData.users && Array.isArray(cData.users)) loadedCustomers = cData.users;
+        else if (cData.customers && Array.isArray(cData.customers)) loadedCustomers = cData.customers;
+        else if (cData.data && Array.isArray(cData.data)) loadedCustomers = cData.data;
+
+        let loadedProducts = [];
+        const pData = prodRes.data;
+        if (Array.isArray(pData)) loadedProducts = pData;
+        else if (pData.products && Array.isArray(pData.products)) loadedProducts = pData.products;
+        else if (pData.data && Array.isArray(pData.data)) loadedProducts = pData.data;
+
+        setCustomers(loadedCustomers);
+        setProducts(loadedProducts);
+
+        console.log("Customers loaded:", loadedCustomers.length);
+        console.log("Products loaded:", loadedProducts.length);
+      } catch (err) {
+        console.error(err);
       }
     };
-    initData();
-  }, [fetchAllProducts]);
+    fetchData();
+  }, []);
 
   const handleCustomerSelect = (id) => {
     if (!id) {
@@ -49,7 +67,7 @@ const OrderReceipt = () => {
       }));
       return;
     }
-    const c = customers.find((x) => String(x._id ?? x.id) === String(id));
+    const c = customers.find((x) => String(x._id || x.id) === String(id));
     setForm((f) => ({
       ...f,
       customerId: id,
@@ -72,7 +90,7 @@ const OrderReceipt = () => {
     }));
 
   const calcSubtotal = (item) => {
-    const product = products.find((p) => p._id === item.productId);
+    const product = products.find((p) => String(p._id || p.id) === String(item.productId));
     if (!product) return 0;
     const discount = ((product.price * (item.sale || 0)) / 100) * (item.quantity || 1);
     return product.price * (item.quantity || 1) - discount;
@@ -155,8 +173,8 @@ const OrderReceipt = () => {
             >
               <option value="">-- Chọn khách hàng --</option>
               {customers.map((c) => (
-                <option key={c._id} value={c._id}>
-                  {c.name}
+                <option key={c._id || c.id} value={c._id || c.id}>
+                  {c.name} {c.phone || c.phoneNumber ? `(${c.phone || c.phoneNumber})` : ""}
                 </option>
               ))}
             </select>
@@ -265,7 +283,7 @@ const OrderReceipt = () => {
 
           <div className="space-y-3">
             {form.items.map((item, i) => {
-              const product = products.find((p) => p._id === item.productId);
+              const product = products.find((p) => String(p._id || p.id) === String(item.productId));
               const basePrice = product ? product.price * (item.quantity || 1) : 0;
               const salePrice = calcSubtotal(item);
               return (
@@ -287,7 +305,7 @@ const OrderReceipt = () => {
                     >
                       <option value="">-- Chọn sản phẩm --</option>
                       {products.map((p) => (
-                        <option key={p._id} value={p._id}>
+                        <option key={p._id || p.id} value={p._id || p.id}>
                           {p.name}
                         </option>
                       ))}
@@ -441,7 +459,7 @@ const OrderReceipt = () => {
           </thead>
           <tbody>
             {form.items.map((item, i) => {
-              const p = products.find((x) => x._id === item.productId);
+              const p = products.find((x) => String(x._id || x.id) === String(item.productId));
               return (
                 <tr key={i} className="border-b">
                   <td className="p-2 border">{p?.name || "-"}</td>
@@ -513,7 +531,7 @@ const OrderReceipt = () => {
             </thead>
             <tbody>
               {form.items.map((item, i) => {
-                const p = products.find((x) => x._id === item.productId);
+                const p = products.find((x) => String(x._id || x.id) === String(item.productId));
                 return (
                   <tr key={i} className="border-b">
                     <td className="p-2 border">{p?.name || "-"}</td>
