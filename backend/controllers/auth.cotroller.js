@@ -66,6 +66,7 @@ export const facebookLogin = async (req, res) => {
     setCookies(res, jwtAccess, refreshToken);
 
     res.json({
+      accessToken: jwtAccess,
       message: "Facebook login successful",
       user: {
         _id: user._id,
@@ -76,7 +77,6 @@ export const facebookLogin = async (req, res) => {
       },
     });
   } catch (error) {
-    console.log("Error in facebookLogin:", error.message);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
@@ -95,6 +95,7 @@ export const signup = async (req, res) => {
 		setCookies(res, accessToken, refreshToken);
 
 		res.status(201).json({
+            accessToken,
 			user: {
 				_id: user._id,
 				name: user.name,
@@ -106,7 +107,6 @@ export const signup = async (req, res) => {
 			message: "User created successfully",
 		});
 	} catch (error) {
-		console.log("Error in signup controller:", error.message);
 		res.status(500).json({ message: error.message });
 	}
 };
@@ -122,18 +122,20 @@ export const login = async (req, res) => {
 			setCookies(res, accessToken, refreshToken);
 
 			res.json({
-				_id: user._id,
-				name: user.name,
-				email: user.email,
-				phoneNumber: user.phoneNumber,
-				direction: user.direction,
-				role: user.role,
+                accessToken,
+				user: {
+                    _id: user._id,
+                    name: user.name,
+                    email: user.email,
+                    phoneNumber: user.phoneNumber,
+                    direction: user.direction,
+                    role: user.role,
+                }
 			});
 		} else {
 			res.status(401).json({ message: "Invalid email or password" });
 		}
 	} catch (error) {
-		console.log("Error in login controller:", error.message);
 		res.status(500).json({ message: error.message });
 	}
 };
@@ -149,7 +151,6 @@ export const logout = async (req, res) => {
 		res.clearCookie("refreshToken");
 		res.json({ message: "Logged out successfully" });
 	} catch (error) {
-		console.log("Error in logout controller:", error.message);
 		res.status(500).json({ message: "Server error", error: error.message });
 	}
 };
@@ -181,9 +182,8 @@ export const refreshToken = async (req, res) => {
 			maxAge: 15 * 60 * 1000,
 		});
 
-		res.json({ message: "Token refreshed successfully" });
+		res.json({ message: "Token refreshed successfully", accessToken });
 	} catch (error) {
-		console.log("Error in refreshToken:", error.message);
 		res.status(500).json({ message: "Server error", error: error.message });
 	}
 };
@@ -216,7 +216,6 @@ export const getAllUsers = async (req, res) => {
 		const users = await User.find({}).select("-password");
 		res.json(users);
 	} catch (error) {
-		console.log("Error in getAllUsers controller", error.message);
 		res.status(500).json({ message: "Server error", error: error.message });
 	}
 };

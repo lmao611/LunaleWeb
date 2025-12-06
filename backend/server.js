@@ -24,35 +24,32 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
+app.set("trust proxy", 1);
+
 app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 
 const allowedOrigins = [
   process.env.CLIENT_URL,
   "http://localhost:5173",
-  "https://localhost:5173",
-].filter(Boolean);
+  "https://localhost:5173", 
+];
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // ✅ SỬA QUAN TRỌNG:
-      // Cho phép cả http và https từ các dải IP mạng nội bộ (192.168..., 10.0..., 172...)
       if (
         !origin ||
         allowedOrigins.includes(origin) ||
-        // Kiểm tra xem origin có chứa IP nội bộ không (bất kể http hay https)
         ((origin.includes("192.168.") || origin.includes("10.") || origin.includes("172.")) && 
          (origin.startsWith("http://") || origin.startsWith("https://")))
       ) {
         callback(null, true);
       } else {
-        console.log("Blocked CORS origin:", origin);
-        // callback(new Error("Not allowed by CORS")); // Bỏ comment nếu muốn chặn chặt chẽ
-        callback(null, true); // Tạm mở để debug
+        callback(null, true); 
       }
     },
-    credentials: true, // Bắt buộc để iPhone nhận cookie
+    credentials: true,
   })
 );
 
@@ -65,7 +62,6 @@ app.use("/api/banner", bannerRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/orders", ordersRoutes);
 
-// ---------------------------------------------------------------------
 const frontendDistPath = path.join(__dirname, "../frontend/dist");
 
 app.use(express.static(frontendDistPath));
@@ -75,10 +71,9 @@ app.use((req, res) => {
   if (fs.existsSync(indexPath)) {
     res.sendFile(indexPath);
   } else {
-    res.status(404).send("Frontend build not found. Please run 'npm run build' in frontend folder.");
+    res.status(404).send("Frontend build not found.");
   }
 });
-// ---------------------------------------------------------------------
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

@@ -6,26 +6,28 @@ export const useUserStore = create((set, get) => ({
   user: null,
   loading: false,
   checkingAuth: true,
-  showUserBox: false, // mở form thông tin cá nhân từ mọi nơi
-setShowUserBox: (value) => set({ showUserBox: value }),
+  showUserBox: false,
+
+  setShowUserBox: (value) => set({ showUserBox: value }),
 
   setUser: (updatedUser) => {
     set({ user: updatedUser });
-    // ✅ Kích hoạt event để các component khác (Navbar, App, v.v.) update ngay
     window.dispatchEvent(new Event("user-logged-in"));
   },
 
   signup: async ({ name, email, password, confirmPassword }) => {
     set({ loading: true });
-
     if (password !== confirmPassword) {
       set({ loading: false });
       return toast.error("Mật khẩu không trùng khớp");
     }
-
     try {
       const res = await axios.post("/auth/signup", { name, email, password });
-      set({ user: res.data, loading: false });
+      
+      // LƯU TOKEN
+      if (res.data.accessToken) localStorage.setItem("accessToken", res.data.accessToken);
+      
+      set({ user: res.data.user, loading: false });
       window.dispatchEvent(new Event("user-logged-in"));
     } catch (error) {
       set({ loading: false });
@@ -35,10 +37,13 @@ setShowUserBox: (value) => set({ showUserBox: value }),
 
   login: async (email, password) => {
     set({ loading: true });
-
     try {
       const res = await axios.post("/auth/login", { email, password });
-      set({ user: res.data, loading: false });
+      
+      // LƯU TOKEN
+      if (res.data.accessToken) localStorage.setItem("accessToken", res.data.accessToken);
+
+      set({ user: res.data.user, loading: false });
       window.dispatchEvent(new Event("user-logged-in"));
     } catch (error) {
       set({ loading: false });
@@ -49,6 +54,8 @@ setShowUserBox: (value) => set({ showUserBox: value }),
   logout: async () => {
     try {
       await axios.post("/auth/logout");
+      // XÓA TOKEN
+      localStorage.removeItem("accessToken");
       set({ user: null });
     } catch (error) {
       toast.error(error.response?.data?.message || "An error occurred during logout");
@@ -62,27 +69,28 @@ setShowUserBox: (value) => set({ showUserBox: value }),
       set({ user: response.data, checkingAuth: false });
     } catch (error) {
       set({ checkingAuth: false, user: null });
+      // Nếu checkAuth lỗi (token hết hạn), thử xóa để sạch sẽ
+      // localStorage.removeItem("accessToken"); 
     }
   },
 
-  // ✅ Bổ sung refreshToken cho interceptor
-  // src/stores/useUserStore.js
-
-refreshToken: async () => {
-  try {
-    // SỬA: Đổi GET thành POST và sửa đúng đường dẫn khớp với backend
-    await axios.post("/auth/refresh-token");
-  } catch (error) {
-    console.error("❌ Refresh token failed:", error);
-    set({ user: null });
-    throw error; // Để interceptor bắt được lỗi này
-  }
-},
+  refreshToken: async () => {
+    try {
+      const res = await axios.post("/auth/refresh-token");
+      // CẬP NHẬT TOKEN MỚI
+      if (res.data.accessToken) {
+        localStorage.setItem("accessToken", res.data.accessToken);
+      }
+      return res.data;
+    } catch (error) {
+      set({ user: null });
+      localStorage.removeItem("accessToken");
+      throw error;
+    }
+  },
 }));
 
-// ========================================
-// 🔁 Axios Interceptor cho token refresh
-// ========================================
+// --- Axios Interceptor cho Refresh Token ---
 let refreshPromise = null;
 
 axios.interceptors.response.use(
@@ -94,32 +102,29 @@ axios.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        // Nếu đang có refresh request → đợi
         if (refreshPromise) {
           await refreshPromise;
+          // Sau khi refresh xong, cập nhật header cho request đang đợi
+          originalRequest.headers.Authorization = `Bearer ${localStorage.getItem("accessToken")}`;
           return axios(originalRequest);
         }
 
-        // Tạo refresh request mới
         refreshPromise = useUserStore.getState().refreshToken();
         await refreshPromise;
         refreshPromise = null;
-
+        
+        // Cập nhật header cho request đang bị lỗi
+        originalRequest.headers.Authorization = `Bearer ${localStorage.getItem("accessToken")}`;
         return axios(originalRequest);
       } catch (refreshError) {
         useUserStore.getState().logout();
         return Promise.reject(refreshError);
       }
     }
-
     return Promise.reject(error);
   }
 );
 
-// ========================================
-// 🧠 Lắng nghe event "user-logged-in"
-// để auto gọi checkAuth trên toàn app
-// ========================================
 window.addEventListener("user-logged-in", () => {
   useUserStore.getState().checkAuth();
 });
