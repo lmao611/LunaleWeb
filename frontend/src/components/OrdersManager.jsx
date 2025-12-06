@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Trash2, PlusCircle, Edit2, X } from "lucide-react";
-import axios from "axios";
+import axios from "../lib/axios"; // ✅ SỬA: Dùng axios custom để có credentials
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 
@@ -27,13 +27,13 @@ export default function OrdersManager() {
   async function fetchAll() {
     setLoading(true);
     try {
-      const res = await axios.get("/api/orders");
-      // 🛡️ FIX QUAN TRỌNG: Kiểm tra mảng an toàn
+      // ✅ SỬA: Bỏ /api nếu axios base url đã có, hoặc để đồng bộ với các file khác
+      const res = await axios.get("/orders"); 
       const data = Array.isArray(res.data) ? res.data : (res.data.orders || []);
       setOrders(data);
     } catch (err) {
       console.error(err);
-      setOrders([]); // Fallback về mảng rỗng nếu lỗi
+      setOrders([]); 
     } finally {
       setLoading(false);
     }
@@ -41,9 +41,10 @@ export default function OrdersManager() {
 
   async function fetchCustomers() {
     try {
-      const res = await axios.get("/api/users");
-      // 🛡️ FIX: Kiểm tra mảng an toàn
-      setCustomers(Array.isArray(res.data) ? res.data : []);
+      // ✅ SỬA: Gọi đúng route dành cho Admin lấy user
+      const res = await axios.get("/auth/users");
+      const data = Array.isArray(res.data) ? res.data : (res.data.users || []);
+      setCustomers(data);
     } catch (err) {
       console.error(err);
       setCustomers([]);
@@ -52,8 +53,8 @@ export default function OrdersManager() {
 
   async function fetchProducts() {
     try {
-      const res = await axios.get("/api/products");
-      // 🛡️ FIX: Kiểm tra cấu trúc trả về của API Products
+      // ✅ SỬA: Gọi đúng route sản phẩm
+      const res = await axios.get("/products");
       let list = [];
       if (Array.isArray(res.data)) {
         list = res.data;
@@ -134,8 +135,8 @@ export default function OrdersManager() {
     setEditing((p) => ({
       ...p,
       customerId: id,
-      address: c ? c.direction : p.address,
-      phone: c ? c.phoneNumber : p.phone,
+      address: c ? (c.direction || c.address) : p.address, // Fix thêm fallback address
+      phone: c ? (c.phoneNumber || c.phone) : p.phone,     // Fix thêm fallback phone
     }));
   }
 
@@ -169,14 +170,16 @@ export default function OrdersManager() {
         paymentMethod: editing.paymentMethod,
       };
       if (editing.id) {
-        const res = await axios.put(`/api/orders/${editing.id}`, payload);
+        // ✅ SỬA: Route update
+        const res = await axios.put(`/orders/${editing.id}`, payload);
         setOrders((s) =>
           s.map((o) =>
             String(o._id ?? o.id) === String(res.data._id ?? res.data.id) ? res.data : o
           )
         );
       } else {
-        const res = await axios.post("/api/orders", payload);
+        // ✅ SỬA: Route create
+        const res = await axios.post("/orders", payload);
         setOrders((s) => [res.data, ...s]);
       }
       setShowModal(false);
@@ -190,7 +193,8 @@ export default function OrdersManager() {
   async function handleDelete(id) {
     if (!confirm("Xóa đơn hàng này?")) return;
     try {
-      await axios.delete(`/api/orders/${id}`);
+      // ✅ SỬA: Route delete
+      await axios.delete(`/orders/${id}`);
       setOrders((s) => s.filter((o) => String(o._id ?? o.id) !== String(id)));
     } catch (err) {
       console.error(err);
@@ -208,7 +212,6 @@ export default function OrdersManager() {
     ];
     worksheet.addRow(headers);
   
-    // 🛡️ FIX: Dùng mảng orders an toàn
     const safeOrders = Array.isArray(orders) ? orders : [];
 
     safeOrders.forEach((o, idx) => {
@@ -280,7 +283,6 @@ export default function OrdersManager() {
     saveAs(blob, `DonHang_${new Date().toISOString().slice(0, 10)}.xlsx`);
   }
 
-  // 🛡️ FIX: Đảm bảo orders là mảng trước khi filter
   const safeOrders = Array.isArray(orders) ? orders : [];
   const filtered = safeOrders.filter((o) => (filterStatus ? o.status === filterStatus : true));
 
