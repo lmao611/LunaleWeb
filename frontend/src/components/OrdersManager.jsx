@@ -4,6 +4,7 @@ import { Trash2, PlusCircle, Edit2, X } from "lucide-react";
 import axios from "../lib/axios";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
+import { useUserStore } from "../stores/useUserStore"; 
 
 const sizes = ["S", "M", "L", "XL"];
 const statuses = ["chưa giao", "đang giao", "đã giao"];
@@ -18,11 +19,15 @@ export default function OrdersManager() {
   const [editing, setEditing] = useState(null);
   const [filterStatus, setFilterStatus] = useState("");
 
+  const { checkingAuth } = useUserStore();
+
   useEffect(() => {
-    fetchAll();
-    fetchCustomers();
-    fetchProducts();
-  }, []);
+    if (!checkingAuth) {
+      fetchAll();
+      fetchCustomers();
+      fetchProducts();
+    }
+  }, [checkingAuth]);
 
   async function fetchAll() {
     setLoading(true);
@@ -33,7 +38,6 @@ export default function OrdersManager() {
     } catch (err) {
       console.error(err);
       setOrders([]); 
-      // alert("Lỗi tải đơn hàng: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -66,6 +70,8 @@ export default function OrdersManager() {
     }
   }
 
+  // ... (Phần còn lại giữ nguyên, không thay đổi)
+  
   function openCreate() {
     setEditing({
       customerId: "",

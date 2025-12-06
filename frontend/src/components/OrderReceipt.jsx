@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { PlusCircle, Trash2, ImageDown, ChevronDown } from "lucide-react";
 import domtoimage from "dom-to-image-more";
 import axios from "../lib/axios";
+import { useUserStore } from "../stores/useUserStore";
 
 const OrderReceipt = () => {
   const [customers, setCustomers] = useState([]);
@@ -20,32 +21,32 @@ const OrderReceipt = () => {
     items: [],
   });
 
+  const { checkingAuth } = useUserStore();
   const receiptRef = useRef(null);
   const printRef = useRef(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Gọi API song song
-        const [custRes, prodRes] = await Promise.all([
-          axios.get("/auth/users"), 
-          axios.get("/products"),
-        ]);
+    if (!checkingAuth) {
+      const fetchData = async () => {
+        try {
+          const [custRes, prodRes] = await Promise.all([
+            axios.get("/auth/users"), 
+            axios.get("/products"),
+          ]);
 
-        const loadedCustomers = Array.isArray(custRes.data) ? custRes.data : (custRes.data.users || []);
-        setCustomers(loadedCustomers);
+          const loadedCustomers = Array.isArray(custRes.data) ? custRes.data : (custRes.data.users || []);
+          setCustomers(loadedCustomers);
 
-        const loadedProducts = prodRes.data.products || (Array.isArray(prodRes.data) ? prodRes.data : []);
-        setProducts(loadedProducts);
+          const loadedProducts = prodRes.data.products || (Array.isArray(prodRes.data) ? prodRes.data : []);
+          setProducts(loadedProducts);
 
-      } catch (err) {
-        console.error(err);
-        // Hiển thị lỗi ra màn hình để debug trên điện thoại
-        // alert("Lỗi tải dữ liệu: " + (err.response?.data?.message || err.message));
-      }
-    };
-    fetchData();
-  }, []);
+        } catch (err) {
+          console.error(err);
+        }
+      };
+      fetchData();
+    }
+  }, [checkingAuth]);
 
   const handleCustomerSelect = (id) => {
     if (!id) {

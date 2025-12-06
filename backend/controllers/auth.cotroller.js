@@ -14,16 +14,12 @@ const storeRefreshToken = async (userId, refreshToken) => {
 };
 
 const setCookies = (res, accessToken, refreshToken) => {
-  // ✅ SỬA QUAN TRỌNG:
-  // Vì Frontend dùng mkcert (HTTPS), ta cần set cookie là Secure=true và SameSite=none 
-  // để Safari trên iPhone chấp nhận, kể cả khi Backend chạy localhost.
-  const isProd = process.env.NODE_ENV === "production";
+  const isProduction = process.env.NODE_ENV === "production";
   
-  // Mẹo: Luôn bật secure/none nếu frontend là HTTPS để tránh lỗi trên Mobile
   const cookieOptions = {
     httpOnly: true,
-    secure: true, // Ép true để chạy được trên HTTPS của iPhone
-    sameSite: "none", // Ép none để cookie đi qua được các request cross-site (port khác nhau)
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
     path: "/",
   };
 
@@ -176,11 +172,12 @@ export const refreshToken = async (req, res) => {
 			{ expiresIn: "15m" }
 		);
 
-        // ✅ SỬA: Đồng bộ cấu hình Cookie với hàm setCookies
+        const isProduction = process.env.NODE_ENV === "production";
+
 		res.cookie("accessToken", accessToken, {
 			httpOnly: true,
-            secure: true,   // Ép true
-			sameSite: "none", // Ép none
+            secure: isProduction,
+			sameSite: isProduction ? "none" : "lax",
 			maxAge: 15 * 60 * 1000,
 		});
 
