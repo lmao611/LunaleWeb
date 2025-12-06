@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Trash2, PlusCircle, Edit2, X } from "lucide-react";
-import axios from "../lib/axios"; // ✅ SỬA: Dùng axios custom để có credentials
+import axios from "../lib/axios";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 
@@ -27,13 +27,13 @@ export default function OrdersManager() {
   async function fetchAll() {
     setLoading(true);
     try {
-      // ✅ SỬA: Bỏ /api nếu axios base url đã có, hoặc để đồng bộ với các file khác
       const res = await axios.get("/orders"); 
       const data = Array.isArray(res.data) ? res.data : (res.data.orders || []);
       setOrders(data);
     } catch (err) {
       console.error(err);
       setOrders([]); 
+      // alert("Lỗi tải đơn hàng: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -41,7 +41,6 @@ export default function OrdersManager() {
 
   async function fetchCustomers() {
     try {
-      // ✅ SỬA: Gọi đúng route dành cho Admin lấy user
       const res = await axios.get("/auth/users");
       const data = Array.isArray(res.data) ? res.data : (res.data.users || []);
       setCustomers(data);
@@ -53,7 +52,6 @@ export default function OrdersManager() {
 
   async function fetchProducts() {
     try {
-      // ✅ SỬA: Gọi đúng route sản phẩm
       const res = await axios.get("/products");
       let list = [];
       if (Array.isArray(res.data)) {
@@ -135,8 +133,8 @@ export default function OrdersManager() {
     setEditing((p) => ({
       ...p,
       customerId: id,
-      address: c ? (c.direction || c.address) : p.address, // Fix thêm fallback address
-      phone: c ? (c.phoneNumber || c.phone) : p.phone,     // Fix thêm fallback phone
+      address: c ? (c.direction || c.address) : p.address,
+      phone: c ? (c.phoneNumber || c.phone) : p.phone,
     }));
   }
 
@@ -170,7 +168,6 @@ export default function OrdersManager() {
         paymentMethod: editing.paymentMethod,
       };
       if (editing.id) {
-        // ✅ SỬA: Route update
         const res = await axios.put(`/orders/${editing.id}`, payload);
         setOrders((s) =>
           s.map((o) =>
@@ -178,7 +175,6 @@ export default function OrdersManager() {
           )
         );
       } else {
-        // ✅ SỬA: Route create
         const res = await axios.post("/orders", payload);
         setOrders((s) => [res.data, ...s]);
       }
@@ -186,14 +182,13 @@ export default function OrdersManager() {
       setEditing(null);
     } catch (err) {
       console.error(err);
-      alert("Lưu thất bại");
+      alert("Lưu thất bại: " + (err.response?.data?.message || err.message));
     }
   }
 
   async function handleDelete(id) {
     if (!confirm("Xóa đơn hàng này?")) return;
     try {
-      // ✅ SỬA: Route delete
       await axios.delete(`/orders/${id}`);
       setOrders((s) => s.filter((o) => String(o._id ?? o.id) !== String(id)));
     } catch (err) {

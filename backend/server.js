@@ -36,23 +36,23 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      // ✅ SỬA: Cho phép origin từ mạng nội bộ (Wifi) để test trên điện thoại
-      // Kiểm tra nếu origin bắt đầu bằng 192.168... hoặc 10.0... hoặc 172...
+      // ✅ SỬA QUAN TRỌNG:
+      // Cho phép cả http và https từ các dải IP mạng nội bộ (192.168..., 10.0..., 172...)
       if (
         !origin ||
         allowedOrigins.includes(origin) ||
-        origin.startsWith("http://192.168.") || 
-        origin.startsWith("http://10.") ||
-        origin.startsWith("http://172.")
+        // Kiểm tra xem origin có chứa IP nội bộ không (bất kể http hay https)
+        ((origin.includes("192.168.") || origin.includes("10.") || origin.includes("172.")) && 
+         (origin.startsWith("http://") || origin.startsWith("https://")))
       ) {
         callback(null, true);
       } else {
-        console.log("Blocked CORS origin:", origin); // Log để debug nếu cần
-        callback(null, true); // Tạm thời cho phép tất cả để debug, hoặc dùng dòng dưới để chặn
-        // callback(new Error("Not allowed by CORS"));
+        console.log("Blocked CORS origin:", origin);
+        // callback(new Error("Not allowed by CORS")); // Bỏ comment nếu muốn chặn chặt chẽ
+        callback(null, true); // Tạm mở để debug
       }
     },
-    credentials: true, // Quan trọng để nhận Cookie trên điện thoại
+    credentials: true, // Bắt buộc để iPhone nhận cookie
   })
 );
 

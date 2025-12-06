@@ -14,19 +14,26 @@ const storeRefreshToken = async (userId, refreshToken) => {
 };
 
 const setCookies = (res, accessToken, refreshToken) => {
+  // ✅ SỬA QUAN TRỌNG:
+  // Vì Frontend dùng mkcert (HTTPS), ta cần set cookie là Secure=true và SameSite=none 
+  // để Safari trên iPhone chấp nhận, kể cả khi Backend chạy localhost.
   const isProd = process.env.NODE_ENV === "production";
+  
+  // Mẹo: Luôn bật secure/none nếu frontend là HTTPS để tránh lỗi trên Mobile
+  const cookieOptions = {
+    httpOnly: true,
+    secure: true, // Ép true để chạy được trên HTTPS của iPhone
+    sameSite: "none", // Ép none để cookie đi qua được các request cross-site (port khác nhau)
+    path: "/",
+  };
 
   res.cookie("accessToken", accessToken, {
-    httpOnly: true,
-    secure: isProd,
-    sameSite: isProd ? "none" : "lax", // Dev dùng Lax để điện thoại nhận được qua HTTP
+    ...cookieOptions,
     maxAge: 60 * 60 * 1000,
   });
 
   res.cookie("refreshToken", refreshToken, {
-    httpOnly: true,
-    secure: isProd,
-    sameSite: isProd ? "none" : "lax",
+    ...cookieOptions,
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 };
@@ -169,12 +176,11 @@ export const refreshToken = async (req, res) => {
 			{ expiresIn: "15m" }
 		);
 
-        // ✅ SỬA: Đồng bộ cấu hình Cookie với hàm setCookies để tránh mất session trên iPhone
-        const isProd = process.env.NODE_ENV === "production";
+        // ✅ SỬA: Đồng bộ cấu hình Cookie với hàm setCookies
 		res.cookie("accessToken", accessToken, {
 			httpOnly: true,
-            secure: isProd,
-			sameSite: isProd ? "none" : "lax", // Sửa từ "strict" thành "lax"/"none"
+            secure: true,   // Ép true
+			sameSite: "none", // Ép none
 			maxAge: 15 * 60 * 1000,
 		});
 
