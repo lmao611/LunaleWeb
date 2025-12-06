@@ -19,7 +19,7 @@ const setCookies = (res, accessToken, refreshToken) => {
   res.cookie("accessToken", accessToken, {
     httpOnly: true,
     secure: isProd,
-    sameSite: isProd ? "none" : "lax",
+    sameSite: isProd ? "none" : "lax", // Dev dùng Lax để điện thoại nhận được qua HTTP
     maxAge: 60 * 60 * 1000,
   });
 
@@ -169,10 +169,12 @@ export const refreshToken = async (req, res) => {
 			{ expiresIn: "15m" }
 		);
 
+        // ✅ SỬA: Đồng bộ cấu hình Cookie với hàm setCookies để tránh mất session trên iPhone
+        const isProd = process.env.NODE_ENV === "production";
 		res.cookie("accessToken", accessToken, {
 			httpOnly: true,
-			secure: process.env.NODE_ENV === "production",
-			sameSite: "strict",
+            secure: isProd,
+			sameSite: isProd ? "none" : "lax", // Sửa từ "strict" thành "lax"/"none"
 			maxAge: 15 * 60 * 1000,
 		});
 

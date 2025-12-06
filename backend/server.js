@@ -4,7 +4,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
-import fs from "fs"; // Thêm fs
+import fs from "fs";
 
 import bannerRoutes from "./routes/banner.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
@@ -36,13 +36,23 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      // ✅ SỬA: Cho phép origin từ mạng nội bộ (Wifi) để test trên điện thoại
+      // Kiểm tra nếu origin bắt đầu bằng 192.168... hoặc 10.0... hoặc 172...
+      if (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        origin.startsWith("http://192.168.") || 
+        origin.startsWith("http://10.") ||
+        origin.startsWith("http://172.")
+      ) {
         callback(null, true);
       } else {
-        callback(null, true);
+        console.log("Blocked CORS origin:", origin); // Log để debug nếu cần
+        callback(null, true); // Tạm thời cho phép tất cả để debug, hoặc dùng dòng dưới để chặn
+        // callback(new Error("Not allowed by CORS"));
       }
     },
-    credentials: true,
+    credentials: true, // Quan trọng để nhận Cookie trên điện thoại
   })
 );
 
@@ -56,15 +66,10 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/orders", ordersRoutes);
 
 // ---------------------------------------------------------------------
-// 👇 PHẦN QUAN TRỌNG ĐỂ FIX LỖI RELOAD (SPA FALLBACK)
-// ---------------------------------------------------------------------
-
 const frontendDistPath = path.join(__dirname, "../frontend/dist");
 
-// 1. Phục vụ file tĩnh
 app.use(express.static(frontendDistPath));
 
-// 2. Catch-all Handler
 app.use((req, res) => {
   const indexPath = path.join(frontendDistPath, "index.html");
   if (fs.existsSync(indexPath)) {
