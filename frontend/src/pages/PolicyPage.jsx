@@ -91,7 +91,7 @@ Lưu ý:
         <h2 className="text-3xl font-semibold mb-2 text-left">3. Chính sách thanh toán</h2>
         <pre className="whitespace-pre-wrap text-2xl text-black text-left">
 {`Nhằm mang đến cho Quý khách những trải nghiệm mua sắm trực tuyến tuyệt vời 
-nhất, LUNAE Store đưa ra 2 phương thức thanh toán để Quý khách dễ dàng lựa chọn.
+nhất, LUNALE Store đưa ra 2 phương thức thanh toán để Quý khách dễ dàng lựa chọn.
 
 1/ Thanh toán trực tuyến
 1.1. Khách hàng chuyển khoản vào thông tin số tài khoản:
