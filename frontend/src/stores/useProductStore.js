@@ -20,9 +20,11 @@ export const useProductStore = create((set, get) => ({
         loading: false,
       }));
       toast.success("Created successfully");
+      return res.data; // ✅ THÊM DÒNG NÀY: Trả về sản phẩm vừa tạo
     } catch (error) {
       toast.error(error.response?.data?.error || "Failed to create");
       set({ loading: false });
+      return null; // Trả về null nếu lỗi
     }
   },
 

@@ -1,11 +1,10 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect } from "react";
 import { motion, Reorder, AnimatePresence, useDragControls } from "framer-motion";
-import { Trash, Star, Settings, GripVertical, Save, RotateCcw, Plus, Upload, Filter } from "lucide-react";
+import { Trash, Star, Settings, GripVertical, Save, RotateCcw, Plus, Upload, Tag } from "lucide-react";
 import { useProductStore } from "../stores/useProductStore";
 import { useCollectionStore } from "../stores/useCollectionStore";
-import axios from "axios";
 
-// ⚡️ 1. Cấu hình thứ tự ưu tiên của các nhóm
+// ⚡️ Cấu hình thứ tự ưu tiên
 const CATEGORY_PRIORITY = {
   dress: 1,
   shirt: 2,
@@ -54,7 +53,10 @@ const ProductRow = ({ product, categories, collections, toggleFeaturedProduct, h
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex items-center">
           <img className="h-10 w-10 rounded-full object-cover border" src={product.image} alt={product.name} />
-          <div className="ml-4 text-sm font-medium text-gray-900">{product.name}</div>
+          <div className="ml-4 text-sm font-medium text-gray-900">
+            {product.name}
+            {product.isSale && <span className="ml-2 text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded border border-red-200">-{product.salePercentage}%</span>}
+          </div>
         </div>
       </td>
       <td className="px-6 py-4 whitespace-nowrap">{product.price.toLocaleString()} ₫</td>
@@ -129,7 +131,11 @@ const ProductCard = ({ product, categories, collections, toggleFeaturedProduct, 
       whileDrag={{ scale: 1.02, zIndex: 100, boxShadow: "0px 10px 20px rgba(0,0,0,0.1)" }}
       className="border rounded-lg p-3 flex flex-col sm:flex-row sm:items-center gap-3 shadow-sm bg-white touch-none"
     >
-      <img src={product.image} alt={product.name} className="w-full sm:w-24 h-40 sm:h-24 object-cover rounded" />
+      <div className="relative">
+        <img src={product.image} alt={product.name} className="w-full sm:w-24 h-40 sm:h-24 object-cover rounded" />
+        {product.isSale && <span className="absolute top-1 right-1 bg-red-500 text-white text-[10px] px-1.5 rounded font-bold">-{product.salePercentage}%</span>}
+      </div>
+      
       <div className="flex-1">
         <h3 className="font-semibold text-base text-gray-800">{product.name}</h3>
         <p className="text-sm text-gray-500">{cat}</p>
@@ -164,8 +170,20 @@ const EditProductModal = ({ product, collections, onClose }) => {
   const { addProductToCollection, removeProductFromCollection } = useCollectionStore();
 
   const [formData, setFormData] = useState({
-    name: "", price: "", category: "", image: "", thumbnails: [], description: "", productLink: "", collectionId: "", isPreOrder: "none",
+    name: "", 
+    price: "", 
+    category: "", 
+    image: "", 
+    thumbnails: [], 
+    description: "", 
+    productLink: "", 
+    collectionId: "", 
+    isPreOrder: "none",
+    // ✅ Thêm trường Sale vào state
+    isSale: false,
+    salePercentage: ""
   });
+  
   const [uploadingThumbIndex, setUploadingThumbIndex] = useState(null);
   const [uploadingMain, setUploadingMain] = useState(false);
 
@@ -177,12 +195,14 @@ const EditProductModal = ({ product, collections, onClose }) => {
         price: product.price || 0, 
         category: product.category || "", 
         image: product.image || "", 
-        // 🛡️ Safe check: đảm bảo thumbnails luôn là mảng
         thumbnails: Array.isArray(product.thumbnails) ? product.thumbnails : [], 
         description: product.description || "", 
         productLink: product.productLink || "", 
         collectionId: currentCol?._id || "", 
         isPreOrder: product.isPreOrder || "none",
+        // ✅ Map dữ liệu Sale từ props
+        isSale: product.isSale || false,
+        salePercentage: product.salePercentage || ""
       });
     }
   }, [product, collections]);
@@ -213,7 +233,6 @@ const EditProductModal = ({ product, collections, onClose }) => {
       const res = await fetch(`https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`, { method: "POST", body: formDataCloud });
       const data = await res.json();
       
-      // 🛡️ Safe check trước khi copy mảng
       const currentThumbs = Array.isArray(formData.thumbnails) ? formData.thumbnails : [];
       const newThumbs = [...currentThumbs]; 
       newThumbs[index] = data.secure_url;
@@ -240,7 +259,6 @@ const EditProductModal = ({ product, collections, onClose }) => {
       if (oldCol && oldCol._id !== formData.collectionId) await removeProductFromCollection(oldCol._id, product._id);
       if (formData.collectionId && (!oldCol || oldCol._id !== formData.collectionId)) await addProductToCollection(formData.collectionId, product);
       
-      // Đồng bộ lại store sau khi save
       await fetchAllProducts();
       onClose();
     } catch { alert("Lỗi update sản phẩm"); }
@@ -267,12 +285,41 @@ const EditProductModal = ({ product, collections, onClose }) => {
         
         <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full border p-2 rounded h-24" placeholder="Mô tả" />
         
+        {/* ✅ KHU VỰC CHỈNH SALE */}
+        <div className="bg-gray-50 p-3 rounded border">
+            <div className="flex items-center gap-2 mb-2">
+                <input 
+                    type="checkbox" 
+                    id="editIsSale" 
+                    checked={formData.isSale} 
+                    onChange={(e) => setFormData({...formData, isSale: e.target.checked})}
+                    className="h-4 w-4 text-blue-600 rounded"
+                />
+                <label htmlFor="editIsSale" className="font-medium flex items-center gap-1 cursor-pointer select-none">
+                    <Tag className="w-4 h-4 text-red-500"/> Đang giảm giá (Sale)
+                </label>
+            </div>
+            {formData.isSale && (
+                <div className="flex items-center gap-2 pl-6 animate-in fade-in slide-in-from-top-1">
+                    <span className="text-sm">Giảm:</span>
+                    <input 
+                        type="number" 
+                        value={formData.salePercentage} 
+                        onChange={(e) => setFormData({...formData, salePercentage: e.target.value})}
+                        className="w-20 border p-1 rounded text-sm focus:ring-red-500"
+                        placeholder="%"
+                    />
+                    <span className="text-sm font-bold">%</span>
+                </div>
+            )}
+        </div>
+
         {formData.category === "feedback" && <input type="text" value={formData.productLink} onChange={(e) => setFormData({ ...formData, productLink: e.target.value })} className="w-full border p-2 rounded" placeholder="Link sản phẩm" />}
         
         <div className="flex flex-col gap-1 mt-2">
           <label className="text-sm font-medium">Trạng thái</label>
-          <div onClick={() => { const o = ["none", "preorder", "out", "low"]; setFormData({ ...formData, isPreOrder: o[(o.indexOf(formData.isPreOrder) + 1) % 4] }); }} className="cursor-pointer px-3 py-2 rounded bg-gray-200 text-center text-sm font-medium transition-all hover:bg-gray-300">
-            {formData.isPreOrder}
+          <div onClick={() => { const o = ["none", "preorder", "out", "low"]; setFormData({ ...formData, isPreOrder: o[(o.indexOf(formData.isPreOrder) + 1) % 4] }); }} className="cursor-pointer px-3 py-2 rounded bg-gray-200 text-center text-sm font-medium transition-all hover:bg-gray-300 select-none">
+            {formData.isPreOrder === "none" ? "Có sẵn" : formData.isPreOrder}
           </div>
         </div>
 
@@ -349,10 +396,7 @@ const ProductsList = () => {
 
   useEffect(() => { fetchCollections(); }, [fetchCollections]);
   
-  // ⚡️⚡️ FIX QUAN TRỌNG: Kiểm tra Array.isArray()
-  // Chỗ này chính là chỗ gây ra lỗi màn hình trắng và "filter is not a function"
   useEffect(() => {
-    // Nếu products là null/undefined, gán bằng mảng rỗng để không bị crash
     const safeProducts = Array.isArray(products) ? [...products] : [];
     
     let processed = safeProducts;
@@ -383,7 +427,6 @@ const ProductsList = () => {
   const handleSaveOrder = async () => {
     setIsSavingOrder(true);
     let finalOrderList = [];
-    // 🛡️ Safe check
     const safeProducts = Array.isArray(products) ? products : []; 
 
     if (filterCategory === "all") {
