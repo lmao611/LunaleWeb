@@ -34,7 +34,7 @@ const HomePage = () => {
   const specialCollections = collections.filter(c => c.isSpecial === true);
   const regularCollections = collections.filter(c => !c.isSpecial);
 
-  // ✅ HÀM RENDER SPECIAL: ĐÃ FIX FULL SIZE (KHÔNG CẮT ẢNH)
+  // ✅ HÀM RENDER SPECIAL: ĐÃ FIX FULL SIZE + WIDTH RIÊNG BIỆT
   const renderSpecialCollectionsByPosition = (position) => {
     const targetCollections = specialCollections.filter(c => c.specialPosition === position);
 
@@ -51,9 +51,10 @@ const HomePage = () => {
                "--desktop-h": `${col.desktopHeight || 600}px`,
            };
 
-           // 2. Style cho chế độ Full Size (Chiều cao Auto)
+           // 2. Style cho chế độ Full Size (Chiều cao Auto, Width riêng)
            const fullSizeStyles = {
-               width: `${col.generalScale || 100}%`,
+               "--mobile-w": `${col.mobileWidth || 100}%`, // Mobile width riêng
+               "--desktop-w": `${col.desktopWidth || 100}%`, // Desktop width riêng
                height: "auto", // ✅ Quan trọng: Để ảnh tự dãn theo tỉ lệ
            };
 
@@ -91,15 +92,19 @@ const HomePage = () => {
                 <Link to={`/collection/${col._id}`} className="block group flex justify-center w-full">
                    <motion.div
                        whileHover={{ scale: 1.01, boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)" }}
-                       // ✅ Logic chọn style: Nếu FullSize dùng fullSizeStyles, ngược lại dùng customStyles
+                       
+                       // ✅ Logic chọn style: Full Size dùng width riêng + auto height. Custom dùng width/height cố định.
                        style={col.isFullSize ? fullSizeStyles : customStyles}
                        
                        className={`
                          relative overflow-hidden shadow-2xl bg-gray-100 max-w-none
                          
+                         // ✅ Luôn áp dụng Width theo biến CSS (Responsive PC/Mobile)
+                         w-[var(--mobile-w)] md:w-[var(--desktop-w)]
+
                          ${col.isFullSize 
-                            ? "" // Nếu Full Size: Không set cứng width/height class, để inline style lo
-                            : "w-[var(--mobile-w)] h-[var(--mobile-h)] md:w-[var(--desktop-w)] md:h-[var(--desktop-h)] rounded-none md:rounded-3xl" // Nếu Custom: Set class kích thước cũ + bo góc
+                            ? "" // Nếu Full Size: Không set height cứng (để inline style lo), không bo góc
+                            : "h-[var(--mobile-h)] md:h-[var(--desktop-h)] rounded-none md:rounded-3xl" // Nếu Custom: Set height cứng + bo góc
                          }
                        `}
                    >

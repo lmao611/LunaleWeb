@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion"; // Cần import AnimatePresence
+import { motion } from "framer-motion"; // Cần import AnimatePresence nếu muốn hiệu ứng mượt
 import { PlusCircle, Loader, Star, Layout, Monitor, Smartphone, EyeOff, Save, X, Maximize, UploadCloud } from "lucide-react";
 import { useCollectionStore } from "../stores/useCollectionStore";
 
@@ -10,19 +10,26 @@ const CreateCollectionForm = () => {
     name: "",
     description: "",
     media: "",
-    mediaType: "image", // ✅ Thêm state lưu loại media
+    mediaType: "image",
     gradientFrom: "#3b82f6", 
     gradientTo: "#06b6d4",
     isSpecial: false,
     specialPosition: "below_banner",
+    
+    // Config hiển thị
     isFullSize: false,   
-    generalScale: 100,   
-    desktopWidth: 100, desktopHeight: 600,
-    mobileWidth: 100, mobileHeight: 400,
-    hideName: false, hideDescription: false,
+    // Bỏ generalScale vì giờ ta dùng desktopWidth/mobileWidth để chỉnh riêng
+    
+    desktopWidth: 100,
+    desktopHeight: 600,
+    mobileWidth: 100,
+    mobileHeight: 400,
+
+    hideName: false,
+    hideDescription: false,
   });
   
-  const [previewMode, setPreviewMode] = useState("desktop"); 
+  const [previewMode, setPreviewMode] = useState("desktop"); // 'desktop' | 'mobile'
   const [loading, setLoading] = useState(false);
 
   // ✅ EFFECT: Tự động điền form
@@ -32,20 +39,23 @@ const CreateCollectionForm = () => {
         name: editingCollection.name || "",
         description: editingCollection.description || "",
         media: editingCollection.coverMedia?.url || "",
-        mediaType: editingCollection.coverMedia?.type || "image", // ✅ Lưu lại type cũ
+        mediaType: editingCollection.coverMedia?.type || "image",
         gradientFrom: editingCollection.gradientFrom || "#3b82f6",
         gradientTo: editingCollection.gradientTo || "#06b6d4",
         isSpecial: editingCollection.isSpecial || false,
         specialPosition: editingCollection.specialPosition || "below_banner",
+        
         isFullSize: editingCollection.isFullSize || false,
-        generalScale: editingCollection.generalScale || 100,
+
         desktopWidth: editingCollection.desktopWidth || 100,
         desktopHeight: editingCollection.desktopHeight || 600,
         mobileWidth: editingCollection.mobileWidth || 100,
         mobileHeight: editingCollection.mobileHeight || 400,
+
         hideName: editingCollection.hideName || false,
         hideDescription: editingCollection.hideDescription || false,
       });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, [editingCollection]);
 
@@ -54,7 +64,7 @@ const CreateCollectionForm = () => {
       name: "", description: "", media: "", mediaType: "image",
       gradientFrom: "#3b82f6", gradientTo: "#06b6d4",
       isSpecial: false, specialPosition: "below_banner",
-      isFullSize: false, generalScale: 100,
+      isFullSize: false,
       desktopWidth: 100, desktopHeight: 600,
       mobileWidth: 100, mobileHeight: 400,
       hideName: false, hideDescription: false,
@@ -67,7 +77,6 @@ const CreateCollectionForm = () => {
     if (!file) return;
     const reader = new FileReader();
     reader.onloadend = () => {
-      // ✅ Tự động detect type khi upload mới
       const isVideo = file.type.startsWith("video");
       setFormData({ 
         ...formData, 
@@ -87,18 +96,21 @@ const CreateCollectionForm = () => {
       description: formData.description,
       coverMedia: {
         url: formData.media,
-        type: formData.mediaType, // ✅ Dùng type chính xác từ state
+        type: formData.mediaType,
       },
       gradientFrom: formData.gradientFrom,
       gradientTo: formData.gradientTo,
       isSpecial: formData.isSpecial,
       specialPosition: formData.specialPosition,
+      
       isFullSize: formData.isFullSize,
-      generalScale: Number(formData.generalScale),
+      // generalScale: bỏ, thay bằng width riêng bên dưới
+
       desktopWidth: Number(formData.desktopWidth),
       desktopHeight: Number(formData.desktopHeight),
       mobileWidth: Number(formData.mobileWidth),
       mobileHeight: Number(formData.mobileHeight),
+
       hideName: formData.hideName,
       hideDescription: formData.hideDescription,
     };
@@ -112,7 +124,7 @@ const CreateCollectionForm = () => {
       handleReset();
     } catch (error) {
       console.error(error);
-      alert("Lỗi khi lưu! Kiểm tra lại console hoặc kết nối mạng.");
+      alert("Có lỗi xảy ra, vui lòng thử lại!");
     } finally {
       setLoading(false);
     }
@@ -141,7 +153,7 @@ const CreateCollectionForm = () => {
     </div>
   );
 
-  // --- FORM CONTENT (Tách ra để dùng chung) ---
+  // --- FORM CONTENT ---
   const FormContent = () => (
     <form onSubmit={handleSubmit} className="space-y-6">
        {/* Tên & Màu */}
@@ -175,7 +187,8 @@ const CreateCollectionForm = () => {
             </div>
 
             {formData.isSpecial && (
-                <div className="pl-2 space-y-5 pt-2">
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="pl-2 space-y-5 pt-2">
+                    {/* Vị trí & Ẩn hiện */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-xs font-bold text-gray-600 mb-1">Vị trí hiển thị:</label>
@@ -199,39 +212,108 @@ const CreateCollectionForm = () => {
 
                     <hr className="border-blue-200" />
 
-                    {/* SIZE CONFIG */}
+                    {/* --- CẤU HÌNH SIZE --- */}
                     <div>
-                        <div className="flex justify-between items-center mb-3">
-                            <h3 className="text-xs font-bold text-blue-800 uppercase flex items-center gap-2"><Layout size={14}/> Kích thước</h3>
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xs font-bold text-blue-800 uppercase flex items-center gap-2"><Layout size={14}/> Cấu hình hiển thị</h3>
+                            
+                            {/* Toggle Full Size */}
                             <div className="flex items-center gap-2 cursor-pointer" onClick={() => setFormData({...formData, isFullSize: !formData.isFullSize})}>
                                 <div className={`w-8 h-4 rounded-full p-0.5 transition-colors ${formData.isFullSize ? "bg-blue-600" : "bg-gray-300"}`}>
                                     <div className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${formData.isFullSize ? "translate-x-4" : "translate-x-0"}`}></div>
                                 </div>
-                                <span className={`text-xs font-bold ${formData.isFullSize ? "text-blue-600" : "text-gray-500"}`}>Full Size</span>
+                                <span className={`text-xs font-bold ${formData.isFullSize ? "text-blue-600" : "text-gray-500"}`}>Chế độ Full Size</span>
                             </div>
                         </div>
 
-                        {formData.isFullSize ? (
-                             <div className="bg-white p-3 rounded border border-blue-200 shadow-sm text-center">
-                                <Maximize className="mx-auto text-blue-500 mb-1" size={24} />
-                                <p className="text-xs text-gray-600 mb-2">Ảnh hiển thị theo tỉ lệ gốc (Không cắt)</p>
-                                <div className="max-w-xs mx-auto">
-                                    <div className="flex justify-between text-xs text-gray-500 mb-1"><span>Độ rộng màn hình</span> <b>{formData.generalScale}%</b></div>
-                                    <input type="range" min="50" max="150" step="5" value={formData.generalScale} onChange={(e)=>setFormData({...formData, generalScale: e.target.value})} className="w-full h-1.5 bg-blue-100 rounded-lg cursor-pointer accent-blue-600" />
+                        {/* ✅ GIAO DIỆN CHỈNH SIZE (DESKTOP & MOBILE RIÊNG) */}
+                        <div className="flex flex-col md:flex-row gap-6">
+                            <div className="flex-1 space-y-4">
+                                {/* Tabs Chuyển đổi Desktop/Mobile */}
+                                <div className="flex bg-gray-100 rounded-lg p-1 border border-gray-200 w-fit">
+                                    <button type="button" onClick={() => setPreviewMode("desktop")} 
+                                        className={`px-3 py-1.5 rounded-md flex items-center gap-2 text-xs font-bold transition-all ${previewMode === "desktop" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+                                        <Monitor size={14}/> Desktop
+                                    </button>
+                                    <button type="button" onClick={() => setPreviewMode("mobile")} 
+                                        className={`px-3 py-1.5 rounded-md flex items-center gap-2 text-xs font-bold transition-all ${previewMode === "mobile" ? "bg-white text-green-600 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+                                        <Smartphone size={14}/> Mobile
+                                    </button>
                                 </div>
-                             </div>
-                        ) : (
-                            <div className="flex flex-col gap-3">
-                                {/* Desktop/Mobile Sliders (Giữ nguyên logic cũ nhưng thu gọn) */}
-                                <div className="space-y-2 bg-white p-2 border rounded">
-                                    <div className="text-xs font-bold text-gray-500">Desktop</div>
-                                    <input type="range" min="20" max="150" value={formData.desktopWidth} onChange={(e)=>setFormData({...formData, desktopWidth: e.target.value})} className="w-full h-1 bg-gray-200 rounded accent-blue-600" />
-                                    <div className="flex justify-between text-[10px] text-gray-400"><span>Rộng: {formData.desktopWidth}%</span> <span>Cao: {formData.desktopHeight}px</span></div>
+
+                                {/* Inputs dựa theo Mode */}
+                                <div className={`p-4 rounded-lg border transition-all ${previewMode === "desktop" ? "bg-blue-50 border-blue-200" : "bg-green-50 border-green-200"}`}>
+                                    {previewMode === "desktop" ? (
+                                        // --- DESKTOP CONFIG ---
+                                        <div className="space-y-4">
+                                            <div>
+                                                <div className="flex justify-between text-xs font-bold text-gray-600 mb-1">
+                                                    <span>Độ rộng Desktop (%)</span> 
+                                                    <span className="text-blue-600">{formData.desktopWidth}%</span>
+                                                </div>
+                                                <input type="range" min="20" max="150" step="5" value={formData.desktopWidth} onChange={(e)=>setFormData({...formData, desktopWidth: e.target.value})} className="w-full h-1.5 bg-gray-200 rounded-lg cursor-pointer accent-blue-600" />
+                                            </div>
+                                            
+                                            {/* Chỉ hiện chỉnh chiều cao nếu KHÔNG phải Full Size */}
+                                            {!formData.isFullSize && (
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs font-bold text-gray-500 whitespace-nowrap">Chiều cao (px):</span>
+                                                    <input type="number" min="100" max="2000" value={formData.desktopHeight} onChange={(e)=>setFormData({...formData, desktopHeight: e.target.value})} className="w-full border border-gray-300 rounded px-2 py-1 text-xs" />
+                                                </div>
+                                            )}
+                                            {formData.isFullSize && <p className="text-[10px] text-gray-500 italic">* Chiều cao tự động theo tỷ lệ ảnh gốc (Full Size)</p>}
+                                        </div>
+                                    ) : (
+                                        // --- MOBILE CONFIG ---
+                                        <div className="space-y-4">
+                                            <div>
+                                                <div className="flex justify-between text-xs font-bold text-gray-600 mb-1">
+                                                    <span>Độ rộng Mobile (%)</span> 
+                                                    <span className="text-green-600">{formData.mobileWidth}%</span>
+                                                </div>
+                                                <input type="range" min="20" max="150" step="5" value={formData.mobileWidth} onChange={(e)=>setFormData({...formData, mobileWidth: e.target.value})} className="w-full h-1.5 bg-gray-200 rounded-lg cursor-pointer accent-green-600" />
+                                            </div>
+
+                                            {/* Chỉ hiện chỉnh chiều cao nếu KHÔNG phải Full Size */}
+                                            {!formData.isFullSize && (
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs font-bold text-gray-500 whitespace-nowrap">Chiều cao (px):</span>
+                                                    <input type="number" min="100" max="2000" value={formData.mobileHeight} onChange={(e)=>setFormData({...formData, mobileHeight: e.target.value})} className="w-full border border-gray-300 rounded px-2 py-1 text-xs" />
+                                                </div>
+                                            )}
+                                            {formData.isFullSize && <p className="text-[10px] text-gray-500 italic">* Chiều cao tự động theo tỷ lệ ảnh gốc (Full Size)</p>}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
-                        )}
+
+                            {/* --- SIMULATOR (MÔ PHỎNG) --- */}
+                            <div className="w-[120px] flex flex-col gap-2">
+                                <span className="text-[10px] uppercase font-bold text-gray-400 text-center">Mô phỏng</span>
+                                <div className={`flex-1 border-2 border-dashed rounded-lg flex items-center justify-center relative bg-gray-100 ${previewMode === "desktop" ? "border-blue-300" : "border-green-300"}`}>
+                                    {/* Màn hình giả lập */}
+                                    <div 
+                                        className="bg-white border shadow-sm transition-all duration-300 flex items-center justify-center text-[9px] text-gray-400 overflow-hidden"
+                                        style={{
+                                            // Mô phỏng tỷ lệ tương đối
+                                            width: `${previewMode === "desktop" ? Math.min(formData.desktopWidth, 100) : Math.min(formData.mobileWidth, 100)}%`,
+                                            height: formData.isFullSize ? "auto" : `${previewMode === "desktop" ? 60 : 80}px`, // Nếu full size thì height auto, ko thì fix cứng để demo
+                                            aspectRatio: formData.isFullSize ? "16/9" : "auto", // Giả lập tỷ lệ ảnh nếu full size
+                                            borderWidth: "1px",
+                                            borderColor: previewMode === "desktop" ? "#3b82f6" : "#22c55e"
+                                        }}
+                                    >
+                                        {formData.isFullSize ? "Auto H" : "Fixed H"}
+                                    </div>
+                                    
+                                    <span className="absolute bottom-1 right-1 text-[8px] text-gray-400 font-mono">
+                                        {previewMode === "desktop" ? "PC" : "MB"}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                </motion.div>
             )}
         </div>
 
@@ -249,28 +331,20 @@ const CreateCollectionForm = () => {
     </form>
   );
 
-  // ✅ LOGIC RENDER: NẾU ĐANG EDIT THÌ HIỆN MODAL, KHÔNG THÌ HIỆN FORM BÌNH THƯỜNG
   if (editingCollection) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-        <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }} 
-            animate={{ opacity: 1, scale: 1 }} 
-            className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
-        >
+        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-100 p-4 flex justify-between items-center z-10">
                 <h2 className="text-xl font-bold text-yellow-600 flex items-center gap-2"><Save size={20}/> Chỉnh sửa Bộ sưu tầm</h2>
                 <button onClick={handleReset} className="p-1 hover:bg-gray-100 rounded-full"><X size={24} className="text-gray-500"/></button>
             </div>
-            <div className="p-6">
-                <FormContent />
-            </div>
+            <div className="p-6"><FormContent /></div>
         </motion.div>
       </div>
     );
   }
 
-  // Giao diện tạo mới bình thường
   return (
     <div className="bg-white border border-gray-200 shadow-lg rounded-xl p-6 mb-8 max-w-2xl mx-auto">
       <h2 className="text-xl font-bold text-blue-700 mb-6 flex items-center gap-2"><PlusCircle size={20}/> Tạo bộ sưu tầm mới</h2>
