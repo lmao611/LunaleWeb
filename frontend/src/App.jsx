@@ -45,7 +45,7 @@ function App() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsForceLoadingDone(true);
-    }, 3000); // Vẫn giữ 3 giây loading như bạn muốn
+    }, 10000); // Vẫn giữ 3 giây loading như bạn muốn
 
     return () => clearTimeout(timer);
   }, []);
