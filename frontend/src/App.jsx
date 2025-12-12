@@ -6,7 +6,8 @@ import { Toaster } from "react-hot-toast";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import { useUserStore } from "./stores/useUserStore";
-import { useEffect, useState } from "react";
+import { useCollectionStore } from "./stores/useCollectionStore"; // ✅ 1. Import Store
+import { useEffect } from "react";
 import LoadingSpinner from "./components/LoadingSpinner";
 import AdminPage from "./pages/AdminPage";
 import CategoryPage from "./pages/CategoryPage";
@@ -21,26 +22,27 @@ import PrivacyPage from "./pages/PrivacyPage.jsx";
 function App() {
   const { user, checkAuth, checkingAuth } = useUserStore();
   const { getCartItems } = useCartStore();
-  const [isForceLoadingDone, setIsForceLoadingDone] = useState(false);
+  
+  // ✅ 2. Lấy trạng thái loading và hàm fetch từ Collection Store
+  // Đổi tên isLoading thành isCollectionLoading để tránh nhầm lẫn nếu cần
+  const { fetchCollections, isLoading: isCollectionLoading } = useCollectionStore();
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
 
+  // ✅ 3. Gọi fetchCollections ngay khi App chạy
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsForceLoadingDone(true);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, []);
+    fetchCollections();
+  }, [fetchCollections]);
 
   useEffect(() => {
     if (!user) return;
     getCartItems();
   }, [getCartItems, user]);
 
-  if (checkingAuth && !isForceLoadingDone) return <LoadingSpinner />;
+  // ✅ 4. Điều kiện mới: Chỉ tắt loading khi CẢ Auth VÀ Collection đều đã tải xong
+  if (checkingAuth || isCollectionLoading) return <LoadingSpinner />;
 
   return (
     <div className="min-h-screen bg-white text-gray-900 flex flex-col">
