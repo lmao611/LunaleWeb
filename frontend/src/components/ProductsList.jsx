@@ -39,6 +39,11 @@ const ProductRow = ({ product, categories, collections, toggleFeaturedProduct, h
     : product.isPreOrder === "low" ? "Số lượng còn ít"
     : "None";
 
+  // ✅ LOGIC TÍNH GIÁ SALE
+  const finalPrice = product.isSale 
+    ? product.price * (1 - product.salePercentage / 100) 
+    : product.price;
+
   return (
     <Reorder.Item
       as="tr"
@@ -50,16 +55,37 @@ const ProductRow = ({ product, categories, collections, toggleFeaturedProduct, h
       className={`hover:bg-blue-5 border-b last:border-b-0 relative bg-white group ${isDraggable ? "cursor-grab active:cursor-grabbing" : ""}`}
       whileDrag={{ scale: 1.0, boxShadow: "0px 5px 15px rgba(0,0,0,0.15)", backgroundColor: "#f0f9ff", zIndex: 100 }}
     >
+      {/* CỘT TÊN + BADGE SALE */}
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex items-center">
-          <img className="h-10 w-10 rounded-full object-cover border" src={product.image} alt={product.name} />
-          <div className="ml-4 text-sm font-medium text-gray-900">
-            {product.name}
-            {product.isSale && <span className="ml-2 text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded border border-red-200">-{product.salePercentage}%</span>}
+          <div className="relative">
+             <img className="h-10 w-10 rounded-full object-cover border" src={product.image} alt={product.name} />
+             {product.isSale && <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[8px] font-bold px-1 rounded-full border border-white flex items-center justify-center">SALE</span>}
+          </div>
+          <div className="ml-4">
+             <div className="text-sm font-medium text-gray-900">{product.name}</div>
+             {product.isSale && (
+                <div className="flex items-center gap-1 mt-0.5">
+                    <Tag size={10} className="text-red-500" />
+                    <span className="text-[10px] text-red-600 font-bold bg-red-50 px-1 rounded">Giảm {product.salePercentage}%</span>
+                </div>
+             )}
           </div>
         </div>
       </td>
-      <td className="px-6 py-4 whitespace-nowrap">{product.price.toLocaleString()} ₫</td>
+
+      {/* CỘT GIÁ (HIỆN GIÁ CŨ GẠCH NGANG NẾU SALE) */}
+      <td className="px-6 py-4 whitespace-nowrap">
+        {product.isSale ? (
+            <div className="flex flex-col">
+                <span className="text-sm font-bold text-red-600">{finalPrice.toLocaleString()} ₫</span>
+                <span className="text-xs text-gray-400 line-through">{product.price.toLocaleString()} ₫</span>
+            </div>
+        ) : (
+            <span className="text-sm text-gray-900">{product.price.toLocaleString()} ₫</span>
+        )}
+      </td>
+
       <td className="px-6 py-4 whitespace-nowrap">
         <span className={`px-2 py-1 rounded-full text-xs font-semibold 
           ${product.category === 'dress' ? 'bg-pink-100 text-pink-800' : 
@@ -121,6 +147,11 @@ const ProductCard = ({ product, categories, collections, toggleFeaturedProduct, 
     : product.isPreOrder === "low" ? "Số lượng còn ít"
     : "None";
 
+  // ✅ LOGIC TÍNH GIÁ SALE
+  const finalPrice = product.isSale 
+    ? product.price * (1 - product.salePercentage / 100) 
+    : product.price;
+
   return (
     <Reorder.Item
       value={product}
@@ -133,15 +164,32 @@ const ProductCard = ({ product, categories, collections, toggleFeaturedProduct, 
     >
       <div className="relative">
         <img src={product.image} alt={product.name} className="w-full sm:w-24 h-40 sm:h-24 object-cover rounded" />
-        {product.isSale && <span className="absolute top-1 right-1 bg-red-500 text-white text-[10px] px-1.5 rounded font-bold">-{product.salePercentage}%</span>}
+        {/* Badge Sale trên ảnh Mobile */}
+        {product.isSale && (
+            <span className="absolute top-1 right-1 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm">
+                -{product.salePercentage}%
+            </span>
+        )}
       </div>
       
       <div className="flex-1">
         <h3 className="font-semibold text-base text-gray-800">{product.name}</h3>
         <p className="text-sm text-gray-500">{cat}</p>
-        <p className="text-blue-700 font-semibold">{product.price.toLocaleString()} ₫</p>
-        <p className="text-xs text-gray-400">{col ? col.name : "—"}</p>
-        <button onClick={() => handleTogglePreorder(product)} className={`mt-1 px-2 py-1 rounded text-xs font-medium ${statusColor}`}>
+        
+        {/* HIỂN THỊ GIÁ MOBILE */}
+        <div className="mt-0.5">
+            {product.isSale ? (
+                <div className="flex items-center gap-2">
+                    <span className="text-red-600 font-bold">{finalPrice.toLocaleString()} ₫</span>
+                    <span className="text-xs text-gray-400 line-through">{product.price.toLocaleString()} ₫</span>
+                </div>
+            ) : (
+                <p className="text-blue-700 font-semibold">{product.price.toLocaleString()} ₫</p>
+            )}
+        </div>
+
+        <p className="text-xs text-gray-400 mt-0.5">{col ? col.name : "—"}</p>
+        <button onClick={() => handleTogglePreorder(product)} className={`mt-2 px-2 py-1 rounded text-xs font-medium ${statusColor}`}>
           {statusLabel}
         </button>
       </div>
@@ -179,7 +227,6 @@ const EditProductModal = ({ product, collections, onClose }) => {
     productLink: "", 
     collectionId: "", 
     isPreOrder: "none",
-    // ✅ Thêm trường Sale vào state
     isSale: false,
     salePercentage: ""
   });
@@ -200,7 +247,6 @@ const EditProductModal = ({ product, collections, onClose }) => {
         productLink: product.productLink || "", 
         collectionId: currentCol?._id || "", 
         isPreOrder: product.isPreOrder || "none",
-        // ✅ Map dữ liệu Sale từ props
         isSale: product.isSale || false,
         salePercentage: product.salePercentage || ""
       });
@@ -213,12 +259,10 @@ const EditProductModal = ({ product, collections, onClose }) => {
 
     setUploadingMain(true);
     const reader = new FileReader();
-    
     reader.onloadend = () => {
       setFormData({ ...formData, image: reader.result });
       setUploadingMain(false);
     };
-    
     reader.readAsDataURL(file);
   };
 
@@ -232,7 +276,6 @@ const EditProductModal = ({ product, collections, onClose }) => {
       formDataCloud.append("upload_preset", import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
       const res = await fetch(`https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`, { method: "POST", body: formDataCloud });
       const data = await res.json();
-      
       const currentThumbs = Array.isArray(formData.thumbnails) ? formData.thumbnails : [];
       const newThumbs = [...currentThumbs]; 
       newThumbs[index] = data.secure_url;
@@ -254,11 +297,9 @@ const EditProductModal = ({ product, collections, onClose }) => {
   const handleSave = async () => {
     try {
       await updateProduct(product._id, formData);
-      
       const oldCol = collections.find((col) => (col.products || []).some((p) => p._id === product._id));
       if (oldCol && oldCol._id !== formData.collectionId) await removeProductFromCollection(oldCol._id, product._id);
       if (formData.collectionId && (!oldCol || oldCol._id !== formData.collectionId)) await addProductToCollection(formData.collectionId, product);
-      
       await fetchAllProducts();
       onClose();
     } catch { alert("Lỗi update sản phẩm"); }
@@ -283,18 +324,10 @@ const EditProductModal = ({ product, collections, onClose }) => {
           {collections.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
         </select>
         
-        <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full border p-2 rounded h-24" placeholder="Mô tả" />
-        
-        {/* ✅ KHU VỰC CHỈNH SALE */}
+        {/* SECTION CHỈNH SỬA SALE */}
         <div className="bg-gray-50 p-3 rounded border">
             <div className="flex items-center gap-2 mb-2">
-                <input 
-                    type="checkbox" 
-                    id="editIsSale" 
-                    checked={formData.isSale} 
-                    onChange={(e) => setFormData({...formData, isSale: e.target.checked})}
-                    className="h-4 w-4 text-blue-600 rounded"
-                />
+                <input type="checkbox" id="editIsSale" checked={formData.isSale} onChange={(e) => setFormData({...formData, isSale: e.target.checked})} className="h-4 w-4 text-blue-600 rounded" />
                 <label htmlFor="editIsSale" className="font-medium flex items-center gap-1 cursor-pointer select-none">
                     <Tag className="w-4 h-4 text-red-500"/> Đang giảm giá (Sale)
                 </label>
@@ -302,18 +335,14 @@ const EditProductModal = ({ product, collections, onClose }) => {
             {formData.isSale && (
                 <div className="flex items-center gap-2 pl-6 animate-in fade-in slide-in-from-top-1">
                     <span className="text-sm">Giảm:</span>
-                    <input 
-                        type="number" 
-                        value={formData.salePercentage} 
-                        onChange={(e) => setFormData({...formData, salePercentage: e.target.value})}
-                        className="w-20 border p-1 rounded text-sm focus:ring-red-500"
-                        placeholder="%"
-                    />
+                    <input type="number" value={formData.salePercentage} onChange={(e) => setFormData({...formData, salePercentage: e.target.value})} className="w-20 border p-1 rounded text-sm focus:ring-red-500" placeholder="%" />
                     <span className="text-sm font-bold">%</span>
                 </div>
             )}
         </div>
 
+        <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full border p-2 rounded h-24" placeholder="Mô tả" />
+        
         {formData.category === "feedback" && <input type="text" value={formData.productLink} onChange={(e) => setFormData({ ...formData, productLink: e.target.value })} className="w-full border p-2 rounded" placeholder="Link sản phẩm" />}
         
         <div className="flex flex-col gap-1 mt-2">
@@ -326,49 +355,15 @@ const EditProductModal = ({ product, collections, onClose }) => {
         <div className="space-y-2 mt-2">
             <label className="block font-medium text-sm">Ảnh chính</label>
             <div className="relative group w-full h-40">
-                {formData.image ? (
-                    <img src={formData.image} className="w-full h-full object-cover rounded border" alt="main" />
-                ) : (
-                    <div className="w-full h-full bg-gray-100 rounded border flex items-center justify-center text-gray-400">Chưa có ảnh</div>
-                )}
-                <label className="absolute inset-0 bg-black/40 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded">
-                    <Upload className="w-6 h-6 mr-2" /> Thay ảnh
-                    <input type="file" className="hidden" onChange={handleMainImageChange} disabled={uploadingMain} accept="image/*" />
-                </label>
+                {formData.image ? (<img src={formData.image} className="w-full h-full object-cover rounded border" alt="main" />) : (<div className="w-full h-full bg-gray-100 rounded border flex items-center justify-center text-gray-400">Chưa có ảnh</div>)}
+                <label className="absolute inset-0 bg-black/40 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded"><Upload className="w-6 h-6 mr-2" /> Thay ảnh<input type="file" className="hidden" onChange={handleMainImageChange} disabled={uploadingMain} accept="image/*" /></label>
                 {uploadingMain && <div className="absolute inset-0 bg-white/80 flex items-center justify-center text-sm font-medium">Đang xử lý ảnh...</div>}
             </div>
         </div>
 
         <div className="mt-4">
-            <div className="flex justify-between items-center mb-2">
-                <label className="font-medium text-sm">Ảnh phụ ({(formData.thumbnails || []).length})</label>
-                <button onClick={addThumbnail} className="text-xs flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium px-2 py-1 rounded hover:bg-blue-50 transition-colors">
-                    <Plus className="w-3 h-3" /> Thêm ảnh
-                </button>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-                {(Array.isArray(formData.thumbnails) ? formData.thumbnails : []).map((thumb, index) => (
-                    <div key={index} className="relative group aspect-square bg-gray-50 border rounded overflow-hidden">
-                        {thumb ? (
-                            <img src={thumb} alt={`thumb-${index}`} className="w-full h-full object-cover" />
-                        ) : (
-                            <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">Trống</div>
-                        )}
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                            <label className="cursor-pointer text-white hover:text-blue-200">
-                                <Upload className="w-5 h-5" />
-                                <input type="file" className="hidden" onChange={(e) => handleThumbnailChange(e, index)} disabled={uploadingThumbIndex === index} accept="image/*" />
-                            </label>
-                            <button onClick={() => removeThumbnail(index)} className="text-white hover:text-red-400">
-                                <Trash className="w-5 h-5" />
-                            </button>
-                        </div>
-                        {uploadingThumbIndex === index && (
-                            <div className="absolute inset-0 bg-white/90 flex items-center justify-center text-xs font-medium">...</div>
-                        )}
-                    </div>
-                ))}
-            </div>
+            <div className="flex justify-between items-center mb-2"><label className="font-medium text-sm">Ảnh phụ ({(formData.thumbnails || []).length})</label><button onClick={addThumbnail} className="text-xs flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium px-2 py-1 rounded hover:bg-blue-50 transition-colors"><Plus className="w-3 h-3" /> Thêm ảnh</button></div>
+            <div className="grid grid-cols-3 gap-2">{(Array.isArray(formData.thumbnails) ? formData.thumbnails : []).map((thumb, index) => (<div key={index} className="relative group aspect-square bg-gray-50 border rounded overflow-hidden">{thumb ? (<img src={thumb} alt={`thumb-${index}`} className="w-full h-full object-cover" />) : (<div className="w-full h-full flex items-center justify-center text-xs text-gray-400">Trống</div>)}<div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2"><label className="cursor-pointer text-white hover:text-blue-200"><Upload className="w-5 h-5" /><input type="file" className="hidden" onChange={(e) => handleThumbnailChange(e, index)} disabled={uploadingThumbIndex === index} accept="image/*" /></label><button onClick={() => removeThumbnail(index)} className="text-white hover:text-red-400"><Trash className="w-5 h-5" /></button></div>{uploadingThumbIndex === index && (<div className="absolute inset-0 bg-white/90 flex items-center justify-center text-xs font-medium">...</div>)}</div>))}</div>
         </div>
 
         <div className="flex justify-end gap-2 pt-4 border-t mt-4">

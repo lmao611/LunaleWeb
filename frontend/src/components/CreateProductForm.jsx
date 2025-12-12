@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { PlusCircle, Upload, Loader, Images, Link as LinkIcon, Tag } from "lucide-react";
 import { useProductStore } from "../stores/useProductStore";
-import { useCollectionStore } from "../stores/useCollectionStore"; // ✅ IMPORT STORE
+import { useCollectionStore } from "../stores/useCollectionStore"; // ✅ 1. Import Store Collection
 
 const categories = [
   { id: "dress", label: "Đầm nữ" },
@@ -13,9 +13,9 @@ const categories = [
 
 const CreateProductForm = () => {
   const { createProduct, loading } = useProductStore();
-  const { collections, fetchCollections, addProductToCollection } = useCollectionStore();
+  const { collections, fetchCollections, addProductToCollection } = useCollectionStore(); // ✅ 2. Lấy hàm từ Store
 
-  // ✅ LOAD COLLECTIONS KHI MOUNT
+  // ✅ 3. Load danh sách Collection khi trang tải xong
   useEffect(() => {
     fetchCollections();
   }, [fetchCollections]);
@@ -30,22 +30,21 @@ const CreateProductForm = () => {
     productLink: "",
     isSale: false,
     salePercentage: "",
-    collectionId: "", // ✅ STATE CHO COLLECTION
+    collectionId: "", // ✅ 4. State lưu ID collection được chọn
   });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // 1. Tạo sản phẩm và nhận lại object sản phẩm vừa tạo
-      // (Lưu ý: Phải đảm bảo useProductStore trả về res.data)
+      // Gọi hàm tạo sản phẩm và đợi kết quả trả về (ID sản phẩm mới)
       const createdProduct = await createProduct(newProduct);
       
-      // 2. Nếu có chọn collection và tạo thành công, thêm vào collection đó
+      // ✅ 5. Nếu tạo thành công và có chọn Collection -> Thêm sản phẩm vào Collection đó
       if (createdProduct && createdProduct._id && newProduct.collectionId) {
           await addProductToCollection(newProduct.collectionId, createdProduct);
       }
 
-      // 3. Reset form
+      // Reset form
       setNewProduct({
         name: "",
         description: "",
@@ -113,6 +112,7 @@ const CreateProductForm = () => {
             onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
             className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             required
+            placeholder="Nhập tên sản phẩm..."
           />
         </div>
 
@@ -126,6 +126,7 @@ const CreateProductForm = () => {
             rows="3"
             className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             required
+            placeholder="Mô tả chi tiết..."
           />
         </div>
 
@@ -140,9 +141,11 @@ const CreateProductForm = () => {
             step="0.01"
             className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             required
+            placeholder="0"
           />
         </div>
 
+        {/* --- GRID: LOẠI SẢN PHẨM & BỘ SƯU TẬP --- */}
         <div className="grid grid-cols-2 gap-4">
             {/* Loại sản phẩm */}
             <div>
@@ -154,16 +157,16 @@ const CreateProductForm = () => {
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
               >
-                <option value="">-- Loại --</option>
+                <option value="">-- Chọn loại --</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>{c.label}</option>
                 ))}
               </select>
             </div>
 
-            {/* ✅ DROPDOWN CHỌN COLLECTION */}
+            {/* ✅ DROPDOWN COLLECTION (Đã kiểm tra hiển thị) */}
             <div>
-              <label htmlFor="collection" className="block text-sm font-medium text-gray-700">Bộ sưu tập (Tuỳ chọn)</label>
+              <label htmlFor="collection" className="block text-sm font-medium text-gray-700">Thêm vào BST</label>
               <select
                 id="collection"
                 value={newProduct.collectionId}
@@ -234,29 +237,59 @@ const CreateProductForm = () => {
         )}
 
         <div className="mt-1 flex items-center">
-          <input type="file" id="image" className="sr-only" accept="image/*" onChange={handleImageChange} />
-          <label htmlFor="image" className="cursor-pointer bg-blue-600 text-white py-2 px-3 rounded-md shadow-sm text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-            <Upload className="h-5 w-5 inline-block mr-2" /> Tải ảnh chính
+          <input
+            type="file"
+            id="image"
+            className="sr-only"
+            accept="image/*"
+            onChange={handleImageChange}
+          />
+          <label
+            htmlFor="image"
+            className="cursor-pointer bg-blue-600 text-white py-2 px-3 rounded-md shadow-sm text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <Upload className="h-5 w-5 inline-block mr-2" />
+            Tải ảnh chính
           </label>
-          {newProduct.image && (<span className="ml-3 text-sm text-gray-500">Đã chọn ảnh</span>)}
+          {newProduct.image && (
+            <span className="ml-3 text-sm text-gray-500">Đã chọn ảnh</span>
+          )}
         </div>
 
         <div className="mt-3">
-          <input type="file" id="thumbnails" className="sr-only" accept="image/*" multiple onChange={handleThumbnailsChange} />
-          <label htmlFor="thumbnails" className="cursor-pointer bg-blue-600 text-white py-2 px-3 rounded-md shadow-sm text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-            <Images className="h-5 w-5 inline-block mr-2" /> Tải ảnh phụ
+          <input
+            type="file"
+            id="thumbnails"
+            className="sr-only"
+            accept="image/*"
+            multiple
+            onChange={handleThumbnailsChange}
+          />
+          <label
+            htmlFor="thumbnails"
+            className="cursor-pointer bg-blue-600 text-white py-2 px-3 rounded-md shadow-sm text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <Images className="h-5 w-5 inline-block mr-2" />
+            Tải ảnh phụ
           </label>
 
           <div className="flex gap-2 mt-2 flex-wrap">
             {newProduct.thumbnails.map((thumb, i) => (
-              <img key={i} src={thumb} alt={`thumb-${i}`} className="h-16 w-16 object-cover rounded border border-gray-300" />
+              <img
+                key={i}
+                src={thumb}
+                alt={`thumb-${i}`}
+                className="h-16 w-16 object-cover rounded border border-gray-300"
+              />
             ))}
           </div>
         </div>
 
         <button
           type="submit"
-          className="w-full flex justify-center py-2 px-4 rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+          className="w-full flex justify-center py-2 px-4 rounded-md shadow-sm text-sm font-medium 
+          text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 
+          focus:ring-blue-500 disabled:opacity-50"
           disabled={loading}
         >
           {loading ? (

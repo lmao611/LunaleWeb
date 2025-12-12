@@ -19,12 +19,14 @@ export const useProductStore = create((set, get) => ({
         products: [res.data, ...state.products],
         loading: false,
       }));
-      toast.success("Created successfully");
-      return res.data; // ✅ THÊM DÒNG NÀY: Trả về sản phẩm vừa tạo
+      toast.success("Tạo sản phẩm thành công");
+      
+      // ✅ QUAN TRỌNG: Phải return res.data để bên Form lấy được ID
+      return res.data; 
     } catch (error) {
-      toast.error(error.response?.data?.error || "Failed to create");
+      toast.error(error.response?.data?.error || "Lỗi khi tạo sản phẩm");
       set({ loading: false });
-      return null; // Trả về null nếu lỗi
+      return null;
     }
   },
 
@@ -71,7 +73,7 @@ export const useProductStore = create((set, get) => ({
         products: state.products.filter((p) => p._id !== productId),
         loading: false,
       }));
-      toast.success("Deleted successfully");
+      toast.success("Đã xóa sản phẩm");
     } catch (error) {
       set({ loading: false });
       toast.error(error.response?.data?.error || "Failed to delete");
@@ -111,7 +113,7 @@ export const useProductStore = create((set, get) => ({
         ),
         loading: false,
       }));
-      toast.success("Updated Pre-order status");
+      toast.success("Đã cập nhật trạng thái");
     } catch (error) {
       set({ loading: false });
       toast.error(error.response?.data?.error || "Failed to update Pre-order");
@@ -134,7 +136,7 @@ export const useProductStore = create((set, get) => ({
         loading: false,
       }));
 
-      toast.success("Updated successfully");
+      toast.success("Cập nhật thành công");
       return updated;
     } catch (error) {
       set({ loading: false });
