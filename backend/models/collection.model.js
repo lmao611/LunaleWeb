@@ -9,7 +9,8 @@ const collectionSchema = new mongoose.Schema(
       type: { type: String, enum: ["image", "video"], required: true },
     },
     gradientFrom: { type: String, default: "#3b82f6" }, 
-    gradientTo: { type: String, default: "#06b6d4" },   
+    gradientTo: { type: String, default: "#06b6d4" },
+    isSpecial: { type: Boolean, default: false },
     products: [
       {
         _id: String, 

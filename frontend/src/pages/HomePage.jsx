@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom"; 
+import { motion } from "framer-motion";
 import CategoryItem from "../components/CategoryItem";
 import { useProductStore } from "../stores/useProductStore";
+import { useCollectionStore } from "../stores/useCollectionStore";
 import FeaturedProducts from "../components/FeaturedProducts";
 import CollectionsSection from "../components/CollectionsSection";
 import axios from "../lib/axios";
@@ -13,11 +16,13 @@ const categories = [
 ];
 
 const HomePage = () => {
-  const { fetchFeaturedProducts, products, isLoading } = useProductStore();
+  const { fetchFeaturedProducts, products, isLoading: loadingProducts } = useProductStore();
+  const { fetchCollections, collections, isLoading: loadingCols } = useCollectionStore();
   const [bannerUrl, setBannerUrl] = useState("");
 
   useEffect(() => {
     fetchFeaturedProducts();
+    fetchCollections();
 
     const fetchBanner = async () => {
       try {
@@ -29,7 +34,10 @@ const HomePage = () => {
     };
 
     fetchBanner();
-  }, [fetchFeaturedProducts]);
+  }, [fetchFeaturedProducts, fetchCollections]);
+
+  const specialCollection = collections.find(c => c.isSpecial === true);
+  const regularCollections = collections.filter(c => !c.isSpecial);
 
   return (
     <div className="bg-white text-gray-800 overflow-x-hidden">
@@ -63,7 +71,62 @@ const HomePage = () => {
         id="homepage-content"
         className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20"
       >
-        <h1 className="text-center sm:text-3xl font-bold text-blue-990 mb-8">
+        
+        {specialCollection && (
+          <motion.div 
+            className="w-full flex flex-col items-center justify-center text-center mb-20"
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+          >
+             <motion.h2 
+                className="text-4xl md:text-6xl font-extrabold mb-6 tracking-tight"
+                style={{
+                    backgroundImage: `linear-gradient(to right, ${specialCollection.gradientFrom}, ${specialCollection.gradientTo})`,
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                }}
+             >
+               {specialCollection.name}
+             </motion.h2>
+             
+             <p className="text-gray-600 text-lg md:text-xl max-w-3xl mb-10 leading-relaxed">
+               {specialCollection.description}
+             </p>
+
+             <Link to={`/collection/${specialCollection._id}`} className="block">
+                <motion.div
+                    whileHover={{ scale: 1.02, boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)" }}
+                    className="rounded-3xl overflow-hidden shadow-2xl w-[90vw] max-w-[500px] aspect-[4/5] relative mx-auto"
+                >
+                    {specialCollection.coverMedia?.type === "video" ? (
+                        <video
+                        src={specialCollection.coverMedia.url}
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                        className="w-full h-full object-cover"
+                        />
+                    ) : (
+                        <img
+                        src={specialCollection.coverMedia?.url}
+                        alt={specialCollection.name}
+                        className="w-full h-full object-cover"
+                        />
+                    )}
+                    
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none"></div>
+                    <div className="absolute bottom-6 left-0 right-0 text-white font-medium tracking-wider pointer-events-none">
+                        XEM CHI TIẾT
+                    </div>
+                </motion.div>
+             </Link>
+          </motion.div>
+        )}
+
+        <h1 className="text-center sm:text-3xl font-bold text-blue-990 mb-8 border-t pt-10 border-gray-100">
           SHOP NOW
         </h1>
 
@@ -73,11 +136,11 @@ const HomePage = () => {
           ))}
         </div>
 
-        {!isLoading && Array.isArray(products) && products.length > 0 && (
+        {!loadingProducts && Array.isArray(products) && products.length > 0 && (
           <FeaturedProducts featuredProducts={products} />
         )}
 
-        <CollectionsSection />
+        <CollectionsSection collections={regularCollections} />
       </main>
     </div>
   );

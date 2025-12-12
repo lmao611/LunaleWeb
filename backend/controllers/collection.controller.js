@@ -1,16 +1,13 @@
 import Collection from "../models/collection.model.js";
 
-
 export const getAllCollections = async (req, res) => {
   try {
     const collections = await Collection.find().sort({ createdAt: -1 });
     res.json(collections);
   } catch (err) {
-    console.error("❌ Lỗi getAllCollections:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
-
 
 export const getCollectionById = async (req, res) => {
   try {
@@ -18,14 +15,13 @@ export const getCollectionById = async (req, res) => {
     if (!collection) return res.status(404).json({ message: "Not found" });
     res.json(collection);
   } catch (err) {
-    console.error("❌ Lỗi getCollectionById:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
 
 export const createCollection = async (req, res) => {
   try {
-    const { name, description, coverMedia, gradientFrom, gradientTo } = req.body;
+    const { name, description, coverMedia, gradientFrom, gradientTo, isSpecial } = req.body;
 
     const newCol = await Collection.create({
       name,
@@ -33,27 +29,24 @@ export const createCollection = async (req, res) => {
       coverMedia,
       gradientFrom: gradientFrom || "#3b82f6", 
       gradientTo: gradientTo || "#06b6d4",
+      isSpecial: isSpecial || false,
       products: [],
     });
 
     res.status(201).json(newCol);
   } catch (err) {
-    console.error("❌ Lỗi createCollection:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
-
 
 export const deleteCollection = async (req, res) => {
   try {
     await Collection.findByIdAndDelete(req.params.id);
     res.json({ message: "Deleted successfully" });
   } catch (err) {
-    console.error("❌ Lỗi deleteCollection:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
-
 
 export const addProductToCollection = async (req, res) => {
   try {
@@ -61,7 +54,6 @@ export const addProductToCollection = async (req, res) => {
     const product = req.body;
     const collection = await Collection.findById(id);
     if (!collection) return res.status(404).json({ message: "Not found" });
-
 
     if (collection.products.some((p) => p._id === product._id)) {
       return res
@@ -73,7 +65,6 @@ export const addProductToCollection = async (req, res) => {
     await collection.save();
     res.json(collection);
   } catch (err) {
-    console.error("❌ Lỗi addProductToCollection:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -88,7 +79,6 @@ export const removeProductFromCollection = async (req, res) => {
     await collection.save();
     res.json(collection);
   } catch (err) {
-    console.error("❌ Lỗi removeProductFromCollection:", err);
     res.status(500).json({ message: "Server error" });
   }
 };

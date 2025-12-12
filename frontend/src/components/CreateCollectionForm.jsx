@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { PlusCircle, Loader } from "lucide-react";
+import { PlusCircle, Loader, Star } from "lucide-react";
 import { useCollectionStore } from "../stores/useCollectionStore";
 
 const CreateCollectionForm = () => {
@@ -9,7 +9,8 @@ const CreateCollectionForm = () => {
     description: "",
     media: "",
     gradientFrom: "#3b82f6", 
-    gradientTo: "#06b6d4",   
+    gradientTo: "#06b6d4",
+    isSpecial: false,   
   });
   const [loading, setLoading] = useState(false);
   const { createCollection } = useCollectionStore();
@@ -36,6 +37,7 @@ const CreateCollectionForm = () => {
       },
       gradientFrom: newCollection.gradientFrom,
       gradientTo: newCollection.gradientTo,
+      isSpecial: newCollection.isSpecial,
     });
     setNewCollection({
       name: "",
@@ -43,6 +45,7 @@ const CreateCollectionForm = () => {
       media: "",
       gradientFrom: "#3b82f6",
       gradientTo: "#06b6d4",
+      isSpecial: false,
     });
     setLoading(false);
   };
@@ -90,6 +93,16 @@ const CreateCollectionForm = () => {
           />
         </div>
 
+        <div className="flex items-center gap-3 p-3 border border-yellow-200 bg-yellow-50 rounded-md cursor-pointer" 
+             onClick={() => setNewCollection({...newCollection, isSpecial: !newCollection.isSpecial})}>
+          <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${newCollection.isSpecial ? "bg-yellow-500 border-yellow-500" : "bg-white border-gray-300"}`}>
+             {newCollection.isSpecial && <Star size={12} className="text-white fill-current" />}
+          </div>
+          <div>
+            <span className="block text-sm font-bold text-gray-800">Special Collection</span>
+            <span className="block text-xs text-gray-500">Hiển thị nổi bật, căn giữa ngay dưới Banner</span>
+          </div>
+        </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -129,7 +142,6 @@ const CreateCollectionForm = () => {
           </div>
         </div>
 
-
         <div>
           <label className="block text-sm font-medium text-gray-700">
             Ảnh hoặc video
@@ -158,7 +170,6 @@ const CreateCollectionForm = () => {
             </div>
           )}
         </div>
-
 
         <button
           type="submit"

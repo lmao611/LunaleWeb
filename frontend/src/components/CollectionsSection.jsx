@@ -1,22 +1,13 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { useEffect } from "react";
-import { useCollectionStore } from "../stores/useCollectionStore";
 
-const CollectionsSection = () => {
-  const { collections, fetchCollections, isLoading } = useCollectionStore();
-
-  useEffect(() => {
-    fetchCollections();
-  }, [fetchCollections]);
-
-  if (isLoading) return <div className="text-center py-6">Đang tải...</div>;
+const CollectionsSection = ({ collections }) => {
   if (!Array.isArray(collections) || !collections.length) return null;
 
   return (
     <section className="mt-24 space-y-28">
       <h2 className="text-3xl font-bold text-center text-black mb-8">
-        Bộ Sưu Tầm
+        Bộ Sưu Tầm Khác
       </h2>
 
       {collections.map((col, index) => (
@@ -30,7 +21,6 @@ const CollectionsSection = () => {
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
         >
-          {/* Text Content */}
           <div className="flex-1 text-center px-4">
             <motion.h3
               whileHover={{ scale: 1.08 }}
@@ -59,22 +49,21 @@ const CollectionsSection = () => {
             </p>
           </div>
 
-          {/* Media Card */}
           <div className="flex-1 flex justify-center">
             <Link to={`/collection/${col._id}`}>
               <motion.div
-                whileHover={{ scale: 1.02 }} // scale container nhẹ để shadow/card nổi
+                whileHover={{ scale: 1.02 }}
                 transition={{ type: "spring", stiffness: 200, damping: 15 }}
                 className="
                   rounded-3xl overflow-hidden shadow-2xl 
-                  w-[330px] h-[450px]          /* Mobile default */
-                  sm:w-[320px] sm:h-[480px]    /* Small screens */
-                  md:w-[400px] md:h-[600px]    /* Medium and up */
+                  w-[330px] h-[450px]
+                  sm:w-[320px] sm:h-[480px]
+                  md:w-[400px] md:h-[600px]
                   relative flex items-center justify-center bg-gray-200
                 "
               >
                 <motion.div
-                  whileHover={{ scale: 1.03 }} // scale media riêng để video/image mượt
+                  whileHover={{ scale: 1.03 }}
                   transition={{ type: "spring", stiffness: 200, damping: 15 }}
                   className="absolute inset-0 w-full h-full transform-gpu backface-hidden will-change-transform"
                 >
