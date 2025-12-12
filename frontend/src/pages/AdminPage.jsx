@@ -13,8 +13,9 @@ import CreateCollectionForm from "../components/CreateCollectionForm";
 import CollectionsList from "../components/CollectionsList";
 import BannerUploadForm from "../components/BannerUploadForm";
 import OrdersManager from "../components/OrdersManager";
-import OrderReceipt from "../components/OrderReceipt"; // ✅ thêm component mới
+import OrderReceipt from "../components/OrderReceipt";
 import { useProductStore } from "../stores/useProductStore";
+import { useUserStore } from "../stores/useUserStore"; // ✅ Import UserStore
 
 const tabs = [
   { id: "create", label: "Thêm sản phẩm", icon: PlusCircle },
@@ -23,12 +24,15 @@ const tabs = [
   { id: "collectionsList", label: "Danh sách bộ sưu tầm", icon: Images },
   { id: "banner", label: "Tải ảnh banner", icon: UploadCloud },
   { id: "orders", label: "Quản lý đơn hàng", icon: FileText },
-  { id: "receipt", label: "Phiếu đặt hàng", icon: FileText }, // ✅ thêm tab mới
+  { id: "receipt", label: "Phiếu đặt hàng", icon: FileText },
 ];
 
 const AdminPage = () => {
   const [activeTab, setActiveTab] = useState("create");
   const { fetchAllProducts } = useProductStore();
+  
+  // ✅ Lấy thông tin user để kiểm tra role
+  const { user } = useUserStore();
 
   useEffect(() => {
     fetchAllProducts();
@@ -41,8 +45,26 @@ const AdminPage = () => {
       JSON.stringify([...stored, { ...col, products: col.products || [] }])
     );
     alert("✅ Bộ sưu tầm đã được lưu!");
-    setActiveTab("collectionsList");
+    // Nếu là controller mới chuyển qua list, còn admin thì giữ nguyên hoặc chuyển về create
+    if (user?.role === "controller") {
+      setActiveTab("collectionsList");
+    } else {
+      setActiveTab("collections");
+    }
   };
+
+  // ✅ Logic lọc Tabs theo Role
+  const visibleTabs = tabs.filter((tab) => {
+    // Controller: Hiện tất cả
+    if (user?.role === "controller") return true;
+
+    // Admin: Chỉ hiện các tab được chỉ định
+    if (user?.role === "admin") {
+      return ["create", "collections", "banner", "orders", "receipt"].includes(tab.id);
+    }
+
+    return false;
+  });
 
   return (
     <div className="min-h-screen bg-white text-gray-900 pt-24 pb-12">
@@ -52,11 +74,12 @@ const AdminPage = () => {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          Trang Admin
+          Trang Quản Lý ({user?.role === "controller" ? "Controller" : "Admin"})
         </motion.h1>
 
         <div className="flex justify-center mb-8 flex-wrap gap-3">
-          {tabs.map((tab) => (
+          {/* ✅ Render các tab dựa trên visibleTabs đã lọc */}
+          {visibleTabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
@@ -85,7 +108,8 @@ const AdminPage = () => {
             </motion.div>
           )}
 
-          {activeTab === "products" && (
+          {/* Chỉ render nếu user là controller (bảo mật thêm ở tầng hiển thị) */}
+          {activeTab === "products" && user?.role === "controller" && (
             <motion.div
               key="products"
               initial={{ opacity: 0, y: 8 }}
@@ -107,7 +131,8 @@ const AdminPage = () => {
             </motion.div>
           )}
 
-          {activeTab === "collectionsList" && (
+          {/* Chỉ render nếu user là controller */}
+          {activeTab === "collectionsList" && user?.role === "controller" && (
             <motion.div
               key="collectionsList"
               initial={{ opacity: 0, y: 8 }}

@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 const Navbar = () => {
   const { user, logout, showUserBox, setShowUserBox } = useUserStore();
   const { cart } = useCartStore();
-  const isAdmin = user?.role === "admin";
+  const isAdmin = user?.role === "admin" || user?.role === "controller";
   const location = useLocation();
   const navigate = useNavigate();
   const isHome = location.pathname === "/";
