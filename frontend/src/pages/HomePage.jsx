@@ -33,15 +33,15 @@ const HomePage = () => {
   const specialCollections = collections.filter(c => c.isSpecial === true);
   const regularCollections = collections.filter(c => !c.isSpecial);
 
+  // ✅ HÀM RENDER SPECIAL: KHÔNG BỊ GIỚI HẠN SIZE
   const renderSpecialCollectionsByPosition = (position) => {
     const targetCollections = specialCollections.filter(c => c.specialPosition === position);
 
     if (targetCollections.length === 0) return null;
 
     return (
-      <div className="flex flex-col gap-20 my-20">
+      <div className="flex flex-col gap-20 my-16 w-full">
         {targetCollections.map((col) => {
-           // ✅ Tạo style object chứa biến CSS
            const dynamicStyles = {
                "--mobile-w": `${col.mobileWidth || 100}%`,
                "--mobile-h": `${col.mobileHeight || 400}px`,
@@ -52,16 +52,17 @@ const HomePage = () => {
            return (
              <motion.div 
                key={col._id}
-               className="w-full flex flex-col items-center justify-center text-center px-0 md:px-4"
+               // width full để nó có thể chiếm trọn màn hình nếu setting là 100%
+               className="w-full flex flex-col items-center justify-center text-center overflow-visible"
                initial={{ opacity: 0, scale: 0.95 }}
                whileInView={{ opacity: 1, scale: 1 }}
                viewport={{ once: true, margin: "-100px" }}
                transition={{ duration: 0.8 }}
              >
-                {/* Tên Collection */}
                 {!col.hideName && (
                     <motion.h2 
-                       className="text-4xl md:text-6xl font-extrabold mb-6 tracking-tight px-4"
+                       // Tên thì vẫn nên giữ trong khung nhìn cho đẹp, nhưng nền ảnh thì thả phanh
+                       className="text-4xl md:text-6xl font-extrabold mb-6 tracking-tight px-4 max-w-7xl mx-auto"
                        style={{
                            backgroundImage: `linear-gradient(to right, ${col.gradientFrom}, ${col.gradientTo})`,
                            WebkitBackgroundClip: "text",
@@ -72,40 +73,35 @@ const HomePage = () => {
                     </motion.h2>
                 )}
                 
-                {/* Mô tả */}
                 {!col.hideDescription && (
-                    <p className="text-gray-600 text-lg md:text-xl max-w-3xl mb-10 leading-relaxed px-4">
+                    <p className="text-gray-600 text-lg md:text-xl max-w-3xl mb-10 leading-relaxed px-4 mx-auto">
                       {col.description}
                     </p>
                 )}
 
                 <Link to={`/collection/${col._id}`} className="block group flex justify-center w-full">
-                   {/* ✅ KHUNG HÌNH CHÍNH
-                      Sử dụng Tailwind arbitrary values [] kết hợp với biến CSS đã khai báo ở trên
-                   */}
+                   {/* ✅ KHỐI ẢNH: ĐƯỢC PHÉP TRÀN VIỀN (max-w-none) */}
                    <motion.div
                        whileHover={{ scale: 1.01, boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)" }}
                        style={dynamicStyles}
                        className="
                          relative overflow-hidden shadow-2xl bg-gray-100
+                         
+                         /* Bo góc nhẹ cho đẹp, hoặc bỏ rounded-3xl nếu muốn vuông vức */
                          rounded-none md:rounded-3xl
                          
-                         /* Mobile First (Mặc định) */
-                         w-[var(--mobile-w)] 
-                         h-[var(--mobile-h)]
+                         /* Kích thước lấy từ DB */
+                         w-[var(--mobile-w)] h-[var(--mobile-h)]
+                         md:w-[var(--desktop-w)] md:h-[var(--desktop-h)]
                          
-                         /* Desktop (Màn hình từ md trở lên) */
-                         md:w-[var(--desktop-w)] 
-                         md:h-[var(--desktop-h)]
+                         /* Quan trọng: Cho phép to hơn khung 1280px */
+                         max-w-none
                        "
                    >
                        {col.coverMedia?.type === "video" ? (
                            <video
                                src={col.coverMedia.url}
-                               autoPlay
-                               muted
-                               loop
-                               playsInline
+                               autoPlay muted loop playsInline
                                className="w-full h-full object-cover"
                            />
                        ) : (
@@ -116,10 +112,7 @@ const HomePage = () => {
                            />
                        )}
                        
-                       {/* Overlay Gradient */}
                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-                       
-                       {/* Nút Xem Ngay */}
                        <div className="absolute bottom-8 left-0 right-0 text-white font-medium tracking-widest text-lg uppercase pointer-events-none text-center">
                            Xem Ngay
                        </div>
@@ -134,6 +127,8 @@ const HomePage = () => {
 
   return (
     <div className="bg-white text-gray-800 overflow-x-hidden">
+      
+      {/* 1. BANNER (Full width) */}
       {bannerUrl && (
         <section className="relative w-screen h-screen overflow-hidden">
           <img src={bannerUrl} alt="Banner" className="absolute inset-0 w-full h-full object-cover object-center" />
@@ -153,28 +148,41 @@ const HomePage = () => {
         </section>
       )}
 
-      <main id="homepage-content" className="relative z-10 max-w-7xl mx-auto px-0 sm:px-6 lg:px-8 py-10">
+      {/* Wrapper chính */}
+      <div id="homepage-content" className="py-10 w-full">
         
+        {/* 2. SPECIAL COLLECTION (Vùng Tự Do - Có thể tràn viền) */}
         {renderSpecialCollectionsByPosition("below_banner")}
 
-        <h1 className="text-center sm:text-3xl font-bold text-blue-990 mb-8 pt-10">SHOP NOW</h1>
-
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mt-6 mb-16 px-4">
-          {categories.map((category) => (
-            <CategoryItem category={category} key={category.name} />
-          ))}
+        {/* 3. CATEGORIES (Vùng Tiêu Chuẩn - Giới hạn 1280px) */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h1 className="text-center sm:text-3xl font-bold text-blue-990 mb-8 pt-10">SHOP NOW</h1>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mt-6 mb-16">
+              {categories.map((category) => (
+                <CategoryItem category={category} key={category.name} />
+              ))}
+            </div>
         </div>
 
+        {/* 4. SPECIAL COLLECTION (Vùng Tự Do) */}
         {renderSpecialCollectionsByPosition("below_categories")}
 
-        {!loadingProducts && Array.isArray(products) && products.length > 0 && (
-          <FeaturedProducts featuredProducts={products} />
-        )}
+        {/* 5. FEATURED PRODUCTS (Vùng Tiêu Chuẩn - Giới hạn 1280px) */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            {!loadingProducts && Array.isArray(products) && products.length > 0 && (
+              <FeaturedProducts featuredProducts={products} />
+            )}
+        </div>
         
+        {/* 6. SPECIAL COLLECTION (Vùng Tự Do) */}
         {renderSpecialCollectionsByPosition("below_featured")}
 
-        <CollectionsSection collections={regularCollections} />
-      </main>
+        {/* 7. REGULAR COLLECTIONS (Vùng Tiêu Chuẩn - Giữ y nguyên layout cũ) */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <CollectionsSection collections={regularCollections} />
+        </div>
+
+      </div>
     </div>
   );
 };
