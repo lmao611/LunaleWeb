@@ -7,7 +7,8 @@ import { useUserStore } from "../stores/useUserStore";
 const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { login, loading, setUser } = useUserStore();
+  // Lấy thêm checkAuth từ store để dùng sau khi login Facebook
+  const { login, loading, setUser, checkAuth } = useUserStore();
   const [fbLoading, setFbLoading] = useState(false);
 
   // --- Load Facebook SDK ---
@@ -15,7 +16,7 @@ const LoginPage = () => {
     if (window.FB) return;
     window.fbAsyncInit = function () {
       FB.init({
-        appId: "1365209865023366", // 👉 thay bằng App ID thật
+        appId: "1365209865023366", // 👉 App ID của bạn
         cookie: true,
         xfbml: false,
         version: "v17.0",
@@ -28,76 +29,74 @@ const LoginPage = () => {
     document.body.appendChild(script);
   }, []);
 
-  // --- Login form thường ---
   const handleSubmit = (e) => {
     e.preventDefault();
     login(email, password);
   };
 
-  // --- Facebook login (không dùng async function trực tiếp) ---
-// --- Facebook login ---
-const handleFacebookLogin = () => {
-  const appId = "1365209865023366"; // 👉 App ID của bạn
-  const apiBase = import.meta.env.VITE_API_URL;
-  const redirectUri = encodeURIComponent(`${apiBase}/api/auth/facebook/callback`);
-  const scope = "email,public_profile";
+  // --- Facebook login ---
+  const handleFacebookLogin = () => {
+    const appId = "1365209865023366"; 
+    const apiBase = import.meta.env.VITE_API_URL || "http://localhost:5000"; // Fallback nếu env lỗi
+    const redirectUri = encodeURIComponent(`${apiBase}/api/auth/facebook/callback`);
+    const scope = "email,public_profile";
 
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-  // 👉 Nếu là mobile → dùng URL chính thức, Facebook sẽ tự xử lý mở app hoặc web
-  if (isMobile) {
-    const fbMobileUrl = `https://www.facebook.com/v17.0/dialog/oauth?client_id=${appId}&redirect_uri=${redirectUri}&scope=${scope}&display=touch&response_type=token`;
-    window.location.href = fbMobileUrl;
-    return;
-  }
+    if (isMobile) {
+      const fbMobileUrl = `https://www.facebook.com/v17.0/dialog/oauth?client_id=${appId}&redirect_uri=${redirectUri}&scope=${scope}&display=touch&response_type=token`;
+      window.location.href = fbMobileUrl;
+      return;
+    }
 
-  // 👉 Nếu là PC → dùng SDK như bình thường
-  setFbLoading(true);
-  FB.login(
-    (response) => {
-      if (response.authResponse) {
-        const accessToken = response.authResponse.accessToken;
+    setFbLoading(true);
+    if (!window.FB) {
+      alert("Facebook SDK chưa tải xong. Vui lòng thử lại sau giây lát.");
+      setFbLoading(false);
+      return;
+    }
 
-        fetch(`${apiBase}/api/auth/facebook/login`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ accessToken }),
-        })
-          .then(async (res) => {
-            if (!res.ok) {
-              const errText = await res.text();
-              throw new Error(errText || "Request failed");
-            }
-            return res.json();
+    window.FB.login(
+      (response) => {
+        if (response.authResponse) {
+          const accessToken = response.authResponse.accessToken;
+
+          // Gọi API Backend của bạn để xác thực
+          fetch(`${apiBase}/api/auth/facebook/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include", // Quan trọng để nhận cookie/session nếu có
+            body: JSON.stringify({ accessToken }),
           })
-          .then((data) => {
-            if (data.user) {
-              setUser(data.user);
-              import("../stores/useUserStore").then(({ useUserStore }) => {
-                useUserStore.getState().checkAuth();
-              });
-              setTimeout(() => window.location.reload(), 500);
-            } else {
-              alert(data.message || "Đăng nhập Facebook thất bại");
-            }
-          })
-          .catch((err) => {
-            console.error("❌ Facebook login error:", err);
-            alert("Đăng nhập Facebook thất bại");
-          })
-          .finally(() => setFbLoading(false));
-      } else {
-        alert("Bạn đã hủy đăng nhập Facebook");
-        setFbLoading(false);
-      }
-    },
-    { scope: "email,public_profile" }
-  );
-};
-
-
-
+            .then(async (res) => {
+              if (!res.ok) {
+                const errText = await res.text();
+                throw new Error(errText || "Request failed");
+              }
+              return res.json();
+            })
+            .then((data) => {
+              if (data.user) {
+                // Cập nhật user vào store
+                setUser(data.user);
+                // Kiểm tra lại auth để đảm bảo đồng bộ
+                checkAuth(); 
+              } else {
+                alert(data.message || "Đăng nhập Facebook thất bại");
+              }
+            })
+            .catch((err) => {
+              console.error("❌ Facebook login error:", err);
+              alert("Đăng nhập Facebook thất bại");
+            })
+            .finally(() => setFbLoading(false));
+        } else {
+          setFbLoading(false);
+        }
+      },
+      { scope: "email,public_profile" }
+    );
+  };
 
   return (
     <div className="min-h-screen flex flex-col justify-center bg-gray-50 py-12 sm:px-6 lg:px-8 pt-0">
