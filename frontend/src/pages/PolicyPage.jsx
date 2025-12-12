@@ -57,7 +57,7 @@ useEffect(() => {
           <div className="font-bold text-lg text-black mt-6 mb-2">KHÔNG ĐỦ ĐIỀU KIỆN ĐỔI</div>
           <pre className="whitespace-pre-wrap">
 {`• Trường hợp sản phẩm bị cắt tag hay bị hỏng do sử dụng không đúng cách sẽ không được Lunale chấp nhận đổi hàng.
-• Quá 48 giờ kể từ khi khách nhận hàng, nếu LSoul không nhận được phản hồi về tình trạng của sản phẩm, Lunale sẽ coi như sản phẩm đã được chấp nhận.
+• Quá 48 giờ kể từ khi khách nhận hàng, nếu LUNALE không nhận được phản hồi về tình trạng của sản phẩm, Lunale sẽ coi như sản phẩm đã được chấp nhận.
 • Sản phẩm thuộc các chương trình khuyến mãi, giảm giá mà không có lỗi từ nhà sản xuất sẽ không được Lunale chấp nhận đổi hàng.
 • Lunale có quyền từ chối mọi yêu cầu đổi hàng nếu khách hàng không tuân thủ theo các quy định về chính sách đổi hàng của Lunale.`}
           </pre>

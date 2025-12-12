@@ -6,7 +6,8 @@ import { Toaster } from "react-hot-toast";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import { useUserStore } from "./stores/useUserStore";
-import { useEffect, useState } from "react";
+import { useCollectionStore } from "./stores/useCollectionStore"; // ✅ Import Store
+import { useEffect } from "react";
 import LoadingSpinner from "./components/LoadingSpinner";
 import AdminPage from "./pages/AdminPage";
 import CategoryPage from "./pages/CategoryPage";
@@ -19,28 +20,31 @@ import ScrollToTop from "./components/ScrollToTop";
 import PrivacyPage from "./pages/PrivacyPage.jsx";
 
 function App() {
-  const { user, checkAuth, checkingAuth } = useUserStore();
+  const { user, checkAuth } = useUserStore(); // Không cần lấy checkingAuth ở đây nữa
   const { getCartItems } = useCartStore();
-  const [isForceLoadingDone, setIsForceLoadingDone] = useState(false);
+  
+  // ✅ Lấy trạng thái loading và hàm fetch từ Collection Store
+  const { fetchCollections, isLoading: isCollectionLoading } = useCollectionStore();
 
+  // Gọi checkAuth (chạy ngầm, không chặn UI)
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
 
+  // ✅ Gọi fetchCollections ngay khi App khởi chạy
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsForceLoadingDone(true);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, []);
+    fetchCollections();
+  }, [fetchCollections]);
 
   useEffect(() => {
     if (!user) return;
     getCartItems();
   }, [getCartItems, user]);
 
-  if (checkingAuth && !isForceLoadingDone) return <LoadingSpinner />;
+  // ✅ ĐIỀU KIỆN CHẶN TRANG:
+  // Chỉ hiện Loading Spinner khi đang tải Collections.
+  // Khi tải xong (dù có user hay không), Spinner tắt và vào trang ngay lập tức.
+  if (isCollectionLoading) return <LoadingSpinner />;
 
   return (
     <div className="min-h-screen bg-white text-gray-900 flex flex-col">
