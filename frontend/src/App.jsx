@@ -6,8 +6,8 @@ import { Toaster } from "react-hot-toast";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import { useUserStore } from "./stores/useUserStore";
-import { useCollectionStore } from "./stores/useCollectionStore"; // ✅ Import Store
-import { useEffect } from "react";
+import { useCollectionStore } from "./stores/useCollectionStore";
+import { useEffect, useState } from "react"; // ✅ Thêm useState
 import LoadingSpinner from "./components/LoadingSpinner";
 import AdminPage from "./pages/AdminPage";
 import CategoryPage from "./pages/CategoryPage";
@@ -20,31 +20,45 @@ import ScrollToTop from "./components/ScrollToTop";
 import PrivacyPage from "./pages/PrivacyPage.jsx";
 
 function App() {
-  const { user, checkAuth } = useUserStore(); // Không cần lấy checkingAuth ở đây nữa
+  const { user, checkAuth } = useUserStore();
   const { getCartItems } = useCartStore();
   
-  // ✅ Lấy trạng thái loading và hàm fetch từ Collection Store
+  // Lấy trạng thái từ Store
   const { fetchCollections, isLoading: isCollectionLoading } = useCollectionStore();
 
-  // Gọi checkAuth (chạy ngầm, không chặn UI)
+  // ✅ 1. Thêm biến đếm thời gian an toàn
+  const [isTimeout, setIsTimeout] = useState(false);
+
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
 
-  // ✅ Gọi fetchCollections ngay khi App khởi chạy
   useEffect(() => {
     fetchCollections();
   }, [fetchCollections]);
+
+  // ✅ 2. Logic Timeout: Sau 3 giây, ép biến isTimeout thành true
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsTimeout(true);
+      if (isCollectionLoading) {
+        console.warn("⚠️ Mạng chậm quá, ép tắt Loading để vào trang chủ.");
+      }
+    }, 3000); // 3000ms = 3 giây
+
+    return () => clearTimeout(timer);
+  }, [isCollectionLoading]);
 
   useEffect(() => {
     if (!user) return;
     getCartItems();
   }, [getCartItems, user]);
 
-  // ✅ ĐIỀU KIỆN CHẶN TRANG:
-  // Chỉ hiện Loading Spinner khi đang tải Collections.
-  // Khi tải xong (dù có user hay không), Spinner tắt và vào trang ngay lập tức.
-  if (isCollectionLoading) return <LoadingSpinner />;
+  // ✅ 3. ĐIỀU KIỆN CHẶN TRANG MỚI:
+  // Chỉ hiện Loading Spinner KHI:
+  // - Đang tải Collection (isCollectionLoading = true)
+  // - VÀ Chưa hết thời gian chờ (isTimeout = false)
+  if (isCollectionLoading && !isTimeout) return <LoadingSpinner />;
 
   return (
     <div className="min-h-screen bg-white text-gray-900 flex flex-col">
