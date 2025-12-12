@@ -6,7 +6,7 @@ import { Toaster } from "react-hot-toast";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import { useUserStore } from "./stores/useUserStore";
-import { useCollectionStore } from "./stores/useCollectionStore"; // ✅ 1. Import Store
+import { useCollectionStore } from "./stores/useCollectionStore";
 import { useEffect } from "react";
 import LoadingSpinner from "./components/LoadingSpinner";
 import AdminPage from "./pages/AdminPage";
@@ -20,18 +20,14 @@ import ScrollToTop from "./components/ScrollToTop";
 import PrivacyPage from "./pages/PrivacyPage.jsx";
 
 function App() {
-  const { user, checkAuth, checkingAuth } = useUserStore();
+  const { user, checkAuth } = useUserStore(); // ⚠️ Đã bỏ checkingAuth ở đây
   const { getCartItems } = useCartStore();
-  
-  // ✅ 2. Lấy trạng thái loading và hàm fetch từ Collection Store
-  // Đổi tên isLoading thành isCollectionLoading để tránh nhầm lẫn nếu cần
   const { fetchCollections, isLoading: isCollectionLoading } = useCollectionStore();
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
 
-  // ✅ 3. Gọi fetchCollections ngay khi App chạy
   useEffect(() => {
     fetchCollections();
   }, [fetchCollections]);
@@ -41,8 +37,10 @@ function App() {
     getCartItems();
   }, [getCartItems, user]);
 
-  // ✅ 4. Điều kiện mới: Chỉ tắt loading khi CẢ Auth VÀ Collection đều đã tải xong
-  if (checkingAuth || isCollectionLoading) return <LoadingSpinner />;
+  // ✅ SỬA LẠI: Chỉ hiển thị Loading Spinner khi đang tải Collections
+  // Việc kiểm tra Auth (checkAuth) sẽ chạy ngầm (background).
+  // Nếu mạng lag hoặc lỗi 401, trang web vẫn hiện ra cho khách xem bình thường.
+  if (isCollectionLoading) return <LoadingSpinner />;
 
   return (
     <div className="min-h-screen bg-white text-gray-900 flex flex-col">
@@ -62,6 +60,7 @@ function App() {
           <Route
             path="/secret-dashboard"
             element={
+              // Logic bảo vệ route này vẫn an toàn, vì nếu user chưa load xong thì user là null -> chuyển về login
               (user?.role === "admin" || user?.role === "controller") ? <AdminPage /> : <Navigate to="/login" />
             }
           />
