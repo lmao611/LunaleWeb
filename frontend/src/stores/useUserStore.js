@@ -12,7 +12,6 @@ export const useUserStore = create((set, get) => ({
 
   setUser: (updatedUser) => {
     set({ user: updatedUser });
-    window.dispatchEvent(new Event("user-logged-in"));
   },
 
   signup: async ({ name, email, password, confirmPassword }) => {
@@ -24,11 +23,10 @@ export const useUserStore = create((set, get) => ({
     try {
       const res = await axios.post("/auth/signup", { name, email, password });
       
-      // LƯU TOKEN
       if (res.data.accessToken) localStorage.setItem("accessToken", res.data.accessToken);
       
       set({ user: res.data.user, loading: false });
-      window.dispatchEvent(new Event("user-logged-in"));
+      toast.success("Đăng ký thành công");
     } catch (error) {
       set({ loading: false });
       return toast.error(error.response?.data?.message || "Lỗi xảy ra");
@@ -40,11 +38,10 @@ export const useUserStore = create((set, get) => ({
     try {
       const res = await axios.post("/auth/login", { email, password });
       
-      // LƯU TOKEN
       if (res.data.accessToken) localStorage.setItem("accessToken", res.data.accessToken);
 
       set({ user: res.data.user, loading: false });
-      window.dispatchEvent(new Event("user-logged-in"));
+      toast.success("Đăng nhập thành công");
     } catch (error) {
       set({ loading: false });
       return toast.error(error.response?.data?.message || "Lỗi xảy ra");
@@ -54,7 +51,6 @@ export const useUserStore = create((set, get) => ({
   logout: async () => {
     try {
       await axios.post("/auth/logout");
-      // XÓA TOKEN
       localStorage.removeItem("accessToken");
       set({ user: null });
     } catch (error) {
@@ -69,15 +65,12 @@ export const useUserStore = create((set, get) => ({
       set({ user: response.data, checkingAuth: false });
     } catch (error) {
       set({ checkingAuth: false, user: null });
-      // Nếu checkAuth lỗi (token hết hạn), thử xóa để sạch sẽ
-      // localStorage.removeItem("accessToken"); 
     }
   },
 
   refreshToken: async () => {
     try {
       const res = await axios.post("/auth/refresh-token");
-      // CẬP NHẬT TOKEN MỚI
       if (res.data.accessToken) {
         localStorage.setItem("accessToken", res.data.accessToken);
       }
@@ -90,7 +83,6 @@ export const useUserStore = create((set, get) => ({
   },
 }));
 
-// --- Axios Interceptor cho Refresh Token ---
 let refreshPromise = null;
 
 axios.interceptors.response.use(
@@ -104,7 +96,6 @@ axios.interceptors.response.use(
       try {
         if (refreshPromise) {
           await refreshPromise;
-          // Sau khi refresh xong, cập nhật header cho request đang đợi
           originalRequest.headers.Authorization = `Bearer ${localStorage.getItem("accessToken")}`;
           return axios(originalRequest);
         }
@@ -113,7 +104,6 @@ axios.interceptors.response.use(
         await refreshPromise;
         refreshPromise = null;
         
-        // Cập nhật header cho request đang bị lỗi
         originalRequest.headers.Authorization = `Bearer ${localStorage.getItem("accessToken")}`;
         return axios(originalRequest);
       } catch (refreshError) {
@@ -124,7 +114,3 @@ axios.interceptors.response.use(
     return Promise.reject(error);
   }
 );
-
-window.addEventListener("user-logged-in", () => {
-  useUserStore.getState().checkAuth();
-});
