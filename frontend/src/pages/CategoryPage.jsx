@@ -20,11 +20,15 @@ const CategoryPage = () => {
     load();
   }, [fetchProductsByCategory, category]);
 
-  const totalCards = products?.length || 0;
+  // 🔥 THÊM ĐOẠN NÀY: Lọc bỏ các sản phẩm đang Sale
+  const filteredProducts = products?.filter((product) => !product.isSale) || [];
+
+  // 👇 Cập nhật các biến dưới đây để dùng filteredProducts thay vì products
+  const totalCards = filteredProducts.length;
   const totalPages = Math.ceil(totalCards / cardsPerPage);
   const startIndex = (currentPage - 1) * cardsPerPage;
   const endIndex = startIndex + cardsPerPage;
-  const currentCards = products?.slice(startIndex, endIndex) || [];
+  const currentCards = filteredProducts.slice(startIndex, endIndex);
 
   const goToPage = (page) => {
     if (page < 1 || page > totalPages) return;
@@ -37,7 +41,7 @@ const CategoryPage = () => {
     shirt: "Áo Nữ",
     skirt: "Chân Váy",
     set: "Đồ Bộ",
-    feedback:"Feedback"
+    feedback: "Feedback",
   };
   const displayTitle =
     categoryTitles[category] ||
@@ -71,6 +75,8 @@ const CategoryPage = () => {
             Đang tải sản phẩm...
           </h2>
         )}
+        
+        {/* Cập nhật điều kiện hiển thị thông báo chưa có sản phẩm */}
         {!loading && totalCards === 0 && (
           <h2 className="text-center text-gray-500 text-xl mb-10">
             Chưa có sản phẩm
