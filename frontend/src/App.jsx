@@ -6,8 +6,7 @@ import { Toaster } from "react-hot-toast";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import { useUserStore } from "./stores/useUserStore";
-import { useCollectionStore } from "./stores/useCollectionStore";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import LoadingSpinner from "./components/LoadingSpinner";
 import AdminPage from "./pages/AdminPage";
 import CategoryPage from "./pages/CategoryPage";
@@ -20,27 +19,28 @@ import ScrollToTop from "./components/ScrollToTop";
 import PrivacyPage from "./pages/PrivacyPage.jsx";
 
 function App() {
-  const { user, checkAuth } = useUserStore(); // ⚠️ Đã bỏ checkingAuth ở đây
+  const { user, checkAuth, checkingAuth } = useUserStore();
   const { getCartItems } = useCartStore();
-  const { fetchCollections, isLoading: isCollectionLoading } = useCollectionStore();
+  const [isForceLoadingDone, setIsForceLoadingDone] = useState(false);
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
 
   useEffect(() => {
-    fetchCollections();
-  }, [fetchCollections]);
+    const timer = setTimeout(() => {
+      setIsForceLoadingDone(true);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (!user) return;
     getCartItems();
   }, [getCartItems, user]);
 
-  // ✅ SỬA LẠI: Chỉ hiển thị Loading Spinner khi đang tải Collections
-  // Việc kiểm tra Auth (checkAuth) sẽ chạy ngầm (background).
-  // Nếu mạng lag hoặc lỗi 401, trang web vẫn hiện ra cho khách xem bình thường.
-  if (isCollectionLoading) return <LoadingSpinner />;
+  if (checkingAuth && !isForceLoadingDone) return <LoadingSpinner />;
 
   return (
     <div className="min-h-screen bg-white text-gray-900 flex flex-col">
@@ -60,7 +60,6 @@ function App() {
           <Route
             path="/secret-dashboard"
             element={
-              // Logic bảo vệ route này vẫn an toàn, vì nếu user chưa load xong thì user là null -> chuyển về login
               (user?.role === "admin" || user?.role === "controller") ? <AdminPage /> : <Navigate to="/login" />
             }
           />
