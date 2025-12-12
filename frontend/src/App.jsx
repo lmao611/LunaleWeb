@@ -18,19 +18,34 @@ import PolicyPage from "./pages/PolicyPage";
 import ScrollToTop from "./components/ScrollToTop";
 import PrivacyPage from "./pages/PrivacyPage.jsx";
 
+// ✅ 1. Import thêm 2 store này để gọi hàm fetch
+import { useCollectionStore } from "./stores/useCollectionStore";
+import { useProductStore } from "./stores/useProductStore";
+
 function App() {
   const { user, checkAuth, checkingAuth } = useUserStore();
   const { getCartItems } = useCartStore();
+  
+  // ✅ 2. Lấy hàm fetch ra
+  const { fetchCollections } = useCollectionStore();
+  const { fetchFeaturedProducts } = useProductStore();
+
   const [isForceLoadingDone, setIsForceLoadingDone] = useState(false);
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
 
+  // ✅ 3. Gọi API ngay lập tức (Chạy ngầm trong lúc màn hình đang Loading 3s)
+  useEffect(() => {
+    fetchCollections();
+    fetchFeaturedProducts();
+  }, [fetchCollections, fetchFeaturedProducts]);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsForceLoadingDone(true);
-    }, 3000);
+    }, 3000); // Vẫn giữ 3 giây loading như bạn muốn
 
     return () => clearTimeout(timer);
   }, []);
@@ -40,6 +55,7 @@ function App() {
     getCartItems();
   }, [getCartItems, user]);
 
+  // Vẫn giữ nguyên logic chặn trang cũ của bạn
   if (checkingAuth && !isForceLoadingDone) return <LoadingSpinner />;
 
   return (
@@ -60,7 +76,7 @@ function App() {
           <Route
             path="/secret-dashboard"
             element={
-              (user?.role === "admin" || user?.role === "controller")? <AdminPage /> : <Navigate to="/login" />
+              (user?.role === "admin" || user?.role === "controller") ? <AdminPage /> : <Navigate to="/login" />
             }
           />
           <Route path="/category/:category" element={<CategoryPage />} />
