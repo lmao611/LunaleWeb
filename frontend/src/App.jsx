@@ -6,8 +6,7 @@ import { Toaster } from "react-hot-toast";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import { useUserStore } from "./stores/useUserStore";
-import { useCollectionStore } from "./stores/useCollectionStore";
-import { useEffect, useState } from "react"; // ✅ Thêm useState
+import { useEffect, useState } from "react";
 import LoadingSpinner from "./components/LoadingSpinner";
 import AdminPage from "./pages/AdminPage";
 import CategoryPage from "./pages/CategoryPage";
@@ -20,45 +19,28 @@ import ScrollToTop from "./components/ScrollToTop";
 import PrivacyPage from "./pages/PrivacyPage.jsx";
 
 function App() {
-  const { user, checkAuth } = useUserStore();
+  const { user, checkAuth, checkingAuth } = useUserStore();
   const { getCartItems } = useCartStore();
-  
-  // Lấy trạng thái từ Store
-  const { fetchCollections, isLoading: isCollectionLoading } = useCollectionStore();
-
-  // ✅ 1. Thêm biến đếm thời gian an toàn
-  const [isTimeout, setIsTimeout] = useState(false);
+  const [isForceLoadingDone, setIsForceLoadingDone] = useState(false);
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
 
   useEffect(() => {
-    fetchCollections();
-  }, [fetchCollections]);
-
-  // ✅ 2. Logic Timeout: Sau 3 giây, ép biến isTimeout thành true
-  useEffect(() => {
     const timer = setTimeout(() => {
-      setIsTimeout(true);
-      if (isCollectionLoading) {
-        console.warn("⚠️ Mạng chậm quá, ép tắt Loading để vào trang chủ.");
-      }
-    }, 3000); // 3000ms = 3 giây
+      setIsForceLoadingDone(true);
+    }, 1000);
 
     return () => clearTimeout(timer);
-  }, [isCollectionLoading]);
+  }, []);
 
   useEffect(() => {
     if (!user) return;
     getCartItems();
   }, [getCartItems, user]);
 
-  // ✅ 3. ĐIỀU KIỆN CHẶN TRANG MỚI:
-  // Chỉ hiện Loading Spinner KHI:
-  // - Đang tải Collection (isCollectionLoading = true)
-  // - VÀ Chưa hết thời gian chờ (isTimeout = false)
-  if (isCollectionLoading && !isTimeout) return <LoadingSpinner />;
+  if (checkingAuth && !isForceLoadingDone) return <LoadingSpinner />;
 
   return (
     <div className="min-h-screen bg-white text-gray-900 flex flex-col">
@@ -78,7 +60,7 @@ function App() {
           <Route
             path="/secret-dashboard"
             element={
-              (user?.role === "admin" || user?.role === "controller") ? <AdminPage /> : <Navigate to="/login" />
+              (user?.role === "admin" || user?.role === "controller")? <AdminPage /> : <Navigate to="/login" />
             }
           />
           <Route path="/category/:category" element={<CategoryPage />} />
