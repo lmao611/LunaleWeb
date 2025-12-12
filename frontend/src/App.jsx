@@ -30,7 +30,7 @@ function App() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsForceLoadingDone(true);
-    }, 10000);
+    }, 20000);
 
     return () => clearTimeout(timer);
   }, []);
