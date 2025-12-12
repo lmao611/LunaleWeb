@@ -32,82 +32,95 @@ const HomePage = () => {
     fetchBanner();
   }, [fetchFeaturedProducts, fetchCollections]);
 
-  const specialCollection = collections.find(c => c.isSpecial === true);
+  // ✅ SỬA ĐỔI QUAN TRỌNG:
+  // Thay vì find (lấy 1 cái), ta dùng filter để lấy TẤT CẢ những cái là special
+  const specialCollections = collections.filter(c => c.isSpecial === true);
   const regularCollections = collections.filter(c => !c.isSpecial);
 
-  // ✅ Hàm render Special Collection
-  const renderSpecialCollection = (position) => {
-    if (!specialCollection || specialCollection.specialPosition !== position) return null;
+  // ✅ Hàm render danh sách Special Collection theo vị trí
+  const renderSpecialCollectionsByPosition = (position) => {
+    // Lọc ra những collection thuộc vị trí đang render (ví dụ: chỉ lấy những cái "below_banner")
+    const targetCollections = specialCollections.filter(c => c.specialPosition === position);
 
-    const isFullSize = specialCollection.isFullSize;
-    const containerStyle = isFullSize 
-      ? { width: "100%", height: "auto" } 
-      : { width: "100%", maxWidth: "500px", height: `${specialCollection.displayHeight || 500}px` };
-    
-    const mediaClass = isFullSize 
-        ? "w-full h-auto object-contain"
-        : "w-full h-full object-cover";
+    if (targetCollections.length === 0) return null;
 
     return (
-      <motion.div 
-        className="w-full flex flex-col items-center justify-center text-center my-20 px-4"
-        initial={{ opacity: 0, scale: 0.95 }}
-        whileInView={{ opacity: 1, scale: 1 }}
-        viewport={{ once: true, margin: "-100px" }}
-        transition={{ duration: 0.8 }}
-      >
-         {/* ✅ Kiểm tra hideName */}
-         {!specialCollection.hideName && (
-             <motion.h2 
-                className="text-4xl md:text-6xl font-extrabold mb-6 tracking-tight"
-                style={{
-                    backgroundImage: `linear-gradient(to right, ${specialCollection.gradientFrom}, ${specialCollection.gradientTo})`,
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                }}
-             >
-               {specialCollection.name}
-             </motion.h2>
-         )}
-         
-         {/* ✅ Kiểm tra hideDescription */}
-         {!specialCollection.hideDescription && (
-             <p className="text-gray-600 text-lg md:text-xl max-w-3xl mb-10 leading-relaxed">
-               {specialCollection.description}
-             </p>
-         )}
+      <div className="flex flex-col gap-20 my-20">
+        {targetCollections.map((col) => {
+           // Logic style cho từng collection
+           const isFullSize = col.isFullSize;
+           const containerStyle = isFullSize 
+             ? { width: "100%", height: "auto" } 
+             : { width: "100%", maxWidth: "500px", height: `${col.displayHeight || 500}px` };
+           
+           const mediaClass = isFullSize 
+               ? "w-full h-auto object-contain"
+               : "w-full h-full object-cover";
 
-         <Link to={`/collection/${specialCollection._id}`} className="block group w-full flex justify-center">
-            <motion.div
-                whileHover={{ scale: 1.01, boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)" }}
-                className={`rounded-3xl overflow-hidden shadow-2xl relative bg-gray-100 ${isFullSize ? 'max-w-7xl' : ''}`}
-                style={containerStyle}
-            >
-                {specialCollection.coverMedia?.type === "video" ? (
-                    <video
-                        src={specialCollection.coverMedia.url}
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
-                        className={mediaClass}
-                    />
-                ) : (
-                    <img
-                        src={specialCollection.coverMedia?.url}
-                        alt={specialCollection.name}
-                        className={mediaClass}
-                    />
+           return (
+             <motion.div 
+               key={col._id}
+               className="w-full flex flex-col items-center justify-center text-center px-4"
+               initial={{ opacity: 0, scale: 0.95 }}
+               whileInView={{ opacity: 1, scale: 1 }}
+               viewport={{ once: true, margin: "-100px" }}
+               transition={{ duration: 0.8 }}
+             >
+                {/* Check hideName */}
+                {!col.hideName && (
+                    <motion.h2 
+                       className="text-4xl md:text-6xl font-extrabold mb-6 tracking-tight"
+                       style={{
+                           backgroundImage: `linear-gradient(to right, ${col.gradientFrom}, ${col.gradientTo})`,
+                           WebkitBackgroundClip: "text",
+                           WebkitTextFillColor: "transparent",
+                       }}
+                    >
+                      {col.name}
+                    </motion.h2>
                 )}
                 
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-                
-                <div className="absolute bottom-8 left-0 right-0 text-white font-medium tracking-widest text-lg uppercase pointer-events-none">
-                    Xem Ngay
-                </div>
-            </motion.div>
-         </Link>
-      </motion.div>
+                {/* Check hideDescription */}
+                {!col.hideDescription && (
+                    <p className="text-gray-600 text-lg md:text-xl max-w-3xl mb-10 leading-relaxed">
+                      {col.description}
+                    </p>
+                )}
+
+                <Link to={`/collection/${col._id}`} className="block group w-full flex justify-center">
+                   <motion.div
+                       whileHover={{ scale: 1.01, boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)" }}
+                       className={`rounded-3xl overflow-hidden shadow-2xl relative bg-gray-100 ${isFullSize ? 'max-w-7xl' : ''}`}
+                       style={containerStyle}
+                   >
+                       {col.coverMedia?.type === "video" ? (
+                           <video
+                               src={col.coverMedia.url}
+                               autoPlay
+                               muted
+                               loop
+                               playsInline
+                               className={mediaClass}
+                           />
+                       ) : (
+                           <img
+                               src={col.coverMedia?.url}
+                               alt={col.name}
+                               className={mediaClass}
+                           />
+                       )}
+                       
+                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                       
+                       <div className="absolute bottom-8 left-0 right-0 text-white font-medium tracking-widest text-lg uppercase pointer-events-none">
+                           Xem Ngay
+                       </div>
+                   </motion.div>
+                </Link>
+             </motion.div>
+           );
+        })}
+      </div>
     );
   };
 
@@ -134,7 +147,8 @@ const HomePage = () => {
 
       <main id="homepage-content" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         
-        {renderSpecialCollection("below_banner")}
+        {/* VỊ TRÍ 1: Các collection được chọn là "below_banner" */}
+        {renderSpecialCollectionsByPosition("below_banner")}
 
         <h1 className="text-center sm:text-3xl font-bold text-blue-990 mb-8 pt-10">
           SHOP NOW
@@ -146,14 +160,17 @@ const HomePage = () => {
           ))}
         </div>
 
-        {renderSpecialCollection("below_categories")}
+        {/* VỊ TRÍ 2: Các collection được chọn là "below_categories" */}
+        {renderSpecialCollectionsByPosition("below_categories")}
 
         {!loadingProducts && Array.isArray(products) && products.length > 0 && (
           <FeaturedProducts featuredProducts={products} />
         )}
         
-        {renderSpecialCollection("below_featured")}
+        {/* VỊ TRÍ 3: Các collection được chọn là "below_featured" */}
+        {renderSpecialCollectionsByPosition("below_featured")}
 
+        {/* Các collection thường (không tick special) */}
         <CollectionsSection collections={regularCollections} />
       </main>
     </div>
