@@ -135,7 +135,7 @@ export const login = async (req, res) => {
                 },
             });
         } else {
-            res.status(401).json({ message: "Invalid email or password" });
+            res.status(401).json({ message: "Mật khẩu hoặc tên tài khoản không đúng" });
         }
     } catch (error) {
         console.log("Error in login controller:", error.message);
