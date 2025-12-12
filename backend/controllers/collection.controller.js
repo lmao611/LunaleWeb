@@ -23,10 +23,11 @@ export const getCollectionById = async (req, res) => {
 
 export const createCollection = async (req, res) => {
   try {
-    // ✅ CẬP NHẬT: Lấy thêm hideName và hideDescription
     const { 
       name, description, coverMedia, gradientFrom, gradientTo, 
-      isSpecial, specialPosition, isFullSize, displayHeight,
+      isSpecial, specialPosition, 
+      // ✅ Nhận 4 tham số mới
+      desktopWidth, desktopHeight, mobileWidth, mobileHeight, 
       hideName, hideDescription
     } = req.body;
 
@@ -38,9 +39,13 @@ export const createCollection = async (req, res) => {
       gradientTo: gradientTo || "#06b6d4",
       isSpecial: isSpecial || false,
       specialPosition: specialPosition || "below_banner",
-      isFullSize: isFullSize || false,
-      displayHeight: displayHeight || 500,
-      // ✅ Lưu config ẩn hiện
+      
+      // ✅ Lưu vào DB (có fallback value)
+      desktopWidth: desktopWidth || 100,
+      desktopHeight: desktopHeight || 600,
+      mobileWidth: mobileWidth || 100,
+      mobileHeight: mobileHeight || 400,
+
       hideName: hideName || false,
       hideDescription: hideDescription || false,
       products: [],
@@ -52,7 +57,6 @@ export const createCollection = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
 export const deleteCollection = async (req, res) => {
   try {
     await Collection.findByIdAndDelete(req.params.id);

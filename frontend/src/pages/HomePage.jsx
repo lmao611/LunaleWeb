@@ -16,19 +16,11 @@ const categories = [
 ];
 
 const HomePage = () => {
-  // ✅ Chỉ lấy dữ liệu (products), KHÔNG lấy hàm fetch nữa
   const { products, isLoading: loadingProducts } = useProductStore();
-  
-  // ✅ Chỉ lấy dữ liệu (collections), KHÔNG lấy hàm fetch nữa
-  const { collections, isLoading: loadingCols } = useCollectionStore();
-  
+  const { collections } = useCollectionStore();
   const [bannerUrl, setBannerUrl] = useState("");
 
   useEffect(() => {
-    // ❌ ĐÃ XÓA: fetchFeaturedProducts(); (Vì App.jsx đã gọi rồi)
-    // ❌ ĐÃ XÓA: fetchCollections();      (Vì App.jsx đã gọi rồi)
-
-    // Chỉ giữ lại cái fetch Banner vì nó nằm cục bộ ở HomePage
     const fetchBanner = async () => {
       try {
         const res = await axios.get("/banner");
@@ -36,15 +28,12 @@ const HomePage = () => {
       } catch (err) { console.error(err.message); }
     };
     fetchBanner();
-  }, []); // Bỏ dependency array vì không còn gọi hàm fetch nào từ props
-
+  }, []);
 
   const specialCollections = collections.filter(c => c.isSpecial === true);
   const regularCollections = collections.filter(c => !c.isSpecial);
 
-
   const renderSpecialCollectionsByPosition = (position) => {
-
     const targetCollections = specialCollections.filter(c => c.specialPosition === position);
 
     if (targetCollections.length === 0) return null;
@@ -52,29 +41,27 @@ const HomePage = () => {
     return (
       <div className="flex flex-col gap-20 my-20">
         {targetCollections.map((col) => {
-           // Logic style cho từng collection
-           const isFullSize = col.isFullSize;
-           const containerStyle = isFullSize 
-             ? { width: "100%", height: "auto" } 
-             : { width: "100%", maxWidth: "500px", height: `${col.displayHeight || 500}px` };
-           
-           const mediaClass = isFullSize 
-               ? "w-full h-auto object-contain"
-               : "w-full h-full object-cover";
+           // ✅ Tạo style object chứa biến CSS
+           const dynamicStyles = {
+               "--mobile-w": `${col.mobileWidth || 100}%`,
+               "--mobile-h": `${col.mobileHeight || 400}px`,
+               "--desktop-w": `${col.desktopWidth || 100}%`,
+               "--desktop-h": `${col.desktopHeight || 600}px`,
+           };
 
            return (
              <motion.div 
                key={col._id}
-               className="w-full flex flex-col items-center justify-center text-center px-4"
+               className="w-full flex flex-col items-center justify-center text-center px-0 md:px-4"
                initial={{ opacity: 0, scale: 0.95 }}
                whileInView={{ opacity: 1, scale: 1 }}
                viewport={{ once: true, margin: "-100px" }}
                transition={{ duration: 0.8 }}
              >
-                {/* Check hideName */}
+                {/* Tên Collection */}
                 {!col.hideName && (
                     <motion.h2 
-                       className="text-4xl md:text-6xl font-extrabold mb-6 tracking-tight"
+                       className="text-4xl md:text-6xl font-extrabold mb-6 tracking-tight px-4"
                        style={{
                            backgroundImage: `linear-gradient(to right, ${col.gradientFrom}, ${col.gradientTo})`,
                            WebkitBackgroundClip: "text",
@@ -85,18 +72,32 @@ const HomePage = () => {
                     </motion.h2>
                 )}
                 
-                {/* Check hideDescription */}
+                {/* Mô tả */}
                 {!col.hideDescription && (
-                    <p className="text-gray-600 text-lg md:text-xl max-w-3xl mb-10 leading-relaxed">
+                    <p className="text-gray-600 text-lg md:text-xl max-w-3xl mb-10 leading-relaxed px-4">
                       {col.description}
                     </p>
                 )}
 
-                <Link to={`/collection/${col._id}`} className="block group w-full flex justify-center">
+                <Link to={`/collection/${col._id}`} className="block group flex justify-center w-full">
+                   {/* ✅ KHUNG HÌNH CHÍNH
+                      Sử dụng Tailwind arbitrary values [] kết hợp với biến CSS đã khai báo ở trên
+                   */}
                    <motion.div
                        whileHover={{ scale: 1.01, boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)" }}
-                       className={`rounded-3xl overflow-hidden shadow-2xl relative bg-gray-100 ${isFullSize ? 'max-w-7xl' : ''}`}
-                       style={containerStyle}
+                       style={dynamicStyles}
+                       className="
+                         relative overflow-hidden shadow-2xl bg-gray-100
+                         rounded-none md:rounded-3xl
+                         
+                         /* Mobile First (Mặc định) */
+                         w-[var(--mobile-w)] 
+                         h-[var(--mobile-h)]
+                         
+                         /* Desktop (Màn hình từ md trở lên) */
+                         md:w-[var(--desktop-w)] 
+                         md:h-[var(--desktop-h)]
+                       "
                    >
                        {col.coverMedia?.type === "video" ? (
                            <video
@@ -105,19 +106,21 @@ const HomePage = () => {
                                muted
                                loop
                                playsInline
-                               className={mediaClass}
+                               className="w-full h-full object-cover"
                            />
                        ) : (
                            <img
                                src={col.coverMedia?.url}
                                alt={col.name}
-                               className={mediaClass}
+                               className="w-full h-full object-cover"
                            />
                        )}
                        
+                       {/* Overlay Gradient */}
                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
                        
-                       <div className="absolute bottom-8 left-0 right-0 text-white font-medium tracking-widest text-lg uppercase pointer-events-none">
+                       {/* Nút Xem Ngay */}
+                       <div className="absolute bottom-8 left-0 right-0 text-white font-medium tracking-widest text-lg uppercase pointer-events-none text-center">
                            Xem Ngay
                        </div>
                    </motion.div>
@@ -150,32 +153,26 @@ const HomePage = () => {
         </section>
       )}
 
-      <main id="homepage-content" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <main id="homepage-content" className="relative z-10 max-w-7xl mx-auto px-0 sm:px-6 lg:px-8 py-10">
         
-        {/* VỊ TRÍ 1: Các collection được chọn là "below_banner" */}
         {renderSpecialCollectionsByPosition("below_banner")}
 
-        <h1 className="text-center sm:text-3xl font-bold text-blue-990 mb-8 pt-10">
-          SHOP NOW
-        </h1>
+        <h1 className="text-center sm:text-3xl font-bold text-blue-990 mb-8 pt-10">SHOP NOW</h1>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mt-6 mb-16">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mt-6 mb-16 px-4">
           {categories.map((category) => (
             <CategoryItem category={category} key={category.name} />
           ))}
         </div>
 
-        {/* VỊ TRÍ 2: Các collection được chọn là "below_categories" */}
         {renderSpecialCollectionsByPosition("below_categories")}
 
         {!loadingProducts && Array.isArray(products) && products.length > 0 && (
           <FeaturedProducts featuredProducts={products} />
         )}
         
-        {/* VỊ TRÍ 3: Các collection được chọn là "below_featured" */}
         {renderSpecialCollectionsByPosition("below_featured")}
 
-        {/* Các collection thường (không tick special) */}
         <CollectionsSection collections={regularCollections} />
       </main>
     </div>
