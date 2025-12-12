@@ -91,7 +91,13 @@ axios.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // SỬA LỖI: Thêm điều kiện !originalRequest.url.includes("/auth/login")
+    // Nếu lỗi 401 đến từ API login thì KHÔNG refresh token (vì đó là sai pass)
+    if (
+      error.response?.status === 401 && 
+      !originalRequest._retry && 
+      !originalRequest.url.includes("/auth/login")
+    ) {
       originalRequest._retry = true;
 
       try {

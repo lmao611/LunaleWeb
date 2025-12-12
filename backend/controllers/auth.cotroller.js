@@ -4,7 +4,6 @@ import jwt from "jsonwebtoken";
 import fetch from "node-fetch";
 
 const generateTokens = (userId) => {
-    // Tăng thời hạn accessToken lên 1h để user đỡ phải refresh liên tục
     const accessToken = jwt.sign({ userId }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "1h" });
     const refreshToken = jwt.sign({ userId }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
     return { accessToken, refreshToken };
@@ -14,25 +13,27 @@ const storeRefreshToken = async (userId, refreshToken) => {
     await redis.set(`refresh_token:${userId}`, refreshToken, "EX", 7 * 24 * 60 * 60);
 };
 
-const setCookies = (res, accessToken, refreshToken) => {
-    // Trên Render production, bắt buộc phải là Secure + SameSite: 'none'
+// Tách options ra biến chung để dùng cho cả set và clear
+const getCookieOptions = () => {
     const isProduction = process.env.NODE_ENV === "production";
-
-    const cookieOptions = {
+    return {
         httpOnly: true,
-        secure: isProduction, 
+        secure: isProduction,
         sameSite: isProduction ? "none" : "lax",
         path: "/",
     };
+};
 
-    // Vẫn lưu cookie như một lớp bảo mật bổ sung (fallback)
+const setCookies = (res, accessToken, refreshToken) => {
+    const options = getCookieOptions();
+
     res.cookie("accessToken", accessToken, {
-        ...cookieOptions,
+        ...options,
         maxAge: 60 * 60 * 1000, // 1 hour
     });
 
     res.cookie("refreshToken", refreshToken, {
-        ...cookieOptions,
+        ...options,
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 };
@@ -65,7 +66,6 @@ export const facebookLogin = async (req, res) => {
         setCookies(res, jwtAccess, refreshToken);
 
         res.json({
-            // QUAN TRỌNG: Trả token về cho frontend lưu LocalStorage
             accessToken: jwtAccess,
             message: "Facebook login successful",
             user: {
@@ -96,7 +96,6 @@ export const signup = async (req, res) => {
         setCookies(res, accessToken, refreshToken);
 
         res.status(201).json({
-            // QUAN TRỌNG: Trả token về cho frontend lưu LocalStorage
             accessToken,
             user: {
                 _id: user._id,
@@ -125,7 +124,6 @@ export const login = async (req, res) => {
             setCookies(res, accessToken, refreshToken);
 
             res.json({
-                // QUAN TRỌNG: Trả token về cho frontend lưu LocalStorage
                 accessToken,
                 user: {
                     _id: user._id,
@@ -149,11 +147,19 @@ export const logout = async (req, res) => {
     try {
         const refreshToken = req.cookies.refreshToken;
         if (refreshToken) {
-            const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-            await redis.del(`refresh_token:${decoded.userId}`);
+            try {
+                const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+                await redis.del(`refresh_token:${decoded.userId}`);
+            } catch (err) {
+                console.log("Token invalid during logout, ignoring redis deletion");
+            }
         }
-        res.clearCookie("accessToken");
-        res.clearCookie("refreshToken");
+
+        // SỬA LỖI: Truyền options vào clearCookie để xóa sạch cookie cứng đầu
+        const options = getCookieOptions();
+        res.clearCookie("accessToken", options);
+        res.clearCookie("refreshToken", options);
+        
         res.json({ message: "Logged out successfully" });
     } catch (error) {
         console.log("Error in logout controller:", error.message);
@@ -179,16 +185,13 @@ export const refreshToken = async (req, res) => {
             { expiresIn: "15m" }
         );
 
-        // Set lại cookie mới (để giữ session cho cookie-based clients)
-        const isProduction = process.env.NODE_ENV === "production";
+        // Set lại cookie mới
+        const options = getCookieOptions();
         res.cookie("accessToken", accessToken, {
-            httpOnly: true,
-            secure: isProduction,
-            sameSite: isProduction ? "none" : "lax",
+            ...options,
             maxAge: 15 * 60 * 1000,
         });
 
-        // QUAN TRỌNG: Trả accessToken MỚI về body để frontend cập nhật LocalStorage và Header
         res.json({ message: "Token refreshed successfully", accessToken });
     } catch (error) {
         console.log("Error in refreshToken:", error.message);
