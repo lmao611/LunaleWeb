@@ -11,7 +11,6 @@ const collectionSchema = new mongoose.Schema(
     gradientFrom: { type: String, default: "#3b82f6" }, 
     gradientTo: { type: String, default: "#06b6d4" },
     
-    // --- Special Collection Config ---
     isSpecial: { type: Boolean, default: false },
     specialPosition: { 
       type: String, 
@@ -19,14 +18,16 @@ const collectionSchema = new mongoose.Schema(
       default: "below_banner" 
     },
 
-    // ✅ NEW: 4 Thông số kích thước tự do (Full Control)
-    desktopWidth: { type: Number, default: 100 },  // Đơn vị %
-    desktopHeight: { type: Number, default: 600 }, // Đơn vị px
-    
-    mobileWidth: { type: Number, default: 100 },   // Đơn vị %
-    mobileHeight: { type: Number, default: 400 },  // Đơn vị px
+    // ✅ CẬP NHẬT: Thêm chế độ Full Size & Scale chung
+    isFullSize: { type: Boolean, default: false }, // Chế độ ảnh gốc
+    generalScale: { type: Number, default: 100 },  // Size chung (%) cho chế độ Full Size
 
-    // Tùy chọn ẩn hiện thông tin
+    // Các thông số Custom (giữ nguyên cho chế độ thường)
+    desktopWidth: { type: Number, default: 100 },
+    desktopHeight: { type: Number, default: 600 },
+    mobileWidth: { type: Number, default: 100 },
+    mobileHeight: { type: Number, default: 400 },
+
     hideName: { type: Boolean, default: false },
     hideDescription: { type: Boolean, default: false },
 

@@ -23,28 +23,30 @@ export const getCollectionById = async (req, res) => {
 
 export const createCollection = async (req, res) => {
   try {
+    // ✅ CẬP NHẬT: Nhận thêm isFullSize và generalScale
     const { 
       name, description, coverMedia, gradientFrom, gradientTo, 
       isSpecial, specialPosition, 
-      // ✅ Nhận 4 tham số mới
       desktopWidth, desktopHeight, mobileWidth, mobileHeight, 
-      hideName, hideDescription
+      hideName, hideDescription,
+      isFullSize, generalScale // <--- MỚI
     } = req.body;
 
     const newCol = await Collection.create({
-      name,
-      description,
-      coverMedia,
+      name, description, coverMedia,
       gradientFrom: gradientFrom || "#3b82f6", 
       gradientTo: gradientTo || "#06b6d4",
       isSpecial: isSpecial || false,
       specialPosition: specialPosition || "below_banner",
       
-      // ✅ Lưu vào DB (có fallback value)
       desktopWidth: desktopWidth || 100,
       desktopHeight: desktopHeight || 600,
       mobileWidth: mobileWidth || 100,
       mobileHeight: mobileHeight || 400,
+
+      // ✅ Lưu cấu hình Full Size
+      isFullSize: isFullSize || false,
+      generalScale: generalScale || 100,
 
       hideName: hideName || false,
       hideDescription: hideDescription || false,
@@ -54,6 +56,24 @@ export const createCollection = async (req, res) => {
     res.status(201).json(newCol);
   } catch (err) {
     console.error("❌ Lỗi createCollection:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ✅ MỚI: Hàm Update Collection
+export const updateCollection = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updatedData = req.body;
+    
+    // Tìm và update, trả về dữ liệu mới (new: true)
+    const updatedCol = await Collection.findByIdAndUpdate(id, updatedData, { new: true });
+    
+    if (!updatedCol) return res.status(404).json({ message: "Not found" });
+    
+    res.json(updatedCol);
+  } catch (err) {
+    console.error("❌ Lỗi updateCollection:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
