@@ -23,37 +23,99 @@ const HomePage = () => {
   useEffect(() => {
     fetchFeaturedProducts();
     fetchCollections();
-
     const fetchBanner = async () => {
       try {
         const res = await axios.get("/banner");
         setBannerUrl(res.data.imageUrl);
-      } catch (err) {
-        console.error(err.message);
-      }
+      } catch (err) { console.error(err.message); }
     };
-
     fetchBanner();
   }, [fetchFeaturedProducts, fetchCollections]);
 
   const specialCollection = collections.find(c => c.isSpecial === true);
   const regularCollections = collections.filter(c => !c.isSpecial);
 
+  // ✅ Hàm render Special Collection với logic Full Size & Size Edit
+  const renderSpecialCollection = (position) => {
+    if (!specialCollection || specialCollection.specialPosition !== position) return null;
+
+    const isFullSize = specialCollection.isFullSize;
+    // Nếu FullSize thì width fill container, chiều cao auto. Nếu không thì dùng customHeight.
+    const containerStyle = isFullSize 
+      ? { width: "100%", height: "auto" } 
+      : { width: "100%", maxWidth: "500px", height: `${specialCollection.displayHeight || 500}px` };
+    
+    // Style cho ảnh/video
+    const mediaClass = isFullSize 
+        ? "w-full h-auto object-contain" // Full Size: Giữ nguyên tỉ lệ ảnh
+        : "w-full h-full object-cover";  // Normal: Cắt ảnh theo khung
+
+    return (
+      <motion.div 
+        className="w-full flex flex-col items-center justify-center text-center my-20 px-4"
+        initial={{ opacity: 0, scale: 0.95 }}
+        whileInView={{ opacity: 1, scale: 1 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.8 }}
+      >
+         <motion.h2 
+            className="text-4xl md:text-6xl font-extrabold mb-6 tracking-tight"
+            style={{
+                backgroundImage: `linear-gradient(to right, ${specialCollection.gradientFrom}, ${specialCollection.gradientTo})`,
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+            }}
+         >
+           {specialCollection.name}
+         </motion.h2>
+         
+         <p className="text-gray-600 text-lg md:text-xl max-w-3xl mb-10 leading-relaxed">
+           {specialCollection.description}
+         </p>
+
+         <Link to={`/collection/${specialCollection._id}`} className="block group w-full flex justify-center">
+            <motion.div
+                whileHover={{ scale: 1.01, boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)" }}
+                // ✅ Container chính: Dùng max-w-7xl để khớp bề ngang với FeaturedProducts
+                className={`rounded-3xl overflow-hidden shadow-2xl relative bg-gray-100 ${isFullSize ? 'max-w-7xl' : ''}`}
+                style={containerStyle}
+            >
+                {specialCollection.coverMedia?.type === "video" ? (
+                    <video
+                        src={specialCollection.coverMedia.url}
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                        className={mediaClass}
+                    />
+                ) : (
+                    <img
+                        src={specialCollection.coverMedia?.url}
+                        alt={specialCollection.name}
+                        className={mediaClass}
+                    />
+                )}
+                
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                
+                <div className="absolute bottom-8 left-0 right-0 text-white font-medium tracking-widest text-lg uppercase pointer-events-none">
+                    Xem Ngay
+                </div>
+            </motion.div>
+         </Link>
+      </motion.div>
+    );
+  };
+
   return (
     <div className="bg-white text-gray-800 overflow-x-hidden">
       {bannerUrl && (
         <section className="relative w-screen h-screen overflow-hidden">
-          <img
-            src={bannerUrl}
-            alt="Banner"
-            className="absolute inset-0 w-full h-full object-cover object-center"
-          />
+          <img src={bannerUrl} alt="Banner" className="absolute inset-0 w-full h-full object-cover object-center" />
           <div className="absolute inset-0 bg-black/10"></div>
-
           <div className="relative z-10 flex flex-col items-center justify-center h-full text-center pt-130">
-            <p className="text-white text-xl sm:text-2xl mb-10">
-              Khám phá bộ sưu tập mới
-            </p>
+            <p className="text-white text-xl sm:text-2xl mb-10">Khám phá bộ sưu tập mới</p>
             <button
               onClick={() => {
                 const nextSection = document.getElementById("homepage-content");
@@ -67,78 +129,28 @@ const HomePage = () => {
         </section>
       )}
 
-      <main
-        id="homepage-content"
-        className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20"
-      >
+      {/* ✅ Container chính max-w-7xl khớp với FeaturedProducts */}
+      <main id="homepage-content" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         
-        {specialCollection && (
-          <motion.div 
-            className="w-full flex flex-col items-center justify-center text-center mb-20"
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-          >
-             <motion.h2 
-                className="text-4xl md:text-6xl font-extrabold mb-6 tracking-tight"
-                style={{
-                    backgroundImage: `linear-gradient(to right, ${specialCollection.gradientFrom}, ${specialCollection.gradientTo})`,
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                }}
-             >
-               {specialCollection.name}
-             </motion.h2>
-             
-             <p className="text-gray-600 text-lg md:text-xl max-w-3xl mb-10 leading-relaxed">
-               {specialCollection.description}
-             </p>
+        {renderSpecialCollection("below_banner")}
 
-             <Link to={`/collection/${specialCollection._id}`} className="block">
-                <motion.div
-                    whileHover={{ scale: 1.02, boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)" }}
-                    className="rounded-3xl overflow-hidden shadow-2xl w-[90vw] max-w-[500px] aspect-[4/5] relative mx-auto"
-                >
-                    {specialCollection.coverMedia?.type === "video" ? (
-                        <video
-                        src={specialCollection.coverMedia.url}
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
-                        className="w-full h-full object-cover"
-                        />
-                    ) : (
-                        <img
-                        src={specialCollection.coverMedia?.url}
-                        alt={specialCollection.name}
-                        className="w-full h-full object-cover"
-                        />
-                    )}
-                    
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none"></div>
-                    <div className="absolute bottom-6 left-0 right-0 text-white font-medium tracking-wider pointer-events-none">
-                        XEM CHI TIẾT
-                    </div>
-                </motion.div>
-             </Link>
-          </motion.div>
-        )}
-
-        <h1 className="text-center sm:text-3xl font-bold text-blue-990 mb-8 border-t pt-10 border-gray-100">
+        <h1 className="text-center sm:text-3xl font-bold text-blue-990 mb-8 pt-10">
           SHOP NOW
         </h1>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mt-6 mb-16">
           {categories.map((category) => (
             <CategoryItem category={category} key={category.name} />
           ))}
         </div>
 
+        {renderSpecialCollection("below_categories")}
+
         {!loadingProducts && Array.isArray(products) && products.length > 0 && (
           <FeaturedProducts featuredProducts={products} />
         )}
+        
+        {renderSpecialCollection("below_featured")}
 
         <CollectionsSection collections={regularCollections} />
       </main>

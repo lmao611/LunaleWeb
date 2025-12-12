@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 
+// ✅ CẬP NHẬT: Nhận collections từ props thay vì tự fetch
 const CollectionsSection = ({ collections }) => {
   if (!Array.isArray(collections) || !collections.length) return null;
 
@@ -21,6 +22,7 @@ const CollectionsSection = ({ collections }) => {
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
         >
+          {/* Text Content */}
           <div className="flex-1 text-center px-4">
             <motion.h3
               whileHover={{ scale: 1.08 }}
@@ -49,6 +51,7 @@ const CollectionsSection = ({ collections }) => {
             </p>
           </div>
 
+          {/* Media Card */}
           <div className="flex-1 flex justify-center">
             <Link to={`/collection/${col._id}`}>
               <motion.div
@@ -56,9 +59,9 @@ const CollectionsSection = ({ collections }) => {
                 transition={{ type: "spring", stiffness: 200, damping: 15 }}
                 className="
                   rounded-3xl overflow-hidden shadow-2xl 
-                  w-[330px] h-[450px]
-                  sm:w-[320px] sm:h-[480px]
-                  md:w-[400px] md:h-[600px]
+                  w-[330px] h-[450px]          /* Mobile default */
+                  sm:w-[320px] sm:h-[480px]    /* Small screens */
+                  md:w-[400px] md:h-[600px]    /* Medium and up */
                   relative flex items-center justify-center bg-gray-200
                 "
               >
