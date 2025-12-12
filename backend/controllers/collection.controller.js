@@ -23,10 +23,11 @@ export const getCollectionById = async (req, res) => {
 
 export const createCollection = async (req, res) => {
   try {
-    // ✅ CẬP NHẬT: Lấy thêm isFullSize và displayHeight
+    // ✅ CẬP NHẬT: Lấy thêm hideName và hideDescription
     const { 
       name, description, coverMedia, gradientFrom, gradientTo, 
-      isSpecial, specialPosition, isFullSize, displayHeight 
+      isSpecial, specialPosition, isFullSize, displayHeight,
+      hideName, hideDescription
     } = req.body;
 
     const newCol = await Collection.create({
@@ -37,9 +38,11 @@ export const createCollection = async (req, res) => {
       gradientTo: gradientTo || "#06b6d4",
       isSpecial: isSpecial || false,
       specialPosition: specialPosition || "below_banner",
-      // ✅ Lưu config hiển thị mới
       isFullSize: isFullSize || false,
       displayHeight: displayHeight || 500,
+      // ✅ Lưu config ẩn hiện
+      hideName: hideName || false,
+      hideDescription: hideDescription || false,
       products: [],
     });
 

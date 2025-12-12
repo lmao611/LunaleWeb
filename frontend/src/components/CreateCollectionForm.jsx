@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { PlusCircle, Loader, Star, Layout, Maximize2, MoveVertical } from "lucide-react";
+import { PlusCircle, Loader, Star, Layout, Maximize2, MoveVertical, EyeOff } from "lucide-react";
 import { useCollectionStore } from "../stores/useCollectionStore";
 
 const CreateCollectionForm = () => {
@@ -13,7 +13,9 @@ const CreateCollectionForm = () => {
     isSpecial: false,
     specialPosition: "below_banner",
     isFullSize: false,
-    displayHeight: 500, // Default height
+    displayHeight: 500,
+    hideName: false,         // ✅ Mới
+    hideDescription: false,  // ✅ Mới
   });
   const [loading, setLoading] = useState(false);
   const { createCollection } = useCollectionStore();
@@ -44,6 +46,8 @@ const CreateCollectionForm = () => {
       specialPosition: newCollection.specialPosition,
       isFullSize: newCollection.isFullSize,
       displayHeight: newCollection.displayHeight,
+      hideName: newCollection.hideName,
+      hideDescription: newCollection.hideDescription,
     });
     // Reset form
     setNewCollection({
@@ -56,6 +60,8 @@ const CreateCollectionForm = () => {
       specialPosition: "below_banner",
       isFullSize: false,
       displayHeight: 500,
+      hideName: false,
+      hideDescription: false,
     });
     setLoading(false);
   };
@@ -138,7 +144,7 @@ const CreateCollectionForm = () => {
                 </div>
                 <div>
                     <span className="block text-sm font-bold text-gray-800">Đây là Special Collection?</span>
-                    <span className="block text-xs text-gray-500">Kích hoạt để tùy chỉnh vị trí và kích thước hiển thị.</span>
+                    <span className="block text-xs text-gray-500">Kích hoạt để tùy chỉnh vị trí, kích thước và hiển thị.</span>
                 </div>
             </div>
 
@@ -163,6 +169,30 @@ const CreateCollectionForm = () => {
                             <option value="below_categories">Dưới Danh mục</option>
                             <option value="below_featured">Dưới Sản phẩm nổi bật</option>
                         </select>
+                    </div>
+
+                    {/* ✅ Hide Name & Description Options */}
+                    <div className="flex flex-col gap-2">
+                        <label className="block text-xs font-semibold text-gray-600 flex items-center gap-1">
+                            <EyeOff size={14} /> Tùy chọn hiển thị:
+                        </label>
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2 cursor-pointer"
+                                onClick={() => setNewCollection({...newCollection, hideName: !newCollection.hideName})}>
+                                <div className={`w-4 h-4 rounded border flex items-center justify-center ${newCollection.hideName ? "bg-red-500 border-red-500" : "bg-white border-gray-400"}`}>
+                                    {newCollection.hideName && <EyeOff size={10} className="text-white" />}
+                                </div>
+                                <span className="text-sm text-gray-700">Dấu tên</span>
+                            </div>
+
+                            <div className="flex items-center gap-2 cursor-pointer"
+                                onClick={() => setNewCollection({...newCollection, hideDescription: !newCollection.hideDescription})}>
+                                <div className={`w-4 h-4 rounded border flex items-center justify-center ${newCollection.hideDescription ? "bg-red-500 border-red-500" : "bg-white border-gray-400"}`}>
+                                    {newCollection.hideDescription && <EyeOff size={10} className="text-white" />}
+                                </div>
+                                <span className="text-sm text-gray-700">Dấu mô tả</span>
+                            </div>
+                        </div>
                     </div>
 
                     {/* Full Size Toggle */}
@@ -209,10 +239,6 @@ const CreateCollectionForm = () => {
           </div>
         </div>
 
-        {/* ✅ LOGIC MỚI: 
-            Nếu KHÔNG phải Special -> Hiện input media ở đây.
-            Nếu LÀ Special -> Hiện input media ở cuối form (bên dưới đoạn này).
-        */}
         {!newCollection.isSpecial && <MediaInputSection />}
 
         {newCollection.isSpecial && (

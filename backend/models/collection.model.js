@@ -20,11 +20,15 @@ const collectionSchema = new mongoose.Schema(
       default: "below_banner" 
     },
 
-    // ✅ MỚI: Render chế độ Full Size (giữ tỉ lệ gốc, max-width theo container)
+    // Render chế độ Full Size (giữ tỉ lệ gốc, max-width theo container)
     isFullSize: { type: Boolean, default: false },
 
-    // ✅ MỚI: Size Edit - Tùy chỉnh chiều cao (pixel)
+    // Size Edit - Tùy chỉnh chiều cao (pixel)
     displayHeight: { type: Number, default: 500 }, 
+
+    // ✅ MỚI: Tùy chọn ẩn hiện thông tin
+    hideName: { type: Boolean, default: false },
+    hideDescription: { type: Boolean, default: false },
 
     products: [
       {

@@ -35,20 +35,18 @@ const HomePage = () => {
   const specialCollection = collections.find(c => c.isSpecial === true);
   const regularCollections = collections.filter(c => !c.isSpecial);
 
-  // ✅ Hàm render Special Collection với logic Full Size & Size Edit
+  // ✅ Hàm render Special Collection
   const renderSpecialCollection = (position) => {
     if (!specialCollection || specialCollection.specialPosition !== position) return null;
 
     const isFullSize = specialCollection.isFullSize;
-    // Nếu FullSize thì width fill container, chiều cao auto. Nếu không thì dùng customHeight.
     const containerStyle = isFullSize 
       ? { width: "100%", height: "auto" } 
       : { width: "100%", maxWidth: "500px", height: `${specialCollection.displayHeight || 500}px` };
     
-    // Style cho ảnh/video
     const mediaClass = isFullSize 
-        ? "w-full h-auto object-contain" // Full Size: Giữ nguyên tỉ lệ ảnh
-        : "w-full h-full object-cover";  // Normal: Cắt ảnh theo khung
+        ? "w-full h-auto object-contain"
+        : "w-full h-full object-cover";
 
     return (
       <motion.div 
@@ -58,25 +56,30 @@ const HomePage = () => {
         viewport={{ once: true, margin: "-100px" }}
         transition={{ duration: 0.8 }}
       >
-         <motion.h2 
-            className="text-4xl md:text-6xl font-extrabold mb-6 tracking-tight"
-            style={{
-                backgroundImage: `linear-gradient(to right, ${specialCollection.gradientFrom}, ${specialCollection.gradientTo})`,
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-            }}
-         >
-           {specialCollection.name}
-         </motion.h2>
+         {/* ✅ Kiểm tra hideName */}
+         {!specialCollection.hideName && (
+             <motion.h2 
+                className="text-4xl md:text-6xl font-extrabold mb-6 tracking-tight"
+                style={{
+                    backgroundImage: `linear-gradient(to right, ${specialCollection.gradientFrom}, ${specialCollection.gradientTo})`,
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                }}
+             >
+               {specialCollection.name}
+             </motion.h2>
+         )}
          
-         <p className="text-gray-600 text-lg md:text-xl max-w-3xl mb-10 leading-relaxed">
-           {specialCollection.description}
-         </p>
+         {/* ✅ Kiểm tra hideDescription */}
+         {!specialCollection.hideDescription && (
+             <p className="text-gray-600 text-lg md:text-xl max-w-3xl mb-10 leading-relaxed">
+               {specialCollection.description}
+             </p>
+         )}
 
          <Link to={`/collection/${specialCollection._id}`} className="block group w-full flex justify-center">
             <motion.div
                 whileHover={{ scale: 1.01, boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)" }}
-                // ✅ Container chính: Dùng max-w-7xl để khớp bề ngang với FeaturedProducts
                 className={`rounded-3xl overflow-hidden shadow-2xl relative bg-gray-100 ${isFullSize ? 'max-w-7xl' : ''}`}
                 style={containerStyle}
             >
@@ -129,7 +132,6 @@ const HomePage = () => {
         </section>
       )}
 
-      {/* ✅ Container chính max-w-7xl khớp với FeaturedProducts */}
       <main id="homepage-content" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         
         {renderSpecialCollection("below_banner")}
