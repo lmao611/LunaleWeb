@@ -16,13 +16,19 @@ const categories = [
 ];
 
 const HomePage = () => {
-  const { fetchFeaturedProducts, products, isLoading: loadingProducts } = useProductStore();
-  const { fetchCollections, collections, isLoading: loadingCols } = useCollectionStore();
+  // ✅ Chỉ lấy dữ liệu (products), KHÔNG lấy hàm fetch nữa
+  const { products, isLoading: loadingProducts } = useProductStore();
+  
+  // ✅ Chỉ lấy dữ liệu (collections), KHÔNG lấy hàm fetch nữa
+  const { collections, isLoading: loadingCols } = useCollectionStore();
+  
   const [bannerUrl, setBannerUrl] = useState("");
 
   useEffect(() => {
-    fetchFeaturedProducts();
-    fetchCollections();
+    // ❌ ĐÃ XÓA: fetchFeaturedProducts(); (Vì App.jsx đã gọi rồi)
+    // ❌ ĐÃ XÓA: fetchCollections();      (Vì App.jsx đã gọi rồi)
+
+    // Chỉ giữ lại cái fetch Banner vì nó nằm cục bộ ở HomePage
     const fetchBanner = async () => {
       try {
         const res = await axios.get("/banner");
@@ -30,7 +36,7 @@ const HomePage = () => {
       } catch (err) { console.error(err.message); }
     };
     fetchBanner();
-  }, [fetchFeaturedProducts, fetchCollections]);
+  }, []); // Bỏ dependency array vì không còn gọi hàm fetch nào từ props
 
 
   const specialCollections = collections.filter(c => c.isSpecial === true);
