@@ -8,6 +8,10 @@ const productSchema = new mongoose.Schema(
     image: { type: String, required: true },
     category: { type: String, required: true },
     isFeatured: { type: Boolean, default: false },
+    // Thêm các trường cho tính năng Sale
+    isSale: { type: Boolean, default: false },
+    salePercentage: { type: Number, default: 0 },
+    
     isPreOrder: {
       type: String,
       enum: ["None", "Pre-Order", "Hết hàng", "Số lượng còn ít"],

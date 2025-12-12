@@ -23,9 +23,18 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
     toast.success("Đã thêm vào giỏ hàng");
   };
 
-  // 🔹 Hiển thị giá
-  const vndDisplay =
-    product.price?.toLocaleString("vi-VN", { maximumFractionDigits: 0 }) + "đ";
+  // 🔹 Tính toán giá & Sale
+  const originalPrice = product.price || 0;
+  const isSale = product.isSale && product.salePercentage > 0;
+  
+  // Giá sau giảm
+  const discountedPrice = isSale 
+    ? originalPrice * (1 - product.salePercentage / 100) 
+    : originalPrice;
+
+  // Format tiền tệ
+  const originalPriceDisplay = originalPrice.toLocaleString("vi-VN", { maximumFractionDigits: 0 }) + "đ";
+  const discountedPriceDisplay = discountedPrice.toLocaleString("vi-VN", { maximumFractionDigits: 0 }) + "đ";
 
   // 🔹 Hiển thị trạng thái pre-order
   const getPreOrderLabel = (status) => {
@@ -110,7 +119,6 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
   // 🔹 FEEDBACK CARD
   // -------------------------------
   if (isFeedback) {
-    // 👇 Kiểm tra xem link feedback có phải link nội bộ không
     const isInternalLink = product.productLink && product.productLink.includes(window.location.origin);
     
     const CardContent = (
@@ -126,13 +134,20 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
             ref={glareRef}
             className="pointer-events-none absolute inset-0 rounded-xl z-20 transition-opacity duration-300"
           />
-          {preorderStatus && (
-            <span
-              className={`absolute top-2 right-2 z-30 text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-md ${preorderStatus.color}`}
-            >
-              {preorderStatus.label}
-            </span>
-          )}
+          {/* Badge Container */}
+          <div className="absolute top-2 right-2 z-30 flex flex-col items-end gap-1">
+             {isSale && (
+                <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-md">
+                   -{product.salePercentage}%
+                </span>
+             )}
+             {preorderStatus && (
+                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-md ${preorderStatus.color}`}>
+                   {preorderStatus.label}
+                </span>
+             )}
+          </div>
+
           <div className={`w-full overflow-hidden ${size.height}`}>
             <img
               src={product.image}
@@ -147,7 +162,6 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
         </div>
     );
 
-    // Nếu là link nội bộ (cùng domain) -> Dùng Link để không load lại trang
     if (isInternalLink) {
         const internalPath = product.productLink.replace(window.location.origin, "");
         return (
@@ -157,7 +171,6 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
         );
     }
 
-    // Nếu là link ngoài (Facebook, Instagram...) -> Dùng thẻ a
     return (
       <a
         href={product.productLink || "#"}
@@ -187,13 +200,23 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
         className="pointer-events-none absolute inset-0 rounded-xl z-20 transition-opacity duration-300"
       />
 
-      {preorderStatus && (
-        <span
-          className={`absolute top-2 right-2 z-30 text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-md opacity-70 ${preorderStatus.color}`}
-        >
-          {preorderStatus.label}
-        </span>
-      )}
+      {/* Badge Container */}
+      <div className="absolute top-2 right-2 z-30 flex flex-col items-end gap-1 pointer-events-none">
+         {/* Sale Badge */}
+         {isSale && (
+            <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-md">
+               -{product.salePercentage}%
+            </span>
+         )}
+         {/* Pre-order Badge */}
+         {preorderStatus && (
+            <span
+              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-md opacity-90 ${preorderStatus.color}`}
+            >
+              {preorderStatus.label}
+            </span>
+         )}
+      </div>
 
       <div className={`w-full overflow-hidden ${size.height}`}>
         <img
@@ -211,15 +234,25 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
         className={`absolute bottom-0 left-0 right-0
                     lg:translate-y-full lg:group-hover:translate-y-0
                     transition-transform duration-500 ease-in-out
-                    bg-gradient-to-t from-gray-900/80 to-gray-600/40 z-30
+                    bg-gradient-to-t from-gray-900/90 to-gray-600/50 z-30
                     ${size.infoPadding}`}
       >
         <h5 className="font-semibold text-white truncate text-sm">
           {product.name}
         </h5>
-        <div className="flex items-center justify-between mt-1">
-          <span className="text-white font-bold text-sm">{vndDisplay}</span>
+        
+        {/* Logic hiển thị giá */}
+        <div className="mt-1">
+          {isSale ? (
+             <div className="flex flex-col items-start leading-tight">
+                <span className="text-gray-300 text-xs line-through">{originalPriceDisplay}</span>
+                <span className="text-white font-bold text-lg">{discountedPriceDisplay}</span>
+             </div>
+          ) : (
+             <span className="text-white font-bold text-sm">{originalPriceDisplay}</span>
+          )}
         </div>
+
         <button
           className={`mt-2 flex items-center justify-center w-full rounded-md 
                       bg-gray-200 text-gray-950 hover:bg-gray-700 hover:text-white active:scale-95
@@ -236,7 +269,6 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
     </div>
   );
 
-  // ✅ Nếu disableLink === true → không bọc Link
   if (disableLink) {
     return <div className="group relative block">{DefaultCardContent}</div>;
   }

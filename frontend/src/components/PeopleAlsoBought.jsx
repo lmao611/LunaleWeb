@@ -9,7 +9,6 @@ const PeopleAlsoBought = ({ excludeIds = [] }) => {
 
   const productId = excludeIds[0];
 
-  // 🧠 Hàm lọc tuyệt đối, xử lý mọi lỗi dữ liệu
   const isFeedbackCategory = (category) => {
     if (!category || typeof category !== "string") return false;
     const clean = category.trim().toLowerCase();
@@ -28,8 +27,8 @@ const PeopleAlsoBought = ({ excludeIds = [] }) => {
 
         let products = Array.isArray(res.data) ? res.data : [];
 
-        // 🔥 Lọc tất cả feedback kể cả sai chữ, thừa khoảng trắng, null
-        products = products.filter((p) => !isFeedbackCategory(p.category));
+        // Lọc feedback và sản phẩm Sale
+        products = products.filter((p) => !isFeedbackCategory(p.category) && !p.isSale);
 
         // Nếu chưa đủ 8 sản phẩm → lấy thêm từ toàn bộ
         if (products.length < 8) {
@@ -42,7 +41,8 @@ const PeopleAlsoBought = ({ excludeIds = [] }) => {
             (p) =>
               !isFeedbackCategory(p.category) &&
               !excludeIds.includes(p._id) &&
-              !products.find((prod) => prod._id === p._id)
+              !products.find((prod) => prod._id === p._id) &&
+              !p.isSale // 🔥 Thêm điều kiện lọc sản phẩm Sale ở đây
           );
 
           // Xáo trộn và lấy tối đa 8
@@ -53,8 +53,7 @@ const PeopleAlsoBought = ({ excludeIds = [] }) => {
           products = [...products, ...extra];
         }
 
-        // Lọc lại lần cuối
-        products = products.filter((p) => !isFeedbackCategory(p.category));
+        products = products.filter((p) => !isFeedbackCategory(p.category) && !p.isSale);
 
         if (isMounted) setRecommendations(products.slice(0, 8));
       } catch (error) {

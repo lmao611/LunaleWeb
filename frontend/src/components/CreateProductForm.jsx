@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { PlusCircle, Upload, Loader, Images, Link as LinkIcon } from "lucide-react";
+import { PlusCircle, Upload, Loader, Images, Link as LinkIcon, Tag } from "lucide-react";
 import { useProductStore } from "../stores/useProductStore";
 
 const categories = [
@@ -19,6 +19,8 @@ const CreateProductForm = () => {
     image: "",
     thumbnails: [],
     productLink: "",
+    isSale: false,
+    salePercentage: "",
   });
 
   const { createProduct, loading } = useProductStore();
@@ -35,6 +37,8 @@ const CreateProductForm = () => {
         image: "",
         thumbnails: [],
         productLink: "",
+        isSale: false,
+        salePercentage: "",
       });
     } catch (error) {
       console.error("Lỗi khi tạo sản phẩm:", error);
@@ -197,6 +201,51 @@ const CreateProductForm = () => {
               />
             </div>
           </div>
+        )}
+
+        {/* Checkbox Sale */}
+        <div className="flex items-center space-x-3 bg-gray-50 p-3 rounded-md border border-gray-200">
+            <input
+              type="checkbox"
+              id="isSale"
+              checked={newProduct.isSale}
+              onChange={(e) => setNewProduct({...newProduct, isSale: e.target.checked})}
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <label htmlFor="isSale" className="flex items-center text-sm font-medium text-gray-700 select-none cursor-pointer">
+              <Tag className="w-4 h-4 mr-1 text-red-500" />
+              Đang giảm giá (Sale)
+            </label>
+        </div>
+
+        {/* Input Sale Percentage */}
+        {newProduct.isSale && (
+           <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            className="ml-7"
+           >
+              <label
+                htmlFor="salePercentage"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Phần trăm giảm (%)
+              </label>
+              <input
+                type="number"
+                id="salePercentage"
+                value={newProduct.salePercentage}
+                onChange={(e) =>
+                  setNewProduct({ ...newProduct, salePercentage: e.target.value })
+                }
+                min="1"
+                max="99"
+                placeholder="VD: 20"
+                className="mt-1 block w-1/3 border border-gray-300 rounded-md shadow-sm py-2 px-3 
+                text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                required={newProduct.isSale}
+              />
+           </motion.div>
         )}
 
         <div className="mt-1 flex items-center">

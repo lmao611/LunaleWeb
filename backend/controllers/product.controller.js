@@ -27,7 +27,6 @@ async function updateFeaturedProductsCache() {
 
 export const getAllProducts = async (req, res) => {
   try {
-    // Sắp xếp: Order nhỏ lên trước, nếu trùng Order thì mới nhất lên trước
     const products = await Product.find({}).sort({ order: 1, createdAt: -1 });
     res.json({ products });
   } catch (error) {
@@ -82,7 +81,8 @@ export const getFeaturedProducts = async (req, res) => {
 
 export const createProduct = async (req, res) => {
   try {
-    const { name, description, price, image, category, thumbnails, productLink, isPreOrder } = req.body;
+    // Nhận thêm isSale và salePercentage
+    const { name, description, price, image, category, thumbnails, productLink, isPreOrder, isSale, salePercentage } = req.body;
 
     let mainImageUrl = "";
     let thumbnailUrls = [];
@@ -108,7 +108,10 @@ export const createProduct = async (req, res) => {
       image: mainImageUrl,
       thumbnails: thumbnailUrls,
       isPreOrder: isPreOrder || "None",
-      order: 0, // Mặc định là 0
+      // Xử lý logic Sale
+      isSale: isSale || false,
+      salePercentage: isSale ? (salePercentage || 0) : 0,
+      order: 0,
       ...(category === "feedback" && { productLink }),
     };
 
@@ -123,7 +126,8 @@ export const createProduct = async (req, res) => {
 export const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, price, category, image, thumbnails, productLink, isPreOrder } = req.body;
+    // Nhận thêm isSale và salePercentage
+    const { name, description, price, category, image, thumbnails, productLink, isPreOrder, isSale, salePercentage } = req.body;
 
     const product = await Product.findById(id);
     if (!product) return res.status(404).json({ message: "Product not found" });
@@ -167,6 +171,9 @@ export const updateProduct = async (req, res) => {
         thumbnails: finalThumbnails,
         productLink,
         isPreOrder: isPreOrder || "None",
+        // Cập nhật logic Sale
+        isSale: isSale || false,
+        salePercentage: isSale ? (salePercentage || 0) : 0,
       },
       { new: true }
     );
@@ -236,7 +243,6 @@ export const togglePreOrderProduct = async (req, res) => {
 export const getProductsByCategory = async (req, res) => {
   try {
     const { category } = req.params;
-    // ✅ Thêm createdAt: -1 để giống logic với getAllProducts
     const products = await Product.find({ category }).sort({ order: 1, createdAt: -1 });
     res.json({ products });
   } catch (error) {
@@ -255,6 +261,7 @@ export const getRecommendedProducts = async (req, res) => {
         $match: {
           _id: { $nin: excluded },
           category: { $ne: "feedback" },
+          isSale: { $ne: true } // Lọc sản phẩm đang Sale
         },
       },
       { $sample: { size: 8 } },
@@ -268,6 +275,8 @@ export const getRecommendedProducts = async (req, res) => {
           price: 1,
           category: 1,
           isPreOrder: 1,
+          isSale: 1,
+          salePercentage: 1,
         },
       },
     ]);
