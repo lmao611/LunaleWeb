@@ -32,14 +32,13 @@ const HomePage = () => {
     fetchBanner();
   }, [fetchFeaturedProducts, fetchCollections]);
 
-  // ✅ SỬA ĐỔI QUAN TRỌNG:
-  // Thay vì find (lấy 1 cái), ta dùng filter để lấy TẤT CẢ những cái là special
+
   const specialCollections = collections.filter(c => c.isSpecial === true);
   const regularCollections = collections.filter(c => !c.isSpecial);
 
-  // ✅ Hàm render danh sách Special Collection theo vị trí
+
   const renderSpecialCollectionsByPosition = (position) => {
-    // Lọc ra những collection thuộc vị trí đang render (ví dụ: chỉ lấy những cái "below_banner")
+
     const targetCollections = specialCollections.filter(c => c.specialPosition === position);
 
     if (targetCollections.length === 0) return null;
