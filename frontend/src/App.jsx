@@ -18,34 +18,19 @@ import PolicyPage from "./pages/PolicyPage";
 import ScrollToTop from "./components/ScrollToTop";
 import PrivacyPage from "./pages/PrivacyPage.jsx";
 
-// ✅ 1. Import thêm các Store cần load sớm
-import { useCollectionStore } from "./stores/useCollectionStore";
-import { useProductStore } from "./stores/useProductStore";
-
 function App() {
   const { user, checkAuth, checkingAuth } = useUserStore();
   const { getCartItems } = useCartStore();
-  
-  // ✅ 2. Lấy hàm fetch ra đây
-  const { fetchCollections } = useCollectionStore();
-  const { fetchFeaturedProducts } = useProductStore();
-
   const [isForceLoadingDone, setIsForceLoadingDone] = useState(false);
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
 
-  // ✅ 3. Gọi API ngay khi App vừa chạy (Chạy ngầm trong lúc đang đếm giây)
-  useEffect(() => {
-    fetchCollections();      // Tải Collection
-    fetchFeaturedProducts(); // Tải sản phẩm nổi bật
-  }, [fetchCollections, fetchFeaturedProducts]);
-
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsForceLoadingDone(true);
-    }, 3000); // Giữ loading trong 3 giây
+    }, 3000);
 
     return () => clearTimeout(timer);
   }, []);
@@ -55,8 +40,7 @@ function App() {
     getCartItems();
   }, [getCartItems, user]);
 
-  // Điều kiện loading: Đợi check Auth xong VÀ đợi đủ 3 giây
-  if (checkingAuth || !isForceLoadingDone) return <LoadingSpinner />;
+  if (checkingAuth && !isForceLoadingDone) return <LoadingSpinner />;
 
   return (
     <div className="min-h-screen bg-white text-gray-900 flex flex-col">
@@ -76,7 +60,7 @@ function App() {
           <Route
             path="/secret-dashboard"
             element={
-              (user?.role === "admin" || user?.role === "controller") ? <AdminPage /> : <Navigate to="/login" />
+              (user?.role === "admin" || user?.role === "controller")? <AdminPage /> : <Navigate to="/login" />
             }
           />
           <Route path="/category/:category" element={<CategoryPage />} />
