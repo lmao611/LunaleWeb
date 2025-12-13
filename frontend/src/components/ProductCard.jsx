@@ -24,13 +24,15 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
   };
 
   // 🔹 Tính toán giá & Sale
-  const originalPrice = product.price || 0;
-  // Kiểm tra kỹ điều kiện Sale
-  const isSale = product.isSale === true && product.salePercentage > 0;
+  const originalPrice = Number(product.price) || 0;
+  const salePercentage = Number(product.salePercentage) || 0;
+  
+  // ✅ FIX: Kiểm tra điều kiện lỏng hơn để bắt được mọi trường hợp (true, 1, "true")
+  const isSale = product.isSale && salePercentage > 0;
   
   // Giá sau giảm
   const discountedPrice = isSale 
-    ? originalPrice * (1 - product.salePercentage / 100) 
+    ? originalPrice * (1 - salePercentage / 100) 
     : originalPrice;
 
   // Format tiền tệ
@@ -139,7 +141,7 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
           <div className="absolute top-2 right-2 z-30 flex flex-col items-end gap-1">
              {isSale && (
                 <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-md animate-in fade-in zoom-in">
-                   -{product.salePercentage}%
+                   -{salePercentage}%
                 </span>
              )}
              {preorderStatus && (
@@ -206,7 +208,7 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
          {/* ✅ SALE BADGE */}
          {isSale && (
             <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-md animate-in fade-in zoom-in border border-white/20">
-               -{product.salePercentage}%
+               -{salePercentage}%
             </span>
          )}
          {/* Pre-order Badge */}
