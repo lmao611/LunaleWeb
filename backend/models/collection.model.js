@@ -18,9 +18,11 @@ const collectionSchema = new mongoose.Schema(
       default: "below_banner" 
     },
 
-    isFullSize: { type: Boolean, default: false }, 
-    generalScale: { type: Number, default: 100 },  
+    // ✅ CẬP NHẬT: Thêm chế độ Full Size & Scale chung
+    isFullSize: { type: Boolean, default: false }, // Chế độ ảnh gốc
+    generalScale: { type: Number, default: 100 },  // Size chung (%) cho chế độ Full Size
 
+    // Các thông số Custom (giữ nguyên cho chế độ thường)
     desktopWidth: { type: Number, default: 100 },
     desktopHeight: { type: Number, default: 600 },
     mobileWidth: { type: Number, default: 100 },
@@ -29,19 +31,12 @@ const collectionSchema = new mongoose.Schema(
     hideName: { type: Boolean, default: false },
     hideDescription: { type: Boolean, default: false },
 
-    // ✅ CẬP NHẬT: Thêm đầy đủ các trường cần thiết cho Card
     products: [
       {
         _id: String, 
         name: String,
         image: String,
         price: Number,
-        // 👇 Thêm các dòng này
-        category: String,
-        isSale: { type: Boolean, default: false },
-        salePercentage: { type: Number, default: 0 },
-        isPreOrder: { type: String, default: "None" },
-        productLink: String,
       },
     ],
   },
