@@ -2,38 +2,47 @@ import { useParams, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import ProductCard from "../components/ProductCard";
-import axios from "../lib/axios"; // ✅ Import axios để gọi trực tiếp
+import { useCollectionStore } from "../stores/useCollectionStore"; // ✅ Dùng Store thay vì axios
 import LoadingSpinner from "../components/LoadingSpinner";
 
 const CollectionDetailPage = () => {
   const { id } = useParams();
   
-  // State cục bộ để lưu dữ liệu chi tiết (có products)
-  const [collection, setCollection] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // ✅ Lấy data từ Store
+  const { collections, fetchCollectionDetail } = useCollectionStore();
+  
+  // Tìm collection trong Store
+  const collection = collections.find((c) => c._id === id);
+
+  // ✅ Kiểm tra Cache: Đã có danh sách sản phẩm chưa?
+  // (Lưu ý: API list ở Home trả về products là undefined hoặc rỗng, API detail trả về mảng đầy đủ)
+  const isCached = collection && Array.isArray(collection.products) && collection.products.length > 0;
+  
+  // State loading cục bộ (chỉ hiện khi chưa có cache)
+  const [loading, setLoading] = useState(!isCached);
 
   const [currentPage, setCurrentPage] = useState(1);
   const cardsPerPage = 24;
 
-  // ✅ Fetch dữ liệu chi tiết mỗi khi vào trang
   useEffect(() => {
-    const fetchDetail = async () => {
-      setLoading(true);
-      try {
-        const res = await axios.get(`/collections/${id}`);
-        setCollection(res.data);
-      } catch (error) {
-        console.error("Failed to fetch collection detail:", error);
-      } finally {
+    const loadData = async () => {
+      // Nếu chưa có data chi tiết -> Gọi fetch
+      if (!isCached) {
+        setLoading(true);
+        await fetchCollectionDetail(id);
+        setLoading(false);
+      } else {
+        // Nếu có rồi -> Tắt loading ngay
         setLoading(false);
       }
     };
 
-    fetchDetail();
+    loadData();
     window.scrollTo(0, 0);
-  }, [id]);
+  }, [id, isCached, fetchCollectionDetail]);
 
-  if (loading)
+  // Nếu đang loading VÀ chưa có data nào để hiện thị thì mới hiện Spinner
+  if (loading && !collection)
     return (
       <div className="flex justify-center items-center h-[60vh]">
         <LoadingSpinner />
@@ -127,7 +136,7 @@ const CollectionDetailPage = () => {
           </div>
         ) : (
           <p className="text-center text-gray-500 italic">
-            Bộ sưu tầm này chưa có sản phẩm nào.
+            {loading ? "Đang tải sản phẩm..." : "Bộ sưu tầm này chưa có sản phẩm nào."}
           </p>
         )}
 

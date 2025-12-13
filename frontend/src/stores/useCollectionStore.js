@@ -4,14 +4,13 @@ import axios from "../lib/axios";
 export const useCollectionStore = create((set, get) => ({
   collections: [],
   isLoading: false,
-  
-  // ✅ STATE MỚI: Lưu collection đang được sửa
   editingCollection: null,
 
   setEditingCollection: (collection) => {
     set({ editingCollection: collection });
   },
 
+  // 1. Fetch danh sách nhẹ (cho Homepage)
   fetchCollections: async () => {
     set({ isLoading: true });
     try {
@@ -21,6 +20,36 @@ export const useCollectionStore = create((set, get) => ({
     } catch (err) {
       console.error("❌ Lỗi fetch collections:", err);
       set({ collections: [], isLoading: false });
+    }
+  },
+
+  // ✅ 2. HÀM MỚI: Fetch chi tiết và Cache vào Store
+  fetchCollectionDetail: async (id) => {
+    // Không set isLoading toàn cục để tránh làm nháy giao diện chỗ khác
+    try {
+      const res = await axios.get(`/collections/${id}`);
+      const detailData = res.data;
+
+      set((state) => {
+        // Kiểm tra xem collection này đã có trong list chưa
+        const exists = state.collections.find((c) => c._id === id);
+
+        if (exists) {
+          // Nếu có rồi -> Cập nhật thêm thông tin products vào nó
+          return {
+            collections: state.collections.map((c) =>
+              c._id === id ? detailData : c
+            ),
+          };
+        } else {
+          // Nếu chưa có (VD: User vào thẳng link detail) -> Thêm mới vào list
+          return {
+            collections: [...state.collections, detailData],
+          };
+        }
+      });
+    } catch (error) {
+      console.error("Lỗi fetch detail:", error);
     }
   },
 
@@ -34,13 +63,12 @@ export const useCollectionStore = create((set, get) => ({
     }
   },
 
-  // ✅ HÀM MỚI: Update Collection
   updateCollection: async (id, data) => {
     try {
       const res = await axios.put(`/collections/${id}`, data);
       set((state) => ({
         collections: state.collections.map((c) => (c._id === id ? res.data : c)),
-        editingCollection: null, // Tắt chế độ edit sau khi xong
+        editingCollection: null,
       }));
     } catch (error) {
       console.error("Lỗi cập nhật collection:", error);
