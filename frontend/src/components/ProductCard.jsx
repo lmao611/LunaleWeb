@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Tag } from "lucide-react";
 import { useUserStore } from "../stores/useUserStore";
 import { useCartStore } from "../stores/useCartStore";
 
@@ -25,8 +25,8 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
 
   // 🔹 Tính toán giá & Sale
   const originalPrice = product.price || 0;
-  // Kiểm tra điều kiện sale: phải có isSale = true và salePercentage > 0
-  const isSale = product.isSale && product.salePercentage > 0;
+  // Kiểm tra kỹ điều kiện Sale
+  const isSale = product.isSale === true && product.salePercentage > 0;
   
   // Giá sau giảm
   const discountedPrice = isSale 
@@ -137,7 +137,6 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
           />
           {/* Badge Container */}
           <div className="absolute top-2 right-2 z-30 flex flex-col items-end gap-1">
-             {/* ✅ FIX: Badge Sale */}
              {isSale && (
                 <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-md animate-in fade-in zoom-in">
                    -{product.salePercentage}%
@@ -186,7 +185,7 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
   }
 
   // -------------------------------
-  // 🔹 CARD MẶC ĐỊNH (CÓ / KHÔNG LINK)
+  // 🔹 CARD MẶC ĐỊNH (CLIENT VIEW)
   // -------------------------------
   const DefaultCardContent = (
     <div
@@ -202,11 +201,11 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
         className="pointer-events-none absolute inset-0 rounded-xl z-20 transition-opacity duration-300"
       />
 
-      {/* Badge Container */}
+      {/* Badge Container (Sale + Preorder) */}
       <div className="absolute top-2 right-2 z-30 flex flex-col items-end gap-1 pointer-events-none">
-         {/* ✅ FIX: Sale Badge */}
+         {/* ✅ SALE BADGE */}
          {isSale && (
-            <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-md animate-in fade-in zoom-in">
+            <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-md animate-in fade-in zoom-in border border-white/20">
                -{product.salePercentage}%
             </span>
          )}
@@ -236,21 +235,24 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
         className={`absolute bottom-0 left-0 right-0
                     lg:translate-y-full lg:group-hover:translate-y-0
                     transition-transform duration-500 ease-in-out
-                    bg-gradient-to-t from-gray-900/90 to-gray-600/50 z-30
+                    bg-gradient-to-t from-gray-900/95 via-gray-900/80 to-transparent z-30
                     ${size.infoPadding}`}
       >
-        <h5 className="font-semibold text-white truncate text-sm">
+        <h5 className="font-semibold text-white truncate text-sm mb-1">
           {product.name}
         </h5>
         
-        {/* ✅ FIX: Logic hiển thị giá Sale */}
-        <div className="mt-1">
+        {/* ✅ LOGIC GIÁ SALE: Đỏ & Vàng cho nổi bật trên nền tối */}
+        <div className="mb-2">
           {isSale ? (
              <div className="flex flex-col items-start leading-none gap-0.5">
-                {/* Giá gốc gạch ngang */}
-                <span className="text-gray-300 text-[10px] line-through opacity-80">{originalPriceDisplay}</span>
-                {/* Giá sau giảm nổi bật */}
-                <span className="text-red-400 font-bold text-lg">{discountedPriceDisplay}</span>
+                {/* Giá cũ gạch ngang */}
+                <span className="text-gray-400 text-[10px] line-through decoration-gray-400">{originalPriceDisplay}</span>
+                {/* Giá mới */}
+                <div className="flex items-center gap-1.5">
+                    <span className="text-red-400 font-bold text-lg">{discountedPriceDisplay}</span>
+                    <span className="bg-red-500/20 text-red-300 text-[9px] px-1 rounded border border-red-500/30 hidden sm:inline-block">SALE</span>
+                </div>
              </div>
           ) : (
              <span className="text-white font-bold text-sm">{originalPriceDisplay}</span>
@@ -258,16 +260,17 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
         </div>
 
         <button
-          className={`mt-2 flex items-center justify-center w-full rounded-md 
-                      bg-gray-200 text-gray-950 hover:bg-gray-700 hover:text-white active:scale-95
+          className={`flex items-center justify-center w-full rounded-md 
+                      bg-white/90 text-gray-950 hover:bg-blue-600 hover:text-white active:scale-95
+                      font-medium shadow-sm transition-all
                       ${size.button}`}
           onClick={handleAddToCart}
         >
           <ShoppingCart
             size={variant === "featured" ? 12 : 14}
-            className="mr-1"
+            className="mr-1.5"
           />
-          Add
+          Thêm giỏ
         </button>
       </div>
     </div>
