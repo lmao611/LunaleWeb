@@ -1,42 +1,38 @@
 // frontend/src/lib/cloudinary.js
 
-export const optimizeUrl = (url, width = 500) => {
+export const optimizeUrl = (url, width = 400) => {
+    // 1. Kiểm tra đầu vào
     if (!url) return "";
-    // Bỏ qua ảnh không phải cloudinary hoặc ảnh blob (upload tạm)
-    if (!url.includes("cloudinary.com") || url.startsWith("blob:")) return url;
+    // Nếu là ảnh blob (upload tạm) hoặc ảnh mạng khác -> Giữ nguyên
+    if (url.startsWith("blob:") || !url.includes("cloudinary.com")) return url;
 
-    // Nếu URL đã được tối ưu rồi thì trả về luôn
-    if (url.includes("/q_auto") || url.includes("/w_")) return url;
+    // 2. Nếu đã tối ưu rồi (có w_ hoặc q_auto) -> Giữ nguyên để tránh lỗi
+    if (url.includes("/w_") && url.includes("/q_auto")) return url;
 
-    // Tách chuỗi tại chữ "/upload/"
-    const parts = url.split("/upload/");
+    // 3. Dùng Regex để chèn tham số vào sau chữ "/upload/" bất kể nó nằm đâu
+    // Tham số: w_{width}, q_auto (chất lượng), f_auto (định dạng avif/webp)
+    const params = `w_${width},q_auto,f_auto`;
     
-    // Nếu tách thành công thành 2 phần
-    if (parts.length === 2) {
-        // Chèn tham số: width, quality auto, format auto
-        const newUrl = `${parts[0]}/upload/w_${width},q_auto,f_auto/${parts[1]}`;
-        return newUrl;
-    }
-
-    return url;
+    // Thay thế "/upload/" bằng "/upload/params/"
+    // Cờ "i" để không phân biệt hoa thường
+    return url.replace(/\/upload\//i, `/upload/${params}/`);
 };
   
 export const optimizeVideoUrl = (url, width = 600) => {
-      if (!url) return "";
-      if (!url.includes("cloudinary.com")) return url;
-      if (url.includes("/q_auto")) return url;
-      
-      const parts = url.split("/upload/");
-      if (parts.length === 2) {
-          // Video cần xử lý kỹ hơn:
-          // w_${width}: Resize
-          // q_auto: Chất lượng tự động
-          // f_auto: Định dạng video tối ưu (webm/mp4)
-          // vc_auto: Codec tự động
-          // ac_none: Tắt tiếng (quan trọng để giảm tải nếu video chỉ để làm nền)
-          // br_2m: Giới hạn bitrate tối đa 2Mbps (giúp load nhanh hơn nhiều)
-          const newUrl = `${parts[0]}/upload/w_${width},q_auto,f_auto,vc_auto,ac_none,br_2m/${parts[1]}`;
-          return newUrl;
-      }
-      return url;
+    if (!url) return "";
+    if (!url.includes("cloudinary.com")) return url;
+    
+    // Nếu đã tối ưu rồi thì thôi
+    if (url.includes("/vc_auto")) return url;
+
+    // Tham số video mạnh tay hơn:
+    // w_{width}: Resize
+    // q_auto: Chất lượng
+    // f_auto: Định dạng
+    // vc_auto: Codec thông minh
+    // ac_none: TẮT TIẾNG (Rất quan trọng để giảm dung lượng)
+    // br_2m: Giới hạn Bitrate dưới 2Mb/s
+    const params = `w_${width},q_auto,f_auto,vc_auto,ac_none,br_2m`;
+
+    return url.replace(/\/upload\//i, `/upload/${params}/`);
 };

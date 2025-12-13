@@ -109,14 +109,24 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
 
       {/* --- Ảnh sản phẩm (Đã tối ưu) --- */}
       <div className={`w-full overflow-hidden ${size.height}`}>
-        <img
-          // Giảm width xuống 360 hoặc 400 là đủ đẹp và nhẹ hơn
-          src={optimizeUrl(product.image, 400)} 
-          alt={product.name}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-          loading="lazy" 
-          onError={(e) => (e.target.src = "https://via.placeholder.com/300x400?text=No+Image")}
-        />
+        {/* Trong file ProductCard.jsx, tìm thẻ img */}
+<img
+  // Dùng size 400 là chuẩn cho thẻ sản phẩm (đủ nét trên retina)
+  src={optimizeUrl(product.image, 400)} 
+  alt={product.name}
+  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+  
+  // ✅ TỐI ƯU QUAN TRỌNG:
+  // Nếu là card dùng cho "category" (lưới lớn), ta để loading lazy
+  // Nếu là "featured" (thường ở đầu trang), ta có thể bỏ lazy để hiện nhanh hơn
+  loading="lazy"
+  
+  // Xử lý lỗi ảnh bằng ảnh base64 nhẹ hoặc ảnh nội bộ, tránh gọi link ngoài
+  onError={(e) => {
+    e.target.onerror = null; // Tránh loop vô tận
+    e.target.src = "/placeholder.png"; // Nên có 1 file ảnh nhẹ trong thư mục public
+  }}
+/>
       </div>
 
       {/* --- Thông tin bên dưới (Chỉ hiện nếu không phải Feedback) --- */}
