@@ -2,7 +2,10 @@ import Collection from "../models/collection.model.js";
 
 export const getAllCollections = async (req, res) => {
   try {
-    const collections = await Collection.find().sort({ createdAt: -1 });
+    // ✅ TỐI ƯU: .select("-products") giúp loại bỏ danh sách sản phẩm nặng nề
+    const collections = await Collection.find()
+      .select("-products") 
+      .sort({ createdAt: -1 });
     res.json(collections);
   } catch (err) {
     console.error("❌ Lỗi getAllCollections:", err);
@@ -10,6 +13,7 @@ export const getAllCollections = async (req, res) => {
   }
 };
 
+// 2. Lấy chi tiết (Cho Detail Page): Giữ nguyên để lấy full sản phẩm
 export const getCollectionById = async (req, res) => {
   try {
     const collection = await Collection.findById(req.params.id);

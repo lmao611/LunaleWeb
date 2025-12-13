@@ -2,29 +2,41 @@ import { useParams, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import ProductCard from "../components/ProductCard";
-import { useCollectionStore } from "../stores/useCollectionStore";
+import axios from "../lib/axios"; // ✅ Import axios để gọi trực tiếp
+import LoadingSpinner from "../components/LoadingSpinner";
 
 const CollectionDetailPage = () => {
   const { id } = useParams();
-  const { collections, fetchCollections, isLoading } = useCollectionStore();
+  
+  // State cục bộ để lưu dữ liệu chi tiết (có products)
+  const [collection, setCollection] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const [currentPage, setCurrentPage] = useState(1);
   const cardsPerPage = 24;
 
+  // ✅ Fetch dữ liệu chi tiết mỗi khi vào trang
   useEffect(() => {
-    if (!collections || collections.length === 0) {
-      fetchCollections();
-    } else {
-      window.scrollTo(0, 0);
-    }
-  }, [fetchCollections, collections]);
+    const fetchDetail = async () => {
+      setLoading(true);
+      try {
+        const res = await axios.get(`/collections/${id}`);
+        setCollection(res.data);
+      } catch (error) {
+        console.error("Failed to fetch collection detail:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const collection = collections.find((c) => c._id === id);
+    fetchDetail();
+    window.scrollTo(0, 0);
+  }, [id]);
 
-  if (isLoading)
+  if (loading)
     return (
-      <div className="text-center py-20 text-gray-600">
-        Đang tải bộ sưu tầm...
+      <div className="flex justify-center items-center h-[60vh]">
+        <LoadingSpinner />
       </div>
     );
 
@@ -35,7 +47,7 @@ const CollectionDetailPage = () => {
       </div>
     );
 
-  // --- Pagination logic ---
+  // --- Pagination logic (Giữ nguyên) ---
   const totalCards = collection.products?.length || 0;
   const totalPages = Math.ceil(totalCards / cardsPerPage);
   const startIndex = (currentPage - 1) * cardsPerPage;
@@ -48,7 +60,6 @@ const CollectionDetailPage = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // --- Animation variants ---
   const containerVariants = {
     hidden: {},
     visible: { transition: { staggerChildren: 0.08 } },
@@ -67,7 +78,6 @@ const CollectionDetailPage = () => {
   return (
     <div className="min-h-screen bg-white text-gray-900 pt-5">
       <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        {/* --- Tiêu đề --- */}
         <div className="text-center mb-12">
           <h1
             className="text-5xl font-extrabold tracking-tight leading-tight inline-block max-w-[600px] break-words"
@@ -81,33 +91,13 @@ const CollectionDetailPage = () => {
           >
             {collection.name}
           </h1>
-
           <hr className="w-24 mx-auto border-t-4 border-blue-600 mb-6 rounded-full opacity-80" />
-
-          
         </div>
 
-        {/* --- Grid sản phẩm --- */}
         {currentCards.length > 0 ? (
           <div className="flex justify-center">
             <motion.div
-              className="
-                grid
-                grid-cols-2
-                sm:grid-cols-2
-                md:grid-cols-3
-                lg:grid-cols-4
-                gap-x-8 gap-y-10
-                justify-items-center
-                w-fit
-                px-3
-                sm:px-4
-                md:px-6
-                lg:px-0
-                mx-auto
-                md:max-w-[750px]
-                lg:max-w-none
-              "
+              className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-8 gap-y-10 justify-items-center w-fit px-3 sm:px-4 md:px-6 lg:px-0 mx-auto md:max-w-[750px] lg:max-w-none"
               variants={containerVariants}
               initial="hidden"
               whileInView="visible"
@@ -141,47 +131,18 @@ const CollectionDetailPage = () => {
           </p>
         )}
 
-        {/* --- Pagination --- */}
         {totalPages > 1 && (
           <div className="flex justify-center items-center gap-2 mt-10 flex-wrap">
-            <button
-              onClick={() => goToPage(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="px-3 py-1 rounded-md bg-blue-100 text-blue-600 hover:bg-blue-200 disabled:opacity-50"
-            >
-              &lt;
-            </button>
-
+            <button onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1} className="px-3 py-1 rounded-md bg-blue-100 text-blue-600 hover:bg-blue-200 disabled:opacity-50">&lt;</button>
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-              <button
-                key={page}
-                onClick={() => goToPage(page)}
-                className={`px-3 py-1 rounded-md ${
-                  currentPage === page
-                    ? "bg-blue-600 text-white"
-                    : "bg-blue-100 text-blue-600 hover:bg-blue-200"
-                }`}
-              >
-                {page}
-              </button>
+              <button key={page} onClick={() => goToPage(page)} className={`px-3 py-1 rounded-md ${currentPage === page ? "bg-blue-600 text-white" : "bg-blue-100 text-blue-600 hover:bg-blue-200"}`}>{page}</button>
             ))}
-
-            <button
-              onClick={() => goToPage(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 rounded-md bg-blue-100 text-blue-600 hover:bg-blue-200 disabled:opacity-50"
-            >
-              &gt;
-            </button>
+            <button onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages} className="px-3 py-1 rounded-md bg-blue-100 text-blue-600 hover:bg-blue-200 disabled:opacity-50">&gt;</button>
           </div>
         )}
 
-        {/* --- Nút quay lại --- */}
         <div className="text-center mt-12">
-          <Link
-            to="/"
-            className="inline-block text-black hover:text-gray-700 font-semibold transition-colors duration-200"
-          >
+          <Link to="/" className="inline-block text-black hover:text-gray-700 font-semibold transition-colors duration-200">
             ← Quay về Trang Chủ
           </Link>
         </div>

@@ -21,7 +21,11 @@ const CategoryPage = () => {
   }, [fetchProductsByCategory, category]);
 
   // 🔥 THÊM ĐOẠN NÀY: Lọc bỏ các sản phẩm đang Sale
-  const filteredProducts = products?.filter((product) => !product.isSale) || [];
+  const filteredProducts = products?.filter((product) => {
+    // Kiểm tra kỹ sale: true/false hoặc "true"/"false" và % > 0
+    const isSale = (product.isSale === true || product.isSale === "true") && (Number(product.salePercentage) > 0);
+    return !isSale; // Chỉ lấy sản phẩm KHÔNG Sale
+  }) || [];
 
   // 👇 Cập nhật các biến dưới đây để dùng filteredProducts thay vì products
   const totalCards = filteredProducts.length;

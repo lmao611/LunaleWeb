@@ -27,13 +27,11 @@ const ProductPage = () => {
   const [loading, setLoading] = useState(true);
   const visibleCount = 3;
 
-  // ✅ useMemo luôn ở đây, không phụ thuộc điều kiện
   const memoizedExcludeIds = useMemo(
     () => [id, ...cart.map((item) => item._id)],
     [id, cart]
   );
 
-  // ✅ fetch chỉ 1 lần khi id đổi
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -62,6 +60,21 @@ const ProductPage = () => {
       <p className="text-gray-600 text-center mt-10">Không tìm thấy sản phẩm</p>
     );
 
+  // --- 1. TÍNH TOÁN GIÁ & SALE ---
+  const originalPrice = Number(product.price) || 0;
+  const percent = Number(product.salePercentage) || 0;
+  // Kiểm tra Sale: Chấp nhận true, "true", 1... miễn là có giá trị truthy VÀ % > 0
+  const isSale = (product.isSale === true || product.isSale === "true" || product.isSale === 1) && percent > 0;
+
+  const discountedPrice = isSale 
+    ? originalPrice * (1 - percent / 100) 
+    : originalPrice;
+
+  // Format tiền tệ
+  const originalPriceDisplay = originalPrice.toLocaleString("vi-VN", { maximumFractionDigits: 0 }) + "đ";
+  const discountedPriceDisplay = discountedPrice.toLocaleString("vi-VN", { maximumFractionDigits: 0 }) + "đ";
+
+  // --- Logic Ảnh & Slider ---
   const allThumbnails = [
     product.image,
     ...(Array.isArray(product.thumbnails) ? product.thumbnails : []),
@@ -85,9 +98,6 @@ const ProductPage = () => {
     e.stopPropagation();
     if (startIndex > 0) setStartIndex((prev) => prev - 1);
   };
-
-  const vndDisplay =
-    (Math.floor(product.price / 1000) * 1000).toLocaleString("vi-VN") + "đ";
 
   const fallbackImage = "/images/no-image.jpg";
 
@@ -122,7 +132,7 @@ const ProductPage = () => {
   return (
     <div className="max-w-5xl mx-auto p-6 bg-white text-gray-900 pt-30">
       <div className="flex flex-col md:flex-row gap-8">
-        {/* ảnh sản phẩm */}
+        {/* CỘT TRÁI: ẢNH SẢN PHẨM */}
         <div className="flex-1 flex flex-col items-center">
           <div className="w-full max-w-[464px] aspect-[3/4] rounded-lg shadow-lg overflow-hidden bg-gray-100 relative">
             <img
@@ -138,6 +148,12 @@ const ProductPage = () => {
                   : "opacity-100 hover:scale-110"
               }`}
             />
+            {/* Badge Sale trên ảnh lớn (Optional) */}
+            {isSale && (
+                <span className="absolute top-4 right-4 bg-red-600 text-white text-sm font-bold px-3 py-1 rounded-full shadow-md z-10">
+                    -{percent}%
+                </span>
+            )}
           </div>
 
           {allThumbnails.length > 1 && (
@@ -185,12 +201,33 @@ const ProductPage = () => {
           )}
         </div>
 
-        {/* thông tin sản phẩm */}
+        {/* CỘT PHẢI: THÔNG TIN SẢN PHẨM */}
         <div className="flex-1 flex flex-col">
           <div className="p-6 rounded-xl border border-gray-200 bg-white shadow-lg space-y-4">
             <h1 className="text-3xl font-bold">{product.name}</h1>
-            <p className="text-gray-500 text-2xl font-semibold">{vndDisplay}</p>
-            <p className="text-gray-600 whitespace-pre-line">
+            
+            {/* ✅ HIỂN THỊ GIÁ SALE */}
+            <div className="flex items-center gap-4 flex-wrap">
+                {isSale ? (
+                    <>
+                        {/* Giá mới màu đỏ */}
+                        <p className="text-red-600 text-3xl font-bold">{discountedPriceDisplay}</p>
+                        
+                        {/* Giá cũ gạch ngang */}
+                        <p className="text-gray-400 text-xl line-through decoration-2 decoration-gray-300">{originalPriceDisplay}</p>
+                        
+                        {/* Badge % giảm */}
+                        <span className="bg-red-100 text-red-600 text-sm font-bold px-2 py-1 rounded-md border border-red-200">
+                            -{percent}% SALE
+                        </span>
+                    </>
+                ) : (
+                    // Giá thường
+                    <p className="text-gray-500 text-2xl font-semibold">{originalPriceDisplay}</p>
+                )}
+            </div>
+
+            <p className="text-gray-600 whitespace-pre-line leading-relaxed">
               {product.description}
             </p>
 
@@ -202,7 +239,7 @@ const ProductPage = () => {
                   e.stopPropagation();
                   setShowContactModal(true);
                 }}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-1.5 rounded-lg bg-black hover:bg-gray-700 text-white font-medium transition active:scale-95 shadow-sm"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-black hover:bg-gray-800 text-white font-medium transition active:scale-95 shadow-sm"
               >
                 💬 Liên hệ
               </button>
@@ -210,23 +247,23 @@ const ProductPage = () => {
               <button
                 type="button"
                 onClick={handleAddToCart}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-1.5 rounded-lg bg-gray-200 hover:bg-gray-700 text-gray-900 hover:text-white font-medium transition active:scale-95 shadow-sm"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition active:scale-95 shadow-sm"
               >
-                <ShoppingCart size={16} className="mr-1" />
+                <ShoppingCart size={20} className="mr-1" />
                 Thêm vào giỏ
               </button>
             </div>
           </div>
+          
           <img
             src="/model.jpg"
             alt="Model Size"
-            className="mt-4 rounded-lg shadow-lg w-full"
+            className="mt-6 rounded-lg shadow-lg w-full object-cover"
           />
           <img
             src="/size.jpg"
             alt="Size Chart"
-            className="mt-4 rounded-lg shadow-lg w-full"
-            style={{ height: "445px" }}
+            className="mt-6 rounded-lg shadow-lg w-full object-contain bg-white"
             onMouseDown={stopDown}
           />
         </div>
@@ -236,7 +273,6 @@ const ProductPage = () => {
         <PeopleAlsoBought
           key={id}
           excludeIds={memoizedExcludeIds}
-          filterFn={(p) => (p.category || "").toLowerCase() !== "feedback"}
         />
       </div>
 
@@ -251,14 +287,14 @@ const ProductPage = () => {
       <AnimatePresence>
         {zoomImage && (
           <motion.div
-            className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100]"
+            className="fixed inset-0 bg-black/90 flex items-center justify-center z-[100]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setZoomImage(null)}
           >
             <motion.div
-              className="relative"
+              className="relative w-full h-full flex items-center justify-center p-4"
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
@@ -267,9 +303,9 @@ const ProductPage = () => {
             >
               <button
                 onClick={() => setZoomImage(null)}
-                className="absolute top-2 right-2 bg-gray-900/70 rounded-full p-2 text-white hover:bg-gray-700 z-50"
+                className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 rounded-full p-2 text-white transition-colors z-50 backdrop-blur-sm"
               >
-                <X className="h-6 w-6" />
+                <X className="h-8 w-8" />
               </button>
 
               <TransformWrapper
@@ -284,19 +320,19 @@ const ProductPage = () => {
               >
                 {({ zoomIn, zoomOut, resetTransform, setTransform, state }) => (
                   <>
-                    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900/80 text-white px-4 py-2 rounded-lg flex items-center gap-3 z-[110]">
+                    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-md text-white px-6 py-3 rounded-full flex items-center gap-4 z-[110] border border-white/10">
                       <button
                         onClick={() => {
                           resetTransform();
                           setSliderValue(1);
                         }}
-                        className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded-md text-sm"
+                        className="text-xs font-bold hover:text-blue-400 transition-colors"
                       >
-                        Reset
+                        RESET
                       </button>
                       <button
                         onClick={zoomOut}
-                        className="bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded-md text-sm"
+                        className="hover:bg-white/20 p-1 rounded transition-colors"
                       >
                         -
                       </button>
@@ -313,21 +349,21 @@ const ProductPage = () => {
                           const posY = state?.positionY ?? 0;
                           setTransform(posX, posY, val);
                         }}
-                        className="w-40 accent-blue-600"
+                        className="w-32 h-1 bg-white/30 rounded-lg appearance-none cursor-pointer accent-white"
                       />
                       <button
                         onClick={zoomIn}
-                        className="bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded-md text-sm"
+                        className="hover:bg-white/20 p-1 rounded transition-colors"
                       >
                         +
                       </button>
                     </div>
 
-                    <TransformComponent>
+                    <TransformComponent wrapperClass="!w-full !h-full flex items-center justify-center">
                       <img
                         src={zoomImage}
                         alt="Zoomed"
-                        className="max-h-[90vh] max-w-[90vw] rounded-lg shadow-lg object-contain cursor-grab active:cursor-grabbing"
+                        className="max-h-screen max-w-screen object-contain"
                       />
                     </TransformComponent>
                   </>
