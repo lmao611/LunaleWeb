@@ -72,24 +72,25 @@ const CollectionsSection = ({ collections }) => {
                   className="absolute inset-0 w-full h-full transform-gpu backface-hidden will-change-transform"
                 >
                   {col.coverMedia?.type === "video" ? (
-                    <video
-                      // ✅ Bóp Video về width 500px
-                      src={optimizeVideoUrl(col.coverMedia.url, 500)}
-                      autoPlay
-                      muted
-                      loop
-                      playsInline
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <img
-                      // ✅ Bóp Ảnh về width 500px
-                      src={optimizeUrl(col.coverMedia?.url, 500)}
-                      alt={col.name}
-                      className="w-full h-full object-cover"
-                      loading="lazy" // Thêm lazy load
-                    />
-                  )}
+  <video
+    // Dùng hàm optimizeVideoUrl mới với giới hạn bitrate
+    // Width 600 là đủ cho khối collection trên máy tính
+    src={optimizeVideoUrl(col.coverMedia.url, 600)}
+    autoPlay
+    muted
+    loop
+    playsInline
+    className="w-full h-full object-cover"
+  />
+) : (
+  <img
+    // Ảnh collection chỉ cần 600-800px tùy layout
+    src={optimizeUrl(col.coverMedia?.url, 600)}
+    alt={col.name}
+    className="w-full h-full object-cover"
+    loading="lazy"
+  />
+)}
                 </motion.div>
               </motion.div>
             </Link>

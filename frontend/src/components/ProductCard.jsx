@@ -110,10 +110,11 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
       {/* --- Ảnh sản phẩm (Đã tối ưu) --- */}
       <div className={`w-full overflow-hidden ${size.height}`}>
         <img
-          src={optimizeUrl(product.image, 500)} // ✅ Tối ưu ảnh: Resize về 500px, tự động nén
+          // Giảm width xuống 360 hoặc 400 là đủ đẹp và nhẹ hơn
+          src={optimizeUrl(product.image, 400)} 
           alt={product.name}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-          loading="lazy" // ✅ Tải chậm giúp web mượt hơn
+          loading="lazy" 
           onError={(e) => (e.target.src = "https://via.placeholder.com/300x400?text=No+Image")}
         />
       </div>

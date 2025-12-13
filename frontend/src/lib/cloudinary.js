@@ -1,27 +1,42 @@
-// File: frontend/src/lib/cloudinary.js
+// frontend/src/lib/cloudinary.js
 
-// ✅ HÀM MỚI: Tối ưu ảnh (Resize, Nén, Đổi định dạng)
-// Chỉ xử lý chuỗi string, không cần gọi API
-export const optimizeUrl = (url, width = 800) => {
+export const optimizeUrl = (url, width = 500) => {
     if (!url) return "";
-    // Nếu không phải ảnh Cloudinary thì trả về nguyên gốc
-    if (!url.includes("cloudinary.com")) return url;
-    
-    // Nếu url đã có tham số chỉnh sửa rồi thì thôi để tránh lỗi
+    // Bỏ qua ảnh không phải cloudinary hoặc ảnh blob (upload tạm)
+    if (!url.includes("cloudinary.com") || url.startsWith("blob:")) return url;
+
+    // Nếu URL đã được tối ưu rồi thì trả về luôn
     if (url.includes("/q_auto") || url.includes("/w_")) return url;
-  
-    // Chèn tham số tối ưu vào sau chữ "/upload/"
-    // w_: width (chiều rộng)
-    // q_auto: chất lượng tự động (giảm dung lượng mà mắt thường không thấy)
-    // f_auto: định dạng tự động (ví dụ chrome dùng webp/avif)
-    return url.replace("/upload/", `/upload/w_${width},q_auto,f_auto/`);
+
+    // Tách chuỗi tại chữ "/upload/"
+    const parts = url.split("/upload/");
+    
+    // Nếu tách thành công thành 2 phần
+    if (parts.length === 2) {
+        // Chèn tham số: width, quality auto, format auto
+        const newUrl = `${parts[0]}/upload/w_${width},q_auto,f_auto/${parts[1]}`;
+        return newUrl;
+    }
+
+    return url;
 };
   
-// ✅ HÀM MỚI: Tối ưu Video
-export const optimizeVideoUrl = (url, width = 800) => {
+export const optimizeVideoUrl = (url, width = 600) => {
       if (!url) return "";
       if (!url.includes("cloudinary.com")) return url;
+      if (url.includes("/q_auto")) return url;
       
-      // vc_auto: codec video tự động tối ưu cho trình duyệt
-      return url.replace("/upload/", `/upload/w_${width},q_auto,f_auto,vc_auto/`);
+      const parts = url.split("/upload/");
+      if (parts.length === 2) {
+          // Video cần xử lý kỹ hơn:
+          // w_${width}: Resize
+          // q_auto: Chất lượng tự động
+          // f_auto: Định dạng video tối ưu (webm/mp4)
+          // vc_auto: Codec tự động
+          // ac_none: Tắt tiếng (quan trọng để giảm tải nếu video chỉ để làm nền)
+          // br_2m: Giới hạn bitrate tối đa 2Mbps (giúp load nhanh hơn nhiều)
+          const newUrl = `${parts[0]}/upload/w_${width},q_auto,f_auto,vc_auto,ac_none,br_2m/${parts[1]}`;
+          return newUrl;
+      }
+      return url;
 };
