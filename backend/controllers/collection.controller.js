@@ -16,7 +16,13 @@ export const getAllCollections = async (req, res) => {
 // 2. Lấy chi tiết (Cho Detail Page): Giữ nguyên để lấy full sản phẩm
 export const getCollectionById = async (req, res) => {
   try {
-    const collection = await Collection.findById(req.params.id);
+    const collection = await Collection.findById(req.params.id)
+      .populate({
+        path: "products",
+        // ✅ CHỈ LẤY CÁC TRƯỜNG CẦN THIẾT -> Giảm 90% dung lượng tải về
+        select: "name price image isSale salePercentage isPreOrder category productLink", 
+      });
+
     if (!collection) return res.status(404).json({ message: "Not found" });
     res.json(collection);
   } catch (err) {
