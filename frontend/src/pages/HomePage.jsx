@@ -7,6 +7,8 @@ import { useCollectionStore } from "../stores/useCollectionStore";
 import FeaturedProducts from "../components/FeaturedProducts";
 import CollectionsSection from "../components/CollectionsSection";
 import axios from "../lib/axios";
+// ✅ Import hàm tối ưu
+import { optimizeUrl, optimizeVideoUrl } from "../lib/cloudinary";
 
 const categories = [
   { href: "/dress", name: "Đầm nữ", imageUrl: "/dress.jpg" },
@@ -30,11 +32,9 @@ const HomePage = () => {
     fetchBanner();
   }, []);
 
-  // Tách bộ sưu tập Special và Regular
   const specialCollections = collections.filter(c => c.isSpecial === true);
   const regularCollections = collections.filter(c => !c.isSpecial);
 
-  // ✅ HÀM RENDER SPECIAL: ĐÃ FIX FULL SIZE + WIDTH RIÊNG BIỆT
   const renderSpecialCollectionsByPosition = (position) => {
     const targetCollections = specialCollections.filter(c => c.specialPosition === position);
 
@@ -43,7 +43,6 @@ const HomePage = () => {
     return (
       <div className="flex flex-col gap-20 my-16 w-full">
         {targetCollections.map((col) => {
-           // 1. Style cho chế độ Cũ (Custom size theo pixel/%)
            const customStyles = {
                "--mobile-w": `${col.mobileWidth || 100}%`,
                "--mobile-h": `${col.mobileHeight || 400}px`,
@@ -51,12 +50,14 @@ const HomePage = () => {
                "--desktop-h": `${col.desktopHeight || 600}px`,
            };
 
-           // 2. Style cho chế độ Full Size (Chiều cao Auto, Width riêng)
            const fullSizeStyles = {
-               "--mobile-w": `${col.mobileWidth || 100}%`, // Mobile width riêng
-               "--desktop-w": `${col.desktopWidth || 100}%`, // Desktop width riêng
-               height: "auto", // ✅ Quan trọng: Để ảnh tự dãn theo tỉ lệ
+               "--mobile-w": `${col.mobileWidth || 100}%`,
+               "--desktop-w": `${col.desktopWidth || 100}%`,
+               height: "auto",
            };
+
+           // ✅ Tính toán width cần load: Fullsize cần 1200px, thường chỉ cần 800px
+           const optimizeWidth = col.isFullSize ? 1200 : 800;
 
            return (
              <motion.div 
@@ -67,7 +68,7 @@ const HomePage = () => {
                viewport={{ once: true, margin: "-100px" }}
                transition={{ duration: 0.8 }}
              >
-                {/* --- Tiêu đề (Nếu không ẩn) --- */}
+                {/* Phần tiêu đề/mô tả giữ nguyên */}
                 {!col.hideName && (
                     <motion.h2 
                        className="text-4xl md:text-6xl font-extrabold mb-6 tracking-tight px-4 max-w-7xl mx-auto"
@@ -81,7 +82,6 @@ const HomePage = () => {
                     </motion.h2>
                 )}
                 
-                {/* --- Mô tả (Nếu không ẩn) --- */}
                 {!col.hideDescription && (
                     <p className="text-gray-600 text-lg md:text-xl max-w-3xl mb-10 leading-relaxed px-4 mx-auto">
                       {col.description}
@@ -92,38 +92,33 @@ const HomePage = () => {
                 <Link to={`/collection/${col._id}`} className="block group flex justify-center w-full">
                    <motion.div
                        whileHover={{ scale: 1.01, boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)" }}
-                       
-                       // ✅ Logic chọn style: Full Size dùng width riêng + auto height. Custom dùng width/height cố định.
                        style={col.isFullSize ? fullSizeStyles : customStyles}
-                       
                        className={`
                          relative overflow-hidden shadow-2xl bg-gray-100 max-w-none
-                         
-                         // ✅ Luôn áp dụng Width theo biến CSS (Responsive PC/Mobile)
                          w-[var(--mobile-w)] md:w-[var(--desktop-w)]
-
                          ${col.isFullSize 
-                            ? "" // Nếu Full Size: Không set height cứng (để inline style lo), không bo góc
-                            : "h-[var(--mobile-h)] md:h-[var(--desktop-h)] rounded-none md:rounded-3xl" // Nếu Custom: Set height cứng + bo góc
+                            ? "" 
+                            : "h-[var(--mobile-h)] md:h-[var(--desktop-h)] rounded-none md:rounded-3xl" 
                          }
                        `}
                    >
                        {col.coverMedia?.type === "video" ? (
                            <video
-                               src={col.coverMedia.url}
+                               // ✅ Áp dụng tối ưu Video
+                               src={optimizeVideoUrl(col.coverMedia.url, optimizeWidth)}
                                autoPlay muted loop playsInline
-                               // ✅ Logic class ảnh: Full Size -> w-full h-auto. Custom -> w-full h-full object-cover (cắt ảnh cho vừa khung)
                                className={col.isFullSize ? "w-full h-auto block" : "w-full h-full object-cover"}
                            />
                        ) : (
                            <img
-                               src={col.coverMedia?.url}
+                               // ✅ Áp dụng tối ưu Ảnh
+                               src={optimizeUrl(col.coverMedia?.url, optimizeWidth)}
                                alt={col.name}
                                className={col.isFullSize ? "w-full h-auto block" : "w-full h-full object-cover"}
+                               loading="lazy"
                            />
                        )}
                        
-                       {/* Overlay hiệu ứng hover */}
                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
                        <div className="absolute bottom-8 left-0 right-0 text-white font-medium tracking-widest text-lg uppercase pointer-events-none text-center">
                            Xem Ngay
@@ -139,8 +134,7 @@ const HomePage = () => {
 
   return (
     <div className="bg-white text-gray-800 overflow-x-hidden">
-      
-      {/* 1. BANNER (Full width) */}
+      {/* Banner giữ nguyên */}
       {bannerUrl && (
         <section className="relative w-screen h-screen overflow-hidden">
           <img src={bannerUrl} alt="Banner" className="absolute inset-0 w-full h-full object-cover object-center" />
@@ -162,11 +156,8 @@ const HomePage = () => {
 
       {/* Wrapper chính */}
       <div id="homepage-content" className="py-10 w-full">
-        
-        {/* 2. SPECIAL COLLECTION (Vị trí 1: Dưới Banner) */}
         {renderSpecialCollectionsByPosition("below_banner")}
 
-        {/* 3. CATEGORIES */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <h1 className="text-center sm:text-3xl font-bold text-blue-990 mb-8 pt-10">SHOP NOW</h1>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mt-6 mb-16">
@@ -176,20 +167,16 @@ const HomePage = () => {
             </div>
         </div>
 
-        {/* 4. SPECIAL COLLECTION (Vị trí 2: Dưới Danh mục) */}
         {renderSpecialCollectionsByPosition("below_categories")}
 
-        {/* 5. FEATURED PRODUCTS */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             {!loadingProducts && Array.isArray(products) && products.length > 0 && (
               <FeaturedProducts featuredProducts={products} />
             )}
         </div>
         
-        {/* 6. SPECIAL COLLECTION (Vị trí 3: Dưới Sản phẩm nổi bật) */}
         {renderSpecialCollectionsByPosition("below_featured")}
 
-        {/* 7. REGULAR COLLECTIONS (Các bộ sưu tập thường) */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <CollectionsSection collections={regularCollections} />
         </div>

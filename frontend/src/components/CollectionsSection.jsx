@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
+// ✅ Import hàm tối ưu
+import { optimizeUrl, optimizeVideoUrl } from "../lib/cloudinary";
 
-// ✅ CẬP NHẬT: Nhận collections từ props thay vì tự fetch
 const CollectionsSection = ({ collections }) => {
   if (!Array.isArray(collections) || !collections.length) return null;
 
@@ -22,7 +23,7 @@ const CollectionsSection = ({ collections }) => {
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
         >
-          {/* Text Content */}
+          {/* Text Content giữ nguyên */}
           <div className="flex-1 text-center px-4">
             <motion.h3
               whileHover={{ scale: 1.08 }}
@@ -59,9 +60,9 @@ const CollectionsSection = ({ collections }) => {
                 transition={{ type: "spring", stiffness: 200, damping: 15 }}
                 className="
                   rounded-3xl overflow-hidden shadow-2xl 
-                  w-[330px] h-[450px]          /* Mobile default */
-                  sm:w-[320px] sm:h-[480px]    /* Small screens */
-                  md:w-[400px] md:h-[600px]    /* Medium and up */
+                  w-[330px] h-[450px]          
+                  sm:w-[320px] sm:h-[480px]    
+                  md:w-[400px] md:h-[600px]    
                   relative flex items-center justify-center bg-gray-200
                 "
               >
@@ -72,7 +73,8 @@ const CollectionsSection = ({ collections }) => {
                 >
                   {col.coverMedia?.type === "video" ? (
                     <video
-                      src={col.coverMedia.url}
+                      // ✅ Bóp Video về width 500px
+                      src={optimizeVideoUrl(col.coverMedia.url, 500)}
                       autoPlay
                       muted
                       loop
@@ -81,9 +83,11 @@ const CollectionsSection = ({ collections }) => {
                     />
                   ) : (
                     <img
-                      src={col.coverMedia?.url}
+                      // ✅ Bóp Ảnh về width 500px
+                      src={optimizeUrl(col.coverMedia?.url, 500)}
                       alt={col.name}
                       className="w-full h-full object-cover"
+                      loading="lazy" // Thêm lazy load
                     />
                   )}
                 </motion.div>
