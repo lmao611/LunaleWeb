@@ -25,6 +25,7 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
 
   // 🔹 Tính toán giá & Sale
   const originalPrice = product.price || 0;
+  // Kiểm tra điều kiện sale: phải có isSale = true và salePercentage > 0
   const isSale = product.isSale && product.salePercentage > 0;
   
   // Giá sau giảm
@@ -136,8 +137,9 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
           />
           {/* Badge Container */}
           <div className="absolute top-2 right-2 z-30 flex flex-col items-end gap-1">
+             {/* ✅ FIX: Badge Sale */}
              {isSale && (
-                <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-md">
+                <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-md animate-in fade-in zoom-in">
                    -{product.salePercentage}%
                 </span>
              )}
@@ -202,9 +204,9 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
 
       {/* Badge Container */}
       <div className="absolute top-2 right-2 z-30 flex flex-col items-end gap-1 pointer-events-none">
-         {/* Sale Badge */}
+         {/* ✅ FIX: Sale Badge */}
          {isSale && (
-            <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-md">
+            <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-md animate-in fade-in zoom-in">
                -{product.salePercentage}%
             </span>
          )}
@@ -241,12 +243,14 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
           {product.name}
         </h5>
         
-        {/* Logic hiển thị giá */}
+        {/* ✅ FIX: Logic hiển thị giá Sale */}
         <div className="mt-1">
           {isSale ? (
-             <div className="flex flex-col items-start leading-tight">
-                <span className="text-gray-300 text-xs line-through">{originalPriceDisplay}</span>
-                <span className="text-white font-bold text-lg">{discountedPriceDisplay}</span>
+             <div className="flex flex-col items-start leading-none gap-0.5">
+                {/* Giá gốc gạch ngang */}
+                <span className="text-gray-300 text-[10px] line-through opacity-80">{originalPriceDisplay}</span>
+                {/* Giá sau giảm nổi bật */}
+                <span className="text-red-400 font-bold text-lg">{discountedPriceDisplay}</span>
              </div>
           ) : (
              <span className="text-white font-bold text-sm">{originalPriceDisplay}</span>
