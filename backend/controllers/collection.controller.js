@@ -19,8 +19,8 @@ export const getCollectionById = async (req, res) => {
     const collection = await Collection.findById(req.params.id)
       .populate({
         path: "products",
-        // ✅ CHỈ LẤY CÁC TRƯỜNG CẦN THIẾT -> Giảm 90% dung lượng tải về
-        select: "name price image isSale salePercentage isPreOrder category productLink", 
+        // ✅ DÒNG NÀY QUAN TRỌNG NHẤT: Chỉ lấy tên, giá, ảnh. Bỏ qua mô tả dài dòng.
+        select: "name price image isSale salePercentage isPreOrder category productLink" 
       });
 
     if (!collection) return res.status(404).json({ message: "Not found" });

@@ -2,17 +2,17 @@ import { useParams, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import ProductCard from "../components/ProductCard";
-import { useCollectionStore } from "../stores/useCollectionStore"; // ✅ Dùng Store thay vì axios
+import { useCollectionStore } from "../stores/useCollectionStore";
 import LoadingSpinner from "../components/LoadingSpinner";
 
 const CollectionDetailPage = () => {
   const { id } = useParams();
   const { collections, fetchCollectionDetail } = useCollectionStore();
   
-  // Tìm collection trong Store (Dữ liệu cơ bản lấy từ Home)
+  // Tìm collection trong Store
   const collection = collections.find((c) => c._id === id);
 
-  // Check cache
+  // Check cache: Đã có sản phẩm chưa?
   const isCached = collection && Array.isArray(collection.products) && collection.products.length > 0;
   
   // State loading
@@ -32,31 +32,50 @@ const CollectionDetailPage = () => {
     window.scrollTo(0, 0);
   }, [id, isCached, fetchCollectionDetail]);
 
-  // ❌ BỎ ĐOẠN IF LOADING RETURN SPINNER Ở ĐÂY
-  // Để code chạy tiếp xuống dưới render ra Tiêu đề ngay lập tức
+  // --- 1. KHAI BÁO BIẾN ANIMATION (Bị thiếu ở code cũ) ---
+  const containerVariants = {
+    hidden: {},
+    visible: { transition: { staggerChildren: 0.08 } },
+  };
 
-  if (!collection && !loading) // Chỉ return Not Found khi đã tải xong mà vẫn null
+  const cardVariants = {
+    hidden: { opacity: 0, y: 20, scale: 0.97 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: { duration: 0.4, ease: "easeOut" },
+    },
+  };
+
+  // --- 2. XỬ LÝ HIỂN THỊ ---
+  // Nếu chưa có collection (và đang không load) -> Báo lỗi
+  if (!collection && !loading) 
     return (
       <div className="text-center py-20 text-gray-600">
         Không tìm thấy bộ sưu tầm
       </div>
     );
 
-  // --- Logic Pagination (Giữ nguyên) ---
-  const products = collection?.products || []; // Safely access products
+  // Pagination Logic
+  const products = collection?.products || [];
   const totalCards = products.length;
   const totalPages = Math.ceil(totalCards / cardsPerPage);
   const startIndex = (currentPage - 1) * cardsPerPage;
   const endIndex = startIndex + cardsPerPage;
   const currentCards = products.slice(startIndex, endIndex);
 
-  // ... (Các hàm goToPage, variants giữ nguyên)
+  const goToPage = (page) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   return (
     <div className="min-h-screen bg-white text-gray-900 pt-5">
       <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         
-        {/* ✅ PHẦN NÀY SẼ HIỆN NGAY LẬP TỨC (Vì dữ liệu collection đã có từ Home) */}
+        {/* HEADER: Hiện ngay lập tức vì data đã có từ Home */}
         <div className="text-center mb-12">
           <h1
             className="text-5xl font-extrabold tracking-tight leading-tight inline-block max-w-[600px] break-words"
@@ -73,14 +92,13 @@ const CollectionDetailPage = () => {
           <hr className="w-24 mx-auto border-t-4 border-blue-600 mb-6 rounded-full opacity-80" />
         </div>
 
-        {/* ✅ CHỈ HIỆN SPINNER Ở KHU VỰC SẢN PHẨM NẾU ĐANG LOADING */}
+        {/* BODY: Loading Spinner hoặc Grid Sản Phẩm */}
         {loading ? (
            <div className="flex justify-center items-center h-40">
               <LoadingSpinner />
            </div>
         ) : currentCards.length > 0 ? (
           <div className="flex justify-center">
-            {/* ... Code Grid giữ nguyên ... */}
             <motion.div
               className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-8 gap-y-10 justify-items-center w-fit px-3 sm:px-4 md:px-6 lg:px-0 mx-auto md:max-w-[750px] lg:max-w-none"
               variants={containerVariants}
@@ -116,10 +134,9 @@ const CollectionDetailPage = () => {
           </p>
         )}
 
-        {/* Pagination giữ nguyên */}
+        {/* PAGINATION */}
         {!loading && totalPages > 1 && (
-             // ... Code pagination giữ nguyên
-             <div className="flex justify-center items-center gap-2 mt-10 flex-wrap">
+            <div className="flex justify-center items-center gap-2 mt-10 flex-wrap">
                 <button onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1} className="px-3 py-1 rounded-md bg-blue-100 text-blue-600 hover:bg-blue-200 disabled:opacity-50">&lt;</button>
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                 <button key={page} onClick={() => goToPage(page)} className={`px-3 py-1 rounded-md ${currentPage === page ? "bg-blue-600 text-white" : "bg-blue-100 text-blue-600 hover:bg-blue-200"}`}>{page}</button>
