@@ -12,9 +12,7 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
   const { user } = useUserStore();
   const { addToCart } = useCartStore();
 
-  // ----------------------------------------------------------------
-  // 1. XỬ LÝ LOGIC GIỎ HÀNG
-  // ----------------------------------------------------------------
+  // 🔹 Add to cart
   const handleAddToCart = (e) => {
     e.preventDefault();
     if (!user) {
@@ -25,47 +23,44 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
     toast.success("Đã thêm vào giỏ hàng");
   };
 
-  // ----------------------------------------------------------------
-  // 2. XỬ LÝ LOGIC GIÁ & SALE (QUAN TRỌNG)
-  // ----------------------------------------------------------------
+  // 🔹 Tính toán giá & Sale
   const originalPrice = Number(product.price) || 0;
-  const percent = Number(product.salePercentage) || 0;
+  const salePercentage = Number(product.salePercentage) || 0;
   
-  // Kiểm tra điều kiện: Phải có cờ isSale VÀ phần trăm giảm > 0
-  // Dùng toán tử so sánh lỏng (== true) hoặc check string để bắt mọi trường hợp từ DB
-  const isSale = (product.isSale === true || product.isSale === "true") && percent > 0;
-
-  // Tính giá sau giảm
+  // ✅ FIX: Kiểm tra điều kiện lỏng hơn để bắt được mọi trường hợp (true, 1, "true")
+  const isSale = product.isSale && salePercentage > 0;
+  
+  // Giá sau giảm
   const discountedPrice = isSale 
-    ? originalPrice * (1 - percent / 100) 
+    ? originalPrice * (1 - salePercentage / 100) 
     : originalPrice;
 
-  // Format tiền tệ Việt Nam
+  // Format tiền tệ
   const originalPriceDisplay = originalPrice.toLocaleString("vi-VN", { maximumFractionDigits: 0 }) + "đ";
   const discountedPriceDisplay = discountedPrice.toLocaleString("vi-VN", { maximumFractionDigits: 0 }) + "đ";
 
-  // ----------------------------------------------------------------
-  // 3. XỬ LÝ PRE-ORDER LABEL
-  // ----------------------------------------------------------------
+  // 🔹 Hiển thị trạng thái pre-order
   const getPreOrderLabel = (status) => {
     switch (status) {
-      case "preorder": return { label: "Pre-Order", color: "bg-purple-500 text-white" };
-      case "out": return { label: "Hết hàng", color: "bg-red-500 text-white" };
-      case "low": return { label: "Số lượng còn ít", color: "bg-yellow-400 text-gray-900" };
-      default: return null;
+      case "preorder":
+        return { label: "Pre-Order", color: "bg-purple-500 text-white" };
+      case "out":
+        return { label: "Hết hàng", color: "bg-red-500 text-white" };
+      case "low":
+        return { label: "Số lượng còn ít", color: "bg-yellow-400 text-gray-900" };
+      default:
+        return null;
     }
   };
+
   const preorderStatus = getPreOrderLabel(product.isPreOrder);
 
-  // ----------------------------------------------------------------
-  // 4. HIỆU ỨNG TILT 3D (DESKTOP)
-  // ----------------------------------------------------------------
+  // 🔹 Tilt + Glare (desktop only)
   const handleMouseMove = (e) => {
     if (window.innerWidth < 1024) return;
     const card = cardRef.current;
     const glare = glareRef.current;
     if (!card || !glare) return;
-
     const rect = card.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -73,11 +68,12 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
     const centerY = rect.height / 2;
     const rotateX = ((y - centerY) / centerY) * 12;
     const rotateY = ((x - centerX) / centerX) * 12;
-
     card.style.transform = `perspective(800px) scale(1.07) rotateX(${-rotateX}deg) rotateY(${rotateY}deg)`;
-    
     const angle = Math.atan2(y - centerY, x - centerX) * (180 / Math.PI);
-    const opacity = Math.min(0.15, Math.hypot(x - centerX, y - centerY) / (rect.width / 1.5));
+    const opacity = Math.min(
+      0.15,
+      Math.hypot(x - centerX, y - centerY) / (rect.width / 1.5)
+    );
     glare.style.background = `linear-gradient(${angle}deg, rgba(255,255,255,${opacity}) 0%, transparent 80%)`;
   };
 
@@ -86,45 +82,66 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
     const card = cardRef.current;
     const glare = glareRef.current;
     if (!card || !glare) return;
-
-    card.style.transform = "perspective(800px) scale(1) rotateX(0deg) rotateY(0deg)";
+    card.style.transform =
+      "perspective(800px) scale(1) rotateX(0deg) rotateY(0deg)";
     glare.style.background = "transparent";
   };
 
-  // ----------------------------------------------------------------
-  // 5. CẤU HÌNH SIZE RESPONSIVE
-  // ----------------------------------------------------------------
+  // 🔹 Responsive sizes
   const sizes = {
-    category: { width: "w-[160px] sm:w-[200px] lg:w-[260px]", height: "h-[240px] sm:h-[300px] lg:h-[380px]", infoPadding: "p-3", button: "px-3 py-1.5 text-sm" },
-    featured: { width: "w-[140px] sm:w-[180px] lg:w-[220px]", height: "h-[140px] sm:h-[180px] lg:h-[220px]", infoPadding: "p-2", button: "px-2 py-1 text-xs" },
-    default: { width: "w-[150px] sm:w-[190px] lg:w-[250px]", height: "h-[220px] sm:h-[280px] lg:h-[360px]", infoPadding: "p-3", button: "px-3 py-1.5 text-xs" },
-    PeopleAlsoBought: { width: "w-[130px] sm:w-[170px] lg:w-[220px]", height: "h-[200px] sm:h-[260px] lg:h-[320px]", infoPadding: "p-2.5", button: "px-2.5 py-1 text-xs" },
+    category: {
+      width: "w-[160px] sm:w-[200px] lg:w-[260px]",
+      height: "h-[240px] sm:h-[300px] lg:h-[380px]",
+      infoPadding: "p-3",
+      button: "px-3 py-1.5 text-sm",
+    },
+    featured: {
+      width: "w-[140px] sm:w-[180px] lg:w-[220px]",
+      height: "h-[140px] sm:h-[180px] lg:h-[220px]",
+      infoPadding: "p-2",
+      button: "px-2 py-1 text-xs",
+    },
+    default: {
+      width: "w-[150px] sm:w-[190px] lg:w-[250px]",
+      height: "h-[220px] sm:h-[280px] lg:h-[360px]",
+      infoPadding: "p-3",
+      button: "px-3 py-1.5 text-xs",
+    },
+    PeopleAlsoBought: {
+      width: "w-[130px] sm:w-[170px] lg:w-[220px]",
+      height: "h-[200px] sm:h-[260px] lg:h-[320px]",
+      infoPadding: "p-2.5",
+      button: "px-2.5 py-1 text-xs",
+    },
   };
+
   const size = sizes[variant] || sizes.default;
   const isFeedback = product.category === "feedback";
 
-  // ================================================================
-  // A. RENDER GIAO DIỆN FEEDBACK CARD
-  // ================================================================
+  // -------------------------------
+  // 🔹 FEEDBACK CARD
+  // -------------------------------
   if (isFeedback) {
     const isInternalLink = product.productLink && product.productLink.includes(window.location.origin);
     
-    const FeedbackContent = (
+    const CardContent = (
         <div
           ref={cardRef}
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
           className={`relative overflow-hidden rounded-xl shadow-md transform-gpu will-change-transform
-            hover:shadow-2xl transition-transform duration-300 ease-out bg-gray-100
+            hover:shadow-2xl transition-transform duration-300 ease-out
             ${size.width}`}
         >
-          <div ref={glareRef} className="pointer-events-none absolute inset-0 rounded-xl z-20 transition-opacity duration-300" />
-          
-          {/* Badge Container (Feedback cũng cần hiện Sale nếu có) */}
+          <div
+            ref={glareRef}
+            className="pointer-events-none absolute inset-0 rounded-xl z-20 transition-opacity duration-300"
+          />
+          {/* Badge Container */}
           <div className="absolute top-2 right-2 z-30 flex flex-col items-end gap-1">
              {isSale && (
                 <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-md animate-in fade-in zoom-in">
-                   -{percent}%
+                   -{salePercentage}%
                 </span>
              )}
              {preorderStatus && (
@@ -138,52 +155,67 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
             <img
               src={product.image}
               alt={product.name}
-              className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-              onError={(e) => (e.target.src = "https://via.placeholder.com/300x400?text=No+Image")}
+              className="w-full h-full object-cover transition-transform duration-500"
+              onError={(e) =>
+                (e.target.src =
+                  "https://via.placeholder.com/300x400?text=No+Image")
+              }
             />
           </div>
         </div>
     );
 
-    // Xử lý link nội bộ hoặc link ngoài
     if (isInternalLink) {
+        const internalPath = product.productLink.replace(window.location.origin, "");
         return (
-            <Link to={product.productLink.replace(window.location.origin, "")} className="group relative block">
-                {FeedbackContent}
+            <Link to={internalPath} className="group relative block">
+                {CardContent}
             </Link>
         );
     }
+
     return (
-      <a href={product.productLink || "#"} target="_blank" rel="noopener noreferrer" className="group relative block">
-        {FeedbackContent}
+      <a
+        href={product.productLink || "#"}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="group relative block"
+      >
+        {CardContent}
       </a>
     );
   }
 
-  // ================================================================
-  // B. RENDER GIAO DIỆN SẢN PHẨM THƯỜNG (DEFAULT)
-  // ================================================================
+  // -------------------------------
+  // 🔹 CARD MẶC ĐỊNH (CLIENT VIEW)
+  // -------------------------------
   const DefaultCardContent = (
     <div
       ref={cardRef}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       className={`relative overflow-hidden rounded-xl shadow-md transform-gpu will-change-transform
-        hover:shadow-2xl transition-transform duration-300 ease-out bg-white
+        hover:shadow-2xl transition-transform duration-300 ease-out
         ${size.width}`}
     >
-      <div ref={glareRef} className="pointer-events-none absolute inset-0 rounded-xl z-20 transition-opacity duration-300" />
+      <div
+        ref={glareRef}
+        className="pointer-events-none absolute inset-0 rounded-xl z-20 transition-opacity duration-300"
+      />
 
-      {/* --- BADGE CONTAINER --- */}
-      <div className="absolute top-2 right-2 z-40 flex flex-col items-end gap-1 pointer-events-none">
-         {/* Chỉ hiện Badge Sale nếu isSale = true */}
+      {/* Badge Container (Sale + Preorder) */}
+      <div className="absolute top-2 right-2 z-30 flex flex-col items-end gap-1 pointer-events-none">
+         {/* ✅ SALE BADGE */}
          {isSale && (
             <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-md animate-in fade-in zoom-in border border-white/20">
-               -{percent}%
+               -{salePercentage}%
             </span>
          )}
+         {/* Pre-order Badge */}
          {preorderStatus && (
-            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-md opacity-90 ${preorderStatus.color}`}>
+            <span
+              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-md opacity-90 ${preorderStatus.color}`}
+            >
               {preorderStatus.label}
             </span>
          )}
@@ -194,7 +226,10 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
           src={product.image}
           alt={product.name}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-          onError={(e) => (e.target.src = "https://via.placeholder.com/300x400?text=No+Image")}
+          onError={(e) =>
+            (e.target.src =
+              "https://via.placeholder.com/300x400?text=No+Image")
+          }
         />
       </div>
 
@@ -209,23 +244,19 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
           {product.name}
         </h5>
         
-        {/* --- HIỂN THỊ GIÁ --- */}
-        <div className="mb-2 min-h-[1.5rem] flex items-end">
+        {/* ✅ LOGIC GIÁ SALE: Đỏ & Vàng cho nổi bật trên nền tối */}
+        <div className="mb-2">
           {isSale ? (
-             // TRƯỜNG HỢP SALE: Hiện giá cũ gạch ngang + giá mới
              <div className="flex flex-col items-start leading-none gap-0.5">
-                <div className="flex items-center gap-2">
-                   {/* Giá mới màu đỏ nổi bật */}
-                   <span className="text-red-400 font-bold text-lg">{discountedPriceDisplay}</span>
-                   
-                   {/* Giá cũ gạch ngang màu xám */}
-                   <span className="text-gray-400 text-[10px] line-through decoration-gray-400 opacity-80">
-                      {originalPriceDisplay}
-                   </span>
+                {/* Giá cũ gạch ngang */}
+                <span className="text-gray-400 text-[10px] line-through decoration-gray-400">{originalPriceDisplay}</span>
+                {/* Giá mới */}
+                <div className="flex items-center gap-1.5">
+                    <span className="text-red-400 font-bold text-lg">{discountedPriceDisplay}</span>
+                    <span className="bg-red-500/20 text-red-300 text-[9px] px-1 rounded border border-red-500/30 hidden sm:inline-block">SALE</span>
                 </div>
              </div>
           ) : (
-             // TRƯỜNG HỢP THƯỜNG: Chỉ hiện giá gốc
              <span className="text-white font-bold text-sm">{originalPriceDisplay}</span>
           )}
         </div>
@@ -237,7 +268,11 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
                       ${size.button}`}
           onClick={handleAddToCart}
         >
-          <ShoppingCart size={14} className="mr-1.5" /> Thêm giỏ
+          <ShoppingCart
+            size={variant === "featured" ? 12 : 14}
+            className="mr-1.5"
+          />
+          Thêm giỏ
         </button>
       </div>
     </div>
