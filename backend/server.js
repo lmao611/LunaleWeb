@@ -4,7 +4,6 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
-import fs from "fs";
 
 import bannerRoutes from "./routes/banner.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
@@ -32,7 +31,7 @@ app.use(cookieParser());
 const allowedOrigins = [
   process.env.CLIENT_URL,
   "http://localhost:5173",
-  "https://localhost:5173", 
+  "https://localhost:5173",
 ];
 
 app.use(
@@ -62,17 +61,8 @@ app.use("/api/banner", bannerRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/orders", ordersRoutes);
 
-const frontendDistPath = path.join(__dirname, "../frontend/dist");
-
-app.use(express.static(frontendDistPath));
-
-app.use((req, res) => {
-  const indexPath = path.join(frontendDistPath, "index.html");
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    res.status(404).send("Frontend build not found.");
-  }
+app.get("/", (req, res) => {
+  res.send("API Lunale is running");
 });
 
 app.listen(PORT, () => {
