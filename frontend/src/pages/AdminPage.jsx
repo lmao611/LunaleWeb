@@ -7,6 +7,8 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+
+// Import Components
 import CreateProductForm from "../components/CreateProductForm";
 import ProductsList from "../components/ProductsList";
 import CreateCollectionForm from "../components/CreateCollectionForm";
@@ -14,8 +16,10 @@ import CollectionsList from "../components/CollectionsList";
 import BannerUploadForm from "../components/BannerUploadForm";
 import OrdersManager from "../components/OrdersManager";
 import OrderReceipt from "../components/OrderReceipt";
+
+// Import Stores
 import { useProductStore } from "../stores/useProductStore";
-import { useUserStore } from "../stores/useUserStore"; // ✅ Import UserStore
+import { useUserStore } from "../stores/useUserStore";
 
 const tabs = [
   { id: "create", label: "Thêm sản phẩm", icon: PlusCircle },
@@ -30,39 +34,24 @@ const tabs = [
 const AdminPage = () => {
   const [activeTab, setActiveTab] = useState("create");
   const { fetchAllProducts } = useProductStore();
-  
-  // ✅ Lấy thông tin user để kiểm tra role
   const { user } = useUserStore();
 
   useEffect(() => {
     fetchAllProducts();
   }, [fetchAllProducts]);
 
-  const handleCreateCollection = (col) => {
-    const stored = JSON.parse(localStorage.getItem("collections") || "[]");
-    localStorage.setItem(
-      "collections",
-      JSON.stringify([...stored, { ...col, products: col.products || [] }])
-    );
-    alert("✅ Bộ sưu tầm đã được lưu!");
-    // Nếu là controller mới chuyển qua list, còn admin thì giữ nguyên hoặc chuyển về create
-    if (user?.role === "controller") {
-      setActiveTab("collectionsList");
-    } else {
-      setActiveTab("collections");
-    }
+  const handleCreateCollectionSuccess = () => {
+    // Nếu tạo từ tab "Tạo bộ sưu tập" thì chuyển sang danh sách
+    setActiveTab("collectionsList");
   };
 
-  // ✅ Logic lọc Tabs theo Role
+  // Logic lọc Tabs theo Role
   const visibleTabs = tabs.filter((tab) => {
-    // Controller: Hiện tất cả
-    if (user?.role === "controller") return true;
-
-    // Admin: Chỉ hiện các tab được chỉ định
+    if (user?.role === "controller") return true; // Controller full quyền
     if (user?.role === "admin") {
+      // Admin bị giới hạn một số tab
       return ["create", "collections", "banner", "orders", "receipt"].includes(tab.id);
     }
-
     return false;
   });
 
@@ -77,8 +66,8 @@ const AdminPage = () => {
           Trang Quản Lý ({user?.role === "controller" ? "Controller" : "Admin"})
         </motion.h1>
 
+        {/* --- MENU TABS --- */}
         <div className="flex justify-center mb-8 flex-wrap gap-3">
-          {/* ✅ Render các tab dựa trên visibleTabs đã lọc */}
           {visibleTabs.map((tab) => (
             <button
               key={tab.id}
@@ -96,82 +85,47 @@ const AdminPage = () => {
           ))}
         </div>
 
+        {/* --- CONTENT AREA --- */}
         <AnimatePresence mode="wait">
           {activeTab === "create" && (
-            <motion.div
-              key="create"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-            >
+            <motion.div key="create" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
               <CreateProductForm />
             </motion.div>
           )}
 
-          {/* Chỉ render nếu user là controller (bảo mật thêm ở tầng hiển thị) */}
           {activeTab === "products" && user?.role === "controller" && (
-            <motion.div
-              key="products"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-            >
+            <motion.div key="products" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
               <ProductsList />
             </motion.div>
           )}
 
           {activeTab === "collections" && (
-            <motion.div
-              key="collections"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-            >
-              <CreateCollectionForm onCreate={handleCreateCollection} />
+            <motion.div key="collections" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+              {/* Truyền callback để khi tạo xong thì chuyển tab */}
+              <CreateCollectionForm onCreate={handleCreateCollectionSuccess} />
             </motion.div>
           )}
 
-          {/* Chỉ render nếu user là controller */}
           {activeTab === "collectionsList" && user?.role === "controller" && (
-            <motion.div
-              key="collectionsList"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-            >
+            <motion.div key="collectionsList" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
               <CollectionsList />
             </motion.div>
           )}
 
           {activeTab === "banner" && (
-            <motion.div
-              key="banner"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-            >
+            <motion.div key="banner" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
               <BannerUploadForm />
             </motion.div>
           )}
 
           {activeTab === "orders" && (
-            <motion.div
-              key="orders"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-            >
+            <motion.div key="orders" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
               <OrdersManager />
             </motion.div>
           )}
 
           {activeTab === "receipt" && (
-            <motion.div
-              key="receipt"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-            >
+            <motion.div key="receipt" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
               <OrderReceipt />
             </motion.div>
           )}
