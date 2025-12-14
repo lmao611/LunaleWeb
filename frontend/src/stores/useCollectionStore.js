@@ -10,23 +10,21 @@ export const useCollectionStore = create((set, get) => ({
     set({ editingCollection: collection });
   },
 
-  // 1. Fetch danh sách (Có Cache)
   fetchCollections: async () => {
-    // ✅ KIỂM TRA: Nếu đã có dữ liệu -> Dừng lại ngay (Không load lại Home)
-    if (get().collections.length > 0) return;
-
     set({ isLoading: true });
     try {
       const res = await axios.get("/collections");
-      const data = Array.isArray(res.data) ? res.data : res.data.collections || [];
+      let data = Array.isArray(res.data) ? res.data : res.data.collections || [];
+
+      data = data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
       set({ collections: data, isLoading: false });
     } catch (err) {
-      console.error("❌ Lỗi fetch collections:", err);
+      console.error(err);
       set({ collections: [], isLoading: false });
     }
   },
 
-  // 2. Fetch Detail (Giữ nguyên logic update cache của bạn)
   fetchCollectionDetail: async (id) => {
     try {
       const res = await axios.get(`/collections/${id}`);
@@ -45,16 +43,18 @@ export const useCollectionStore = create((set, get) => ({
         }
       });
     } catch (error) {
-      console.error("Lỗi fetch detail:", error);
+      console.error(error);
     }
   },
 
   createCollection: async (data) => {
     try {
       const res = await axios.post("/collections", data);
-      set((state) => ({ collections: [...state.collections, res.data] }));
+      set((state) => ({
+        collections: [res.data, ...state.collections]
+      }));
     } catch (error) {
-      console.error("Lỗi tạo collection:", error);
+      console.error(error);
       throw error;
     }
   },
@@ -67,29 +67,41 @@ export const useCollectionStore = create((set, get) => ({
         editingCollection: null,
       }));
     } catch (error) {
-      console.error("Lỗi cập nhật collection:", error);
+      console.error(error);
       throw error;
     }
   },
 
   deleteCollection: async (id) => {
-    await axios.delete(`/collections/${id}`);
-    set((state) => ({
-      collections: state.collections.filter((c) => c._id !== id),
-    }));
+    try {
+      await axios.delete(`/collections/${id}`);
+      set((state) => ({
+        collections: state.collections.filter((c) => c._id !== id),
+      }));
+    } catch (error) {
+      console.error(error);
+    }
   },
 
   addProductToCollection: async (id, product) => {
-    const res = await axios.post(`/collections/${id}/products`, product);
-    set((state) => ({
-      collections: state.collections.map((c) => (c._id === id ? res.data : c)),
-    }));
+    try {
+      const res = await axios.post(`/collections/${id}/products`, product);
+      set((state) => ({
+        collections: state.collections.map((c) => (c._id === id ? res.data : c)),
+      }));
+    } catch (error) {
+      console.error(error);
+    }
   },
 
   removeProductFromCollection: async (id, productId) => {
-    const res = await axios.delete(`/collections/${id}/products/${productId}`);
-    set((state) => ({
-      collections: state.collections.map((c) => (c._id === id ? res.data : c)),
-    }));
+    try {
+      const res = await axios.delete(`/collections/${id}/products/${productId}`);
+      set((state) => ({
+        collections: state.collections.map((c) => (c._id === id ? res.data : c)),
+      }));
+    } catch (error) {
+      console.error(error);
+    }
   },
 }));
