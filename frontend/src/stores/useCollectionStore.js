@@ -10,8 +10,11 @@ export const useCollectionStore = create((set, get) => ({
     set({ editingCollection: collection });
   },
 
-  // 1. Fetch danh sách nhẹ (cho Homepage)
+  // 1. Fetch danh sách (Có Cache)
   fetchCollections: async () => {
+    // ✅ KIỂM TRA: Nếu đã có dữ liệu -> Dừng lại ngay (Không load lại Home)
+    if (get().collections.length > 0) return;
+
     set({ isLoading: true });
     try {
       const res = await axios.get("/collections");
@@ -23,29 +26,22 @@ export const useCollectionStore = create((set, get) => ({
     }
   },
 
-  // ✅ 2. HÀM MỚI: Fetch chi tiết và Cache vào Store
+  // 2. Fetch Detail (Giữ nguyên logic update cache của bạn)
   fetchCollectionDetail: async (id) => {
-    // Không set isLoading toàn cục để tránh làm nháy giao diện chỗ khác
     try {
       const res = await axios.get(`/collections/${id}`);
       const detailData = res.data;
 
       set((state) => {
-        // Kiểm tra xem collection này đã có trong list chưa
         const exists = state.collections.find((c) => c._id === id);
-
         if (exists) {
-          // Nếu có rồi -> Cập nhật thêm thông tin products vào nó
           return {
             collections: state.collections.map((c) =>
               c._id === id ? detailData : c
             ),
           };
         } else {
-          // Nếu chưa có (VD: User vào thẳng link detail) -> Thêm mới vào list
-          return {
-            collections: [...state.collections, detailData],
-          };
+          return { collections: [...state.collections, detailData] };
         }
       });
     } catch (error) {

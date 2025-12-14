@@ -2,9 +2,9 @@ import Collection from "../models/collection.model.js";
 
 export const getAllCollections = async (req, res) => {
   try {
-    // ✅ TỐI ƯU: .select("-products") giúp loại bỏ danh sách sản phẩm nặng nề
     const collections = await Collection.find()
       .select("-products") 
+      .lean() // ✅ QUAN TRỌNG: Tăng tốc độ đọc DB
       .sort({ createdAt: -1 });
     res.json(collections);
   } catch (err) {
@@ -13,15 +13,16 @@ export const getAllCollections = async (req, res) => {
   }
 };
 
-// 2. Lấy chi tiết (Cho Detail Page): Giữ nguyên để lấy full sản phẩm
+// 2. Detail Page: Lấy sản phẩm tối ưu
 export const getCollectionById = async (req, res) => {
   try {
     const collection = await Collection.findById(req.params.id)
       .populate({
         path: "products",
-        // ✅ DÒNG NÀY QUAN TRỌNG NHẤT: Chỉ lấy tên, giá, ảnh. Bỏ qua mô tả dài dòng.
+        // ✅ Chỉ lấy trường cần thiết
         select: "name price image isSale salePercentage isPreOrder category productLink" 
-      });
+      })
+      .lean(); // ✅ Tăng tốc
 
     if (!collection) return res.status(404).json({ message: "Not found" });
     res.json(collection);
