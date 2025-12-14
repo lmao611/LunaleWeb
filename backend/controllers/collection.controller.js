@@ -1,11 +1,11 @@
 import Collection from "../models/collection.model.js";
 import cloudinary from "../lib/cloudinary.js"; 
 
-// 1. Lấy tất cả collection (Đã tối ưu nhẹ)
+// 1. Lấy tất cả collection
 export const getAllCollections = async (req, res) => {
   try {
     const collections = await Collection.find()
-      .select("-products") // Giữ dòng này để load nhanh
+      .select("-products") 
       .lean()
       .sort({ createdAt: -1 });
     res.json(collections);
@@ -32,15 +32,21 @@ export const getCollectionById = async (req, res) => {
   }
 };
 
-// 3. Tạo collection mới (Đã có logic upload Cloudinary)
+// 3. Tạo collection mới (Đã bổ sung Special Fields)
 export const createCollection = async (req, res) => {
   try {
-    const { name, description, coverMedia, gradientFrom, gradientTo } = req.body;
+    // 👇 LẤY THÊM CÁC TRƯỜNG SPECIAL TỪ REQ.BODY
+    const { 
+        name, description, coverMedia, gradientFrom, gradientTo,
+        isSpecial, specialPosition, 
+        mobileWidth, mobileHeight, desktopWidth, desktopHeight,
+        isFullSize, hideName, hideDescription
+    } = req.body;
 
     let mediaUrl = "";
     let mediaType = "image"; 
 
-    // Upload lên Cloudinary nếu là Base64
+    // Logic upload Cloudinary
     if (coverMedia && coverMedia.url) {
         if (coverMedia.url.startsWith("data:")) {
             try {
@@ -70,6 +76,16 @@ export const createCollection = async (req, res) => {
       gradientFrom: gradientFrom || "#3b82f6",
       gradientTo: gradientTo || "#06b6d4",
       products: [],
+      // 👇 LƯU CÁC TRƯỜNG SPECIAL VÀO DB
+      isSpecial: isSpecial || false,
+      specialPosition: specialPosition || "below_featured",
+      mobileWidth: mobileWidth || 100,
+      mobileHeight: mobileHeight || 400,
+      desktopWidth: desktopWidth || 100,
+      desktopHeight: desktopHeight || 600,
+      isFullSize: isFullSize || false,
+      hideName: hideName || false,
+      hideDescription: hideDescription || false,
     });
 
     res.status(201).json(newCol);
@@ -79,10 +95,16 @@ export const createCollection = async (req, res) => {
   }
 };
 
-// 4. Cập nhật Collection (HÀM BỊ THIẾU TRƯỚC ĐÓ)
+// 4. Cập nhật Collection (Đã bổ sung Special Fields)
 export const updateCollection = async (req, res) => {
   try {
-    const { name, description, coverMedia, gradientFrom, gradientTo } = req.body;
+    const { 
+        name, description, coverMedia, gradientFrom, gradientTo,
+        isSpecial, specialPosition, 
+        mobileWidth, mobileHeight, desktopWidth, desktopHeight,
+        isFullSize, hideName, hideDescription
+    } = req.body;
+
     const collection = await Collection.findById(req.params.id);
 
     if (!collection) {
@@ -95,12 +117,21 @@ export const updateCollection = async (req, res) => {
     collection.gradientFrom = gradientFrom || collection.gradientFrom;
     collection.gradientTo = gradientTo || collection.gradientTo;
 
+    // 👇 CẬP NHẬT CÁC TRƯỜNG SPECIAL (Kiểm tra undefined để cho phép set false/0)
+    if (isSpecial !== undefined) collection.isSpecial = isSpecial;
+    if (specialPosition !== undefined) collection.specialPosition = specialPosition;
+    if (mobileWidth !== undefined) collection.mobileWidth = mobileWidth;
+    if (mobileHeight !== undefined) collection.mobileHeight = mobileHeight;
+    if (desktopWidth !== undefined) collection.desktopWidth = desktopWidth;
+    if (desktopHeight !== undefined) collection.desktopHeight = desktopHeight;
+    if (isFullSize !== undefined) collection.isFullSize = isFullSize;
+    if (hideName !== undefined) collection.hideName = hideName;
+    if (hideDescription !== undefined) collection.hideDescription = hideDescription;
+
     // Logic upload Cloudinary cho Update
     if (coverMedia && coverMedia.url) {
-      // Nếu là ảnh mới (Base64) thì upload
       if (coverMedia.url.startsWith("data:")) {
         try {
-            // (Optional) Xóa ảnh cũ trên cloud nếu cần, ở đây tôi bỏ qua để an toàn
             const uploadResponse = await cloudinary.uploader.upload(coverMedia.url, {
                 folder: "collections",
                 resource_type: "auto"
@@ -114,7 +145,6 @@ export const updateCollection = async (req, res) => {
             return res.status(500).json({ message: "Upload failed" });
         }
       } else {
-        // Nếu là link cũ thì giữ nguyên (hoặc cập nhật type nếu có)
         collection.coverMedia = coverMedia; 
       }
     }
@@ -133,7 +163,6 @@ export const deleteCollection = async (req, res) => {
     const collection = await Collection.findById(req.params.id);
     if (!collection) return res.status(404).json({ message: "Not found" });
 
-    // Xóa trên Cloudinary nếu có (để sạch data)
     if (collection.coverMedia && collection.coverMedia.url) {
         try {
             const url = collection.coverMedia.url;
@@ -152,7 +181,7 @@ export const deleteCollection = async (req, res) => {
   }
 };
 
-// 6. Thêm sản phẩm vào collection
+// 6. Thêm sản phẩm
 export const addProductToCollection = async (req, res) => {
   try {
     const { id } = req.params;
@@ -177,7 +206,7 @@ export const addProductToCollection = async (req, res) => {
   }
 };
 
-// 7. Xóa sản phẩm khỏi collection
+// 7. Xóa sản phẩm
 export const removeProductFromCollection = async (req, res) => {
   try {
     const { id, productId } = req.params;
