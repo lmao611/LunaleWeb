@@ -12,13 +12,13 @@ const CollectionDetailPage = () => {
   const collection = collections.find((c) => c._id === id);
 
   const [loadingProducts, setLoadingProducts] = useState(true);
-  
   const [currentPage, setCurrentPage] = useState(1);
   const cardsPerPage = 24;
 
   useEffect(() => {
     const loadDetail = async () => {
         setLoadingProducts(true);
+        // Thêm timestamp để tránh cache trình duyệt
         await fetchCollectionDetail(id);
         setLoadingProducts(false);
     };
@@ -29,11 +29,27 @@ const CollectionDetailPage = () => {
   if (!collection && !loadingProducts)
     return <div className="text-center py-20 text-gray-500">Không tìm thấy bộ sưu tập.</div>;
 
-  const products = collection?.products || [];
-  const totalCards = products.length;
+  // 🔥 LOGIC MỚI: Lọc rác giống hệt CategoryPage
+  const rawProducts = collection?.products || [];
+  
+  const filteredProducts = rawProducts.filter((product) => {
+    // 1. Kiểm tra tính hợp lệ (tránh thẻ trắng/lỗi)
+    // Phải có ID, Tên, Giá và Ảnh thì mới hiển thị
+    const isValid = product && product._id && product.name && product.price !== undefined && product.image;
+    if (!isValid) return false;
+
+    // 2. Logic ẩn hiện (nếu muốn ẩn sản phẩm sale thì mở comment dưới, hiện tại đang để hiện tất cả)
+    // const isSale = (product.isSale === true || product.isSale === "true") && (Number(product.salePercentage) > 0);
+    // if (isSale) return false; 
+
+    return true;
+  });
+
+  // 👇 Dùng danh sách đã lọc (filteredProducts) để tính toán phân trang
+  const totalCards = filteredProducts.length;
   const totalPages = Math.ceil(totalCards / cardsPerPage);
   const start = (currentPage - 1) * cardsPerPage;
-  const currentCards = products.slice(start, start + cardsPerPage);
+  const currentCards = filteredProducts.slice(start, start + cardsPerPage);
 
   const goToPage = (page) => {
     if (page >= 1 && page <= totalPages) {
@@ -81,7 +97,7 @@ const CollectionDetailPage = () => {
                   <div className="w-[160px] sm:w-[200px] md:w-[230px] lg:w-[270px]">
                     <ProductCard
                       product={product}
-                      variant="category"
+                      variant="category" // Dùng variant này để đồng bộ giao diện
                     />
                   </div>
                 </motion.div>
