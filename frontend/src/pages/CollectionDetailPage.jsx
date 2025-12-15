@@ -9,40 +9,26 @@ const CollectionDetailPage = () => {
   const { id } = useParams();
   const { collections, fetchCollectionDetail } = useCollectionStore();
   
-  // 1. LẤY NGAY DỮ LIỆU VỎ (Tên, Ảnh...) TỪ STORE
-  // Vì Home Page đã tải danh sách rồi, nên thông tin này có sẵn ngay lập tức.
   const collection = collections.find((c) => c._id === id);
 
-  // 2. KIỂM TRA: Đã có danh sách sản phẩm (products) bên trong chưa?
-  // Lúc ở Home, 'products' chưa được fetch. Khi vào đây mới fetch.
-  const hasProducts = collection && Array.isArray(collection.products) && collection.products.length > 0;
-  
-  // State loading cục bộ: Chỉ true nếu chưa có sản phẩm
-  const [loadingProducts, setLoadingProducts] = useState(!hasProducts);
+  const [loadingProducts, setLoadingProducts] = useState(true);
   
   const [currentPage, setCurrentPage] = useState(1);
   const cardsPerPage = 24;
 
   useEffect(() => {
     const loadDetail = async () => {
-      // ✅ CHỈ GỌI API NẾU CHƯA CÓ SẢN PHẨM (Cache hit)
-      // Nếu hasProducts = true (đã fetch rồi), dòng này sẽ bị bỏ qua -> Không load lại -> Siêu nhanh
-      if (!hasProducts) {
         setLoadingProducts(true);
         await fetchCollectionDetail(id);
         setLoadingProducts(false);
-      }
     };
     loadDetail();
-    // Scroll lên đầu trang khi vào
     window.scrollTo(0, 0);
-  }, [id, hasProducts, fetchCollectionDetail]);
+  }, [id, fetchCollectionDetail]);
 
-  // Nếu không tìm thấy collection nào (cả trong cache lẫn sau khi fetch)
   if (!collection && !loadingProducts)
     return <div className="text-center py-20 text-gray-500">Không tìm thấy bộ sưu tập.</div>;
 
-  // --- Logic Phân trang (Pagination) ---
   const products = collection?.products || [];
   const totalCards = products.length;
   const totalPages = Math.ceil(totalCards / cardsPerPage);
@@ -63,8 +49,6 @@ const CollectionDetailPage = () => {
     <div className="min-h-screen bg-white text-gray-900 pt-5">
       <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         
-        {/* ✅ HEADER: HIỆN NGAY LẬP TỨC (Không chờ fetch products) */}
-        {/* Vì lấy từ biến 'collection' có sẵn trong store nên nó hiện ra tức thì */}
         <div className="text-center mb-12">
           <h1
             className="text-5xl font-extrabold tracking-tight inline-block max-w-[800px] break-words"
@@ -79,7 +63,6 @@ const CollectionDetailPage = () => {
           <hr className="w-24 mx-auto border-t-4 border-blue-600 mb-6 rounded-full opacity-80 mt-4" />
         </div>
 
-        {/* ✅ BODY: CHỈ HIỆN SPINNER Ở KHU VỰC SẢN PHẨM */}
         {loadingProducts ? (
            <div className="flex justify-center items-center h-60">
               <LoadingSpinner />
@@ -97,8 +80,7 @@ const CollectionDetailPage = () => {
                 <motion.div key={product._id} variants={cardVariants} className="flex justify-center">
                   <div className="w-[160px] sm:w-[200px] md:w-[230px] lg:w-[270px]">
                     <ProductCard
-                      // Tối ưu ảnh (nếu ProductCard chưa có optimizeUrl thì thêm vào)
-                      product={{ ...product, image: product.image || "/placeholder.png" }}
+                      product={product}
                       variant="category"
                     />
                   </div>
@@ -112,7 +94,6 @@ const CollectionDetailPage = () => {
           </p>
         )}
 
-        {/* Phân trang */}
         {!loadingProducts && totalPages > 1 && (
             <div className="flex justify-center items-center gap-2 mt-10 flex-wrap">
                 <button onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1} className="px-3 py-1 rounded-md bg-blue-100 text-blue-600 hover:bg-blue-200 disabled:opacity-50">&lt;</button>

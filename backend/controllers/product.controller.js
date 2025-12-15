@@ -1,5 +1,6 @@
 import cloudinary from "../lib/cloudinary.js";
 import Product from "../models/product.model.js";
+import Collection from "../models/collection.model.js";
 import { redis } from "../lib/redis.js";
 import mongoose from "mongoose";
 
@@ -81,7 +82,6 @@ export const getFeaturedProducts = async (req, res) => {
 
 export const createProduct = async (req, res) => {
   try {
-    // Nhận thêm isSale và salePercentage
     const { name, description, price, image, category, thumbnails, productLink, isPreOrder, isSale, salePercentage } = req.body;
 
     let mainImageUrl = "";
@@ -108,7 +108,6 @@ export const createProduct = async (req, res) => {
       image: mainImageUrl,
       thumbnails: thumbnailUrls,
       isPreOrder: isPreOrder || "None",
-      // Xử lý logic Sale
       isSale: isSale || false,
       salePercentage: isSale ? (salePercentage || 0) : 0,
       order: 0,
@@ -126,7 +125,6 @@ export const createProduct = async (req, res) => {
 export const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    // Nhận thêm isSale và salePercentage
     const { name, description, price, category, image, thumbnails, productLink, isPreOrder, isSale, salePercentage } = req.body;
 
     const product = await Product.findById(id);
@@ -171,11 +169,26 @@ export const updateProduct = async (req, res) => {
         thumbnails: finalThumbnails,
         productLink,
         isPreOrder: isPreOrder || "None",
-        // Cập nhật logic Sale
         isSale: isSale || false,
         salePercentage: isSale ? (salePercentage || 0) : 0,
       },
       { new: true }
+    );
+
+    await Collection.updateMany(
+      { "products._id": id },
+      {
+        $set: {
+          "products.$.name": updated.name,
+          "products.$.price": updated.price,
+          "products.$.image": updated.image,
+          "products.$.isSale": updated.isSale,
+          "products.$.salePercentage": updated.salePercentage,
+          "products.$.isPreOrder": updated.isPreOrder,
+          "products.$.category": updated.category,
+          "products.$.productLink": updated.productLink
+        }
+      }
     );
 
     await clearFeaturedCache();
@@ -187,7 +200,8 @@ export const updateProduct = async (req, res) => {
 
 export const deleteProduct = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const { id } = req.params;
+    const product = await Product.findById(id);
     if (!product) return res.status(404).json({ message: "No product found" });
 
     if (product.image) {
@@ -200,7 +214,13 @@ export const deleteProduct = async (req, res) => {
       if (publicId) await cloudinary.uploader.destroy(publicId, { invalidate: true });
     }
 
-    await Product.findByIdAndDelete(req.params.id);
+    await Product.findByIdAndDelete(id);
+
+    await Collection.updateMany(
+      { "products._id": id },
+      { $pull: { products: { _id: id } } }
+    );
+
     await clearFeaturedCache();
     res.json({ message: "Product deleted successfully" });
   } catch (error) {
@@ -261,7 +281,7 @@ export const getRecommendedProducts = async (req, res) => {
         $match: {
           _id: { $nin: excluded },
           category: { $ne: "feedback" },
-          isSale: { $ne: true } // Lọc sản phẩm đang Sale
+          isSale: { $ne: true }
         },
       },
       { $sample: { size: 8 } },
