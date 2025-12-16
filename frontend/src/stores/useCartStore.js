@@ -1,4 +1,3 @@
-// src/stores/useCartStore.js
 import { create } from "zustand";
 import axios from "../lib/axios";
 import { toast } from "react-hot-toast";
@@ -26,7 +25,7 @@ export const useCartStore = create((set, get) => ({
     try {
       const res = await axios.get("/cart");
       set({ cart: res.data });
-      localStorage.setItem("cart", JSON.stringify(res.data)); // lưu vào localStorage
+      localStorage.setItem("cart", JSON.stringify(res.data)); 
       get().calculateTotals();
     } catch (error) {
       console.error(error);
@@ -56,7 +55,7 @@ export const useCartStore = create((set, get) => ({
 
   removeFromCart: async (productId) => {
     try {
-      await axios.delete("/cart", { data: { productId } }); // backend
+      await axios.delete("/cart", { data: { productId } }); 
     } catch (error) {
       console.warn("Không xóa được trên server:", error);
     }
@@ -71,7 +70,7 @@ export const useCartStore = create((set, get) => ({
     if (quantity === 0) return get().removeFromCart(productId);
 
     try {
-      await axios.put(`/cart/${productId}`, { quantity }); // backend
+      await axios.put(`/cart/${productId}`, { quantity }); 
     } catch (error) {
       console.warn("Không update được trên server:", error);
     }
@@ -86,7 +85,7 @@ export const useCartStore = create((set, get) => ({
 
   clearCart: async () => {
     try {
-      await axios.delete("/cart"); // backend
+      await axios.delete("/cart"); 
     } catch (error) {
       console.warn("Không clear được trên server:", error);
     }
@@ -101,5 +100,22 @@ export const useCartStore = create((set, get) => ({
     let total = subtotal;
     if (coupon) total -= subtotal * (coupon.discountPercentage / 100);
     set({ subtotal, total });
+  },
+
+  // 👇 HÀM MỚI: Gửi đơn hàng
+  placeOrder: async (orderData) => {
+    try {
+      const res = await axios.post("/customer-orders", orderData);
+      
+      // Nếu đơn hàng đến từ giỏ hàng (không phải mua lẻ), xóa giỏ hàng local & store
+      if (orderData.isFromCart) {
+        set({ cart: [], total: 0, subtotal: 0 });
+        localStorage.removeItem("cart");
+      }
+      return { success: true, data: res.data };
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Đặt hàng thất bại");
+      return { success: false, error };
+    }
   },
 }));

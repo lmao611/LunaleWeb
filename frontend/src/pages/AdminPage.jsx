@@ -14,8 +14,10 @@ import ProductsList from "../components/ProductsList";
 import CreateCollectionForm from "../components/CreateCollectionForm";
 import CollectionsList from "../components/CollectionsList";
 import BannerUploadForm from "../components/BannerUploadForm";
-import OrdersManager from "../components/OrdersManager";
 import OrderReceipt from "../components/OrderReceipt";
+
+// 👇 THAY ĐỔI Ở ĐÂY: Import CustomerOrders thay vì OrdersManager
+import CustomerOrders from "../components/CustomerOrders";
 
 // Import Stores
 import { useProductStore } from "../stores/useProductStore";
@@ -49,7 +51,7 @@ const AdminPage = () => {
   const visibleTabs = tabs.filter((tab) => {
     if (user?.role === "controller") return true; // Controller full quyền
     if (user?.role === "admin") {
-      // Admin bị giới hạn một số tab
+      // Admin bị giới hạn một số tab (ẩn danh sách sản phẩm và danh sách collection)
       return ["create", "collections", "banner", "orders", "receipt"].includes(tab.id);
     }
     return false;
@@ -118,9 +120,10 @@ const AdminPage = () => {
             </motion.div>
           )}
 
+          {/* 👇 THAY ĐỔI Ở ĐÂY: Render CustomerOrders */}
           {activeTab === "orders" && (
             <motion.div key="orders" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
-              <OrdersManager />
+              <CustomerOrders />
             </motion.div>
           )}
 

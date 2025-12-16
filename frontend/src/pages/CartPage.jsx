@@ -1,15 +1,18 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; // Thêm useNavigate
 import { useCartStore } from "../stores/useCartStore";
+import { useUserStore } from "../stores/useUserStore"; // Thêm useUserStore
 import { motion } from "framer-motion";
 import { ShoppingCart } from "lucide-react";
 import CartItem from "../components/CartItem";
 import PeopleAlsoBought from "../components/PeopleAlsoBought";
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast"; // Thêm toast
 
 const CartPage = () => {
-  const { cart, getCartItems, calculateTotals } = useCartStore();
+  const { cart, getCartItems, calculateTotals, placeOrder } = useCartStore(); // Lấy thêm placeOrder
+  const { user, setShowUserBox } = useUserStore(); // Lấy user info
   const [rate, setRate] = useState(null);
-
+  const [isOrdering, setIsOrdering] = useState(false); // State loading khi đặt hàng
 
   useEffect(() => {
     fetch("https://api.exchangerate-api.com/v4/latest/USD")
@@ -18,21 +21,17 @@ const CartPage = () => {
       .catch((err) => console.error("Failed to fetch rate:", err));
   }, []);
 
-
   useEffect(() => {
     getCartItems(); 
     calculateTotals(); 
   }, [getCartItems, calculateTotals]);
-
 
   const totalUSD = cart.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
   );
 
-
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-
 
   let totalVND = null;
   if (rate != null) {
@@ -40,10 +39,47 @@ const CartPage = () => {
     totalVND = Math.floor(raw / 1000) * 1000; 
   }
 
+  // 👇 HÀM XỬ LÝ ĐẶT HÀNG MỚI
+  const handleCartOrder = async () => {
+    if (!user) {
+        toast.error("Vui lòng đăng nhập để đặt hàng!");
+        return;
+    }
+    // Kiểm tra thông tin bắt buộc
+    if (!user.phoneNumber || !user.direction || !user.name) {
+        toast.error("Vui lòng cập nhật đầy đủ thông tin giao hàng (SĐT, Địa chỉ)!");
+        setShowUserBox(true); // Mở hộp cập nhật thông tin
+        return;
+    }
+
+    setIsOrdering(true);
+    
+    // Chuẩn bị dữ liệu
+    const orderData = {
+        products: cart.map(item => ({
+            product: item._id,
+            name: item.name,
+            image: item.image,
+            price: item.price,
+            quantity: item.quantity,
+            size: "Mặc định" // Nếu sau này CartItem có chọn size thì sửa ở đây
+        })),
+        totalAmount: totalUSD, // Lưu tổng tiền (có thể là VND nếu muốn)
+        isFromCart: true,
+        note: "Đặt hàng từ Giỏ hàng"
+    };
+
+    const res = await placeOrder(orderData);
+    setIsOrdering(false);
+    
+    if (res.success) {
+        toast.success("🎉 Đặt hàng thành công! Chúng tôi sẽ liên hệ sớm.");
+    }
+  };
+
   return (
     <div className="py-40 md:py-16 bg-white min-h-screen">
       <div className="mx-auto max-w-screen-xl px-4 2xl:px-0">
-
         <div className="mt-6 sm:mt-8 md:gap-6 lg:flex lg:items-start xl:gap-8 relative">
           <motion.div
             className="mx-auto w-full flex-none lg:max-w-2xl xl:max-w-4xl"
@@ -87,9 +123,7 @@ const CartPage = () => {
                       <span className="text-gray-600">Số lượng sản phẩm:</span>
                       <span className="font-medium">{totalItems} items</span>
                     </div>
-                    <div className="flex justify-between mb-2">
-                      
-                    </div>
+                    
                     {totalVND && (
                       <div className="flex justify-between mb-4">
                         <span className="text-gray-600">Tổng cộng (VNĐ):</span>
@@ -99,13 +133,24 @@ const CartPage = () => {
                       </div>
                     )}
 
+                    {/* Nút Liên hệ cũ */}
                     <Link
                       to="/contact"
-                      className="block w-full text-center rounded-md bg-blue-600 px-4 py-2 
-                                 font-medium text-white hover:bg-blue-700 active:scale-95 transition"
+                      className="block w-full text-center rounded-md bg-gray-100 text-gray-800 px-4 py-2 mb-3
+                                 font-medium hover:bg-gray-200 transition"
                     >
-                      Liên hệ mua hàng
+                      Liên hệ hỏi hàng
                     </Link>
+
+                    {/* 👇 Nút Đặt Hàng Mới */}
+                    <button
+                      onClick={handleCartOrder}
+                      disabled={isOrdering}
+                      className="block w-full text-center rounded-md bg-blue-600 px-4 py-2 
+                                 font-bold text-white hover:bg-blue-700 active:scale-95 transition disabled:opacity-70"
+                    >
+                      {isOrdering ? "Đang xử lý..." : "Đặt Hàng Ngay"}
+                    </button>
                   </div>
                 </div>
               </div>
