@@ -54,7 +54,7 @@ const CartItem = ({ item }) => {
         <div className="flex-1 space-y-2">
           <p className="text-base font-medium text-gray-800">{item.name}</p>
           
-          {/* ✅ HIỂN THỊ SIZE */}
+          {/* ✅ HIỂN THỊ SIZE Ở ĐÂY */}
           <p className="text-sm text-gray-500 bg-gray-100 w-fit px-2 py-0.5 rounded">
             Size: <span className="font-bold text-gray-700">{item.size || "M"}</span>
           </p>
