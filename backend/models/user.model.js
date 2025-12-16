@@ -3,64 +3,27 @@ import bcrypt from "bcryptjs";
 
 const userSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-      required: [true, "Username is required"],
-    },
-    email: {
-      type: String,
-      required: [true, "Email is required"],
-      unique: true,
-      lowercase: true,
-      trim: true,
-    },
-    password: {
-      type: String,
-      minlength: [6, "Password must be at least 6 characters long"],
-    },
-    phoneNumber: {
-      type: String,
-    },
-    direction: {
-      type: String,
-    },
+    name: { type: String, required: [true, "Username is required"] },
+    email: { type: String, required: [true, "Email is required"], unique: true, lowercase: true, trim: true },
+    password: { type: String, minlength: [6, "Password must be at least 6 characters long"] },
+    phoneNumber: { type: String },
+    direction: { type: String },
+    provider: { type: String, enum: ["local", "facebook"], default: "local" },
+    facebookId: { type: String, unique: false, sparse: true },
 
-    // 👇 thêm để hỗ trợ login Facebook
-    provider: {
-      type: String,
-      enum: ["local", "facebook"],
-      default: "local",
-    },
-    facebookId: {
-      type: String,
-      unique: false,
-      sparse: true,
-    },
-
+    // 👇 CẬP NHẬT: Thêm trường size vào giỏ hàng
     cartItems: [
       {
-        quantity: {
-          type: Number,
-          default: 1,
-        },
-        product: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "Product",
-        },
+        quantity: { type: Number, default: 1 },
+        size: { type: String, default: "M" }, // ✅ Thêm dòng này
+        product: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
       },
     ],
-    role: {
-      type: String,
-      enum: ["customer", "admin", "controller"],
-      default: "customer",
-    },
+    role: { type: String, enum: ["customer", "admin", "controller"], default: "customer" },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-// 🔐 Hash password nếu có
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password") || !this.password) return next();
   try {
@@ -72,7 +35,6 @@ userSchema.pre("save", async function (next) {
   }
 });
 
-// 🔍 So sánh mật khẩu (chỉ cho user local)
 userSchema.methods.comparePassword = async function (password) {
   if (!this.password) return false;
   return bcrypt.compare(password, this.password);

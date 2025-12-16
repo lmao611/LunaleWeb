@@ -2,7 +2,6 @@ import { create } from "zustand";
 import axios from "../lib/axios";
 import { toast } from "react-hot-toast";
 
-// Lấy cart từ localStorage nếu có
 const getInitialCart = () => {
   try {
     const cart = localStorage.getItem("cart");
@@ -20,7 +19,6 @@ export const useCartStore = create((set, get) => ({
   subtotal: 0,
   isCouponApplied: false,
 
-  // Đồng bộ từ backend (nếu user login)
   getCartItems: async () => {
     try {
       const res = await axios.get("/cart");
@@ -33,23 +31,40 @@ export const useCartStore = create((set, get) => ({
     }
   },
 
-  addToCart: async (product) => {
+  // 👇 CẬP NHẬT: Nhận thêm size và quantity
+  addToCart: async (product, size = "M", quantity = 1) => {
     try {
-      // Nếu user login, update backend
-      await axios.post("/cart", { productId: product._id });
+      await axios.post("/cart", { 
+          productId: product._id, 
+          size: size, 
+          quantity: quantity 
+      });
 
-      const existingItem = get().cart.find((i) => i._id === product._id);
-      const newCart = existingItem
-        ? get().cart.map((i) =>
-            i._id === product._id ? { ...i, quantity: i.quantity + 1 } : i
-          )
-        : [...get().cart, { ...product, quantity: 1 }];
+      // Update state local
+      const currentCart = get().cart;
+      // Tìm xem đã có sản phẩm đó + size đó chưa
+      const existingItemIndex = currentCart.findIndex(
+          (i) => i._id === product._id && i.size === size
+      );
+
+      let newCart;
+      if (existingItemIndex > -1) {
+          // Nếu có rồi thì tăng số lượng
+          newCart = [...currentCart];
+          newCart[existingItemIndex].quantity += quantity;
+      } else {
+          // Chưa có thì thêm mới
+          newCart = [...currentCart, { ...product, quantity, size }];
+      }
 
       set({ cart: newCart });
       localStorage.setItem("cart", JSON.stringify(newCart));
       get().calculateTotals();
+      
+      return { success: true };
     } catch (error) {
       toast.error(error?.response?.data?.message || "Không thể thêm vào giỏ hàng");
+      return { success: false };
     }
   },
 
@@ -102,12 +117,9 @@ export const useCartStore = create((set, get) => ({
     set({ subtotal, total });
   },
 
-  // 👇 HÀM MỚI: Gửi đơn hàng
   placeOrder: async (orderData) => {
     try {
       const res = await axios.post("/customer-orders", orderData);
-      
-      // Nếu đơn hàng đến từ giỏ hàng (không phải mua lẻ), xóa giỏ hàng local & store
       if (orderData.isFromCart) {
         set({ cart: [], total: 0, subtotal: 0 });
         localStorage.removeItem("cart");

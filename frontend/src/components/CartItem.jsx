@@ -8,7 +8,6 @@ const CartItem = ({ item }) => {
   const [rate, setRate] = useState(null);
   const navigate = useNavigate();
 
-
   useEffect(() => {
     fetch("https://api.exchangerate-api.com/v4/latest/USD")
       .then((res) => res.json())
@@ -55,6 +54,11 @@ const CartItem = ({ item }) => {
         <div className="flex-1 space-y-2">
           <p className="text-base font-medium text-gray-800">{item.name}</p>
           
+          {/* ✅ HIỂN THỊ SIZE */}
+          <p className="text-sm text-gray-500 bg-gray-100 w-fit px-2 py-0.5 rounded">
+            Size: <span className="font-bold text-gray-700">{item.size || "M"}</span>
+          </p>
+
           <button
             className="inline-flex items-center text-sm font-medium text-red-500 
              hover:text-red-700 hover:underline"
@@ -91,11 +95,9 @@ const CartItem = ({ item }) => {
             </button>
           </div>
 
-
           <p className="text-base font-bold text-black">
             {vndDisplay}
           </p>
-          
         </div>
       </div>
     </div>
