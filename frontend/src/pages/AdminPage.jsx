@@ -4,6 +4,7 @@ import {
   Images,
   UploadCloud,
   FileText,
+  ClipboardList, // Import thêm icon cho đẹp
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -14,10 +15,9 @@ import ProductsList from "../components/ProductsList";
 import CreateCollectionForm from "../components/CreateCollectionForm";
 import CollectionsList from "../components/CollectionsList";
 import BannerUploadForm from "../components/BannerUploadForm";
+import OrdersManager from "../components/OrdersManager"; // ✅ GIỮ LẠI CÁI CŨ
+import CustomerOrders from "../components/CustomerOrders"; // ✅ THÊM CÁI MỚI
 import OrderReceipt from "../components/OrderReceipt";
-
-// 👇 THAY ĐỔI Ở ĐÂY: Import CustomerOrders thay vì OrdersManager
-import CustomerOrders from "../components/CustomerOrders";
 
 // Import Stores
 import { useProductStore } from "../stores/useProductStore";
@@ -29,7 +29,13 @@ const tabs = [
   { id: "collections", label: "Tạo bộ sưu tầm", icon: Images },
   { id: "collectionsList", label: "Danh sách bộ sưu tầm", icon: Images },
   { id: "banner", label: "Tải ảnh banner", icon: UploadCloud },
-  { id: "orders", label: "Quản lý đơn hàng", icon: FileText },
+  
+  // Tab cũ (Vận chuyển)
+  { id: "orders", label: "Q.Lý Vận Chuyển", icon: FileText }, 
+  
+  // 👇 Tab MỚI (Đơn khách đặt từ web)
+  { id: "customer_orders", label: "Đơn Khách Đặt", icon: ClipboardList }, 
+  
   { id: "receipt", label: "Phiếu đặt hàng", icon: FileText },
 ];
 
@@ -43,16 +49,15 @@ const AdminPage = () => {
   }, [fetchAllProducts]);
 
   const handleCreateCollectionSuccess = () => {
-    // Nếu tạo từ tab "Tạo bộ sưu tập" thì chuyển sang danh sách
     setActiveTab("collectionsList");
   };
 
   // Logic lọc Tabs theo Role
   const visibleTabs = tabs.filter((tab) => {
-    if (user?.role === "controller") return true; // Controller full quyền
+    if (user?.role === "controller") return true; 
     if (user?.role === "admin") {
-      // Admin bị giới hạn một số tab (ẩn danh sách sản phẩm và danh sách collection)
-      return ["create", "collections", "banner", "orders", "receipt"].includes(tab.id);
+      // Admin thấy được tab vận chuyển cũ VÀ tab đơn hàng mới
+      return ["create", "collections", "banner", "orders", "customer_orders", "receipt"].includes(tab.id);
     }
     return false;
   });
@@ -103,7 +108,6 @@ const AdminPage = () => {
 
           {activeTab === "collections" && (
             <motion.div key="collections" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
-              {/* Truyền callback để khi tạo xong thì chuyển tab */}
               <CreateCollectionForm onCreate={handleCreateCollectionSuccess} />
             </motion.div>
           )}
@@ -120,9 +124,16 @@ const AdminPage = () => {
             </motion.div>
           )}
 
-          {/* 👇 THAY ĐỔI Ở ĐÂY: Render CustomerOrders */}
+          {/* Tab Cũ: Quản lý vận chuyển */}
           {activeTab === "orders" && (
             <motion.div key="orders" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+              <OrdersManager />
+            </motion.div>
+          )}
+
+          {/* 👇 Tab MỚI: Đơn khách đặt */}
+          {activeTab === "customer_orders" && (
+            <motion.div key="customer_orders" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
               <CustomerOrders />
             </motion.div>
           )}
