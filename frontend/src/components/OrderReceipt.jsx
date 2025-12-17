@@ -8,8 +8,6 @@ import { useUserStore } from "../stores/useUserStore";
 const OrderReceipt = () => {
   const [customers, setCustomers] = useState([]);
   const [products, setProducts] = useState([]);
-  const [logoBase64, setLogoBase64] = useState(""); // State lưu ảnh logo base64
-
   const [form, setForm] = useState({
     customerId: "",
     customerName: "",
@@ -26,23 +24,6 @@ const OrderReceipt = () => {
   const { checkingAuth } = useUserStore();
   const receiptRef = useRef(null);
   const printRef = useRef(null);
-
-  // 1. Pre-load Logo sang Base64 để tránh lỗi mất ảnh trên iOS
-  useEffect(() => {
-    const loadLogo = async () => {
-      try {
-        const response = await fetch("/lunale.png");
-        const blob = await response.blob();
-        const reader = new FileReader();
-        reader.onloadend = () => setLogoBase64(reader.result);
-        reader.readAsDataURL(blob);
-      } catch (e) {
-        console.error("Lỗi load logo:", e);
-        setLogoBase64("/lunale.png");
-      }
-    };
-    loadLogo();
-  }, []);
 
   useEffect(() => {
     if (!checkingAuth) {
@@ -115,88 +96,92 @@ const OrderReceipt = () => {
 
   const totalWithShip = calcTotal() + (form.shipFee || 0);
 
-  // =========================================================
-  // HÀM XUẤT ẢNH (HTML2CANVAS)
-  // =========================================================
+  const convertImageToBase64 = async (url) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error(error);
+      return url;
+    }
+  };
+
   const handleExportImage = async () => {
     if (!printRef.current) return;
-    
+
     const el = printRef.current;
-    const originalStyle = { ...el.style };
+    const logoImg = el.querySelector("img");
+    let originalSrc = "";
 
     try {
-      // Setup style để chụp ảnh
+      el.style.opacity = "1";
+      el.style.pointerEvents = "auto";
       el.style.position = "fixed";
       el.style.top = "0";
       el.style.left = "0";
-      el.style.zIndex = "99999";
-      el.style.opacity = "1";
-      el.style.pointerEvents = "none";
-      el.style.backgroundColor = "white";
+      el.style.zIndex = "9999";
 
-      // Chờ render layout mới
-      await new Promise(resolve => setTimeout(resolve, 500));
+      if (logoImg) {
+        originalSrc = logoImg.src;
+        try {
+          const base64Src = await convertImageToBase64(originalSrc);
+          logoImg.src = base64Src;
+          
+          if (logoImg.decode) {
+            await logoImg.decode();
+          } else {
+             await new Promise((resolve) => {
+                if (logoImg.complete) resolve();
+                else {
+                  logoImg.onload = resolve;
+                  logoImg.onerror = resolve;
+                }
+             });
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      await new Promise((r) => setTimeout(r, 500)); 
 
       const canvas = await html2canvas(el, {
-        scale: 4, // Độ phân giải cao gấp 4 lần
+        scale: 3,
         useCORS: true,
-        allowTaint: true,
         backgroundColor: "#ffffff",
-        windowWidth: el.scrollWidth,
-        windowHeight: el.scrollHeight
+        logging: false,
       });
 
-      const dataUrl = canvas.toDataURL("image/png", 1.0);
+      const dataUrl = canvas.toDataURL("image/png");
+
+      if (logoImg && originalSrc) {
+        logoImg.src = originalSrc;
+      }
+
       const link = document.createElement("a");
       link.href = dataUrl;
       link.download = `phieu_dat_hang_${Date.now()}.png`;
       link.click();
 
     } catch (err) {
-      console.error("Lỗi xuất ảnh:", err);
-      alert("Có lỗi khi tạo ảnh. Vui lòng thử lại.");
+      console.error(err);
+      alert("Không thể xuất ảnh, vui lòng thử lại.");
     } finally {
-      // Reset style về như cũ
-      Object.assign(el.style, originalStyle);
+      el.style.opacity = "0";
+      el.style.pointerEvents = "none";
+      el.style.position = "absolute";
+      el.style.top = "-9999px";
+      el.style.left = "-9999px";
+      el.style.zIndex = "-1";
     }
   };
 
   const selectClass = "w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 text-base focus:ring-2 focus:ring-blue-500 outline-none appearance-none relative z-10";
-
-  // Component Bảng (Dùng cho phần in ấn và Preview)
-  const ReceiptTablePrint = () => (
-    <table className="w-full border-collapse mb-8">
-      <thead>
-        <tr className="bg-blue-50 border-b-2 border-blue-900">
-          <th className="p-3 text-left border border-gray-300 text-blue-900 w-[40%] font-bold">Sản phẩm</th>
-          <th className="p-3 border border-gray-300 text-center text-blue-900 w-[8%] font-bold">Size</th>
-          <th className="p-3 border border-gray-300 text-center text-blue-900 w-[8%] font-bold">SL</th>
-          <th className="p-3 border border-gray-300 text-center text-red-600 w-[8%] font-bold">Sale</th>
-          <th className="p-3 border border-gray-300 text-right text-blue-900 w-[18%] font-bold">Đơn giá</th>
-          <th className="p-3 border border-gray-300 text-right text-blue-900 w-[18%] font-bold">Thành tiền</th>
-        </tr>
-      </thead>
-      <tbody className="text-xl text-gray-800">
-        {form.items.map((item, i) => {
-          const p = products.find((x) => String(x._id || x.id) === String(item.productId));
-          return (
-            <tr key={i} className="border-b border-gray-200">
-              <td className="p-3 border border-gray-300 font-medium">{p?.name || "-"}</td>
-              <td className="p-3 border border-gray-300 text-center">{item.size || "-"}</td>
-              <td className="p-3 border border-gray-300 text-center font-bold">{item.quantity}</td>
-              <td className="p-3 border border-gray-300 text-center text-red-600 font-bold">{item.sale || 0}%</td>
-              <td className="p-3 border border-gray-300 text-right">
-                {p ? p.price.toLocaleString() : "-"}
-              </td>
-              <td className="p-3 border border-gray-300 text-right font-bold text-blue-900">
-                {calcSubtotal(item).toLocaleString()}
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
-  );
 
   return (
     <motion.div
@@ -214,12 +199,9 @@ const OrderReceipt = () => {
         </button>
       </div>
 
-      {/* ========================================================= */}
-      {/* PHẦN 1: FORM NHẬP LIỆU (EDITABLE) */}
-      {/* ========================================================= */}
       <div ref={receiptRef}>
         <h2 className="text-2xl font-bold text-center mb-6 text-blue-700 uppercase tracking-wide">
-          Nhập Thông Tin Đơn Hàng
+          Phiếu Đặt Hàng
         </h2>
 
         <div className="grid sm:grid-cols-2 gap-4 mb-6">
@@ -490,9 +472,6 @@ const OrderReceipt = () => {
         </div>
       </div>
 
-      {/* ========================================================= */}
-      {/* PHẦN 2: KHU VỰC IN ẨN (ĐƯỢC HTML2CANVAS CHỤP) */}
-      {/* ========================================================= */}
       <div
         id="print-area"
         ref={printRef}
@@ -504,107 +483,146 @@ const OrderReceipt = () => {
           pointerEvents: "none",
           zIndex: -1,
         }}
-        className="w-[1100px] bg-white text-gray-900 font-sans p-12 leading-relaxed flex flex-col min-h-[1400px]"
+        className="w-[1000px] bg-white text-gray-900 font-sans p-8"
       >
-        {/* HEADER: TITLE CENTER + TO */}
-        <div className="text-center mb-10 border-b-4 border-blue-900 pb-6">
-          <h2 className="text-6xl font-black text-blue-900 uppercase tracking-widest mb-4">
+        <div className="flex justify-between items-center mb-6">
+          <img src="/lunale.png" alt="Logo" className="h-12" />
+          <h2 className="text-2xl font-bold text-center text-blue-700 flex-1">
             PHIẾU ĐẶT HÀNG
           </h2>
-          <p className="text-2xl text-gray-500 font-bold tracking-widest">
-            NO: #{Date.now().toString().slice(-6)}
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 text-sm mb-6">
+          <div>
+            <p><strong>Khách hàng:</strong> {form.customerName}</p>
+            <p><strong>Địa chỉ:</strong> {form.address}</p>
+            <p><strong>Điện thoại:</strong> {form.phone}</p>
+          </div>
+          <div>
+            <p><strong>Ngày giao:</strong> {form.deliverDate}</p>
+            <p><strong>Ngày đến:</strong> {form.receivedDate}</p>
+            <p><strong>Điều khoản:</strong> {form.terms}</p>
+          </div>
+        </div>
+
+        <table className="w-full border-collapse text-sm mb-6">
+          <thead>
+            <tr className="bg-blue-50 border-b">
+              <th className="p-2 text-left border">Sản phẩm</th>
+              <th className="p-2 border text-center">Size</th>
+              <th className="p-2 border text-center">SL</th>
+              <th className="p-2 border text-center text-red-600 border-black">Sale (%)</th>
+              <th className="p-2 border text-right">Đơn giá</th>
+              <th className="p-2 border text-right">Thành tiền</th>
+            </tr>
+          </thead>
+          <tbody>
+            {form.items.map((item, i) => {
+              const p = products.find((x) => String(x._id || x.id) === String(item.productId));
+              return (
+                <tr key={i} className="border-b">
+                  <td className="p-2 border">{p?.name || "-"}</td>
+                  <td className="p-2 border text-center">{item.size || "-"}</td>
+                  <td className="p-2 border text-center">{item.quantity}</td>
+                  <td className="p-2 border text-center text-red-600 border-black">{item.sale || 0}</td>
+                  <td className="p-2 border text-right">
+                    {p ? p.price.toLocaleString() : "-"}
+                  </td>
+                  <td className="p-2 border text-right">
+                    {calcSubtotal(item).toLocaleString()}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+
+        <div className="ml-auto w-64 text-sm space-y-2">
+          <div className="flex justify-between items-center">
+            <span className="text-gray-600">Thành tiền:</span>
+            <span className="font-bold">{calcTotal().toLocaleString()}₫</span>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <span className="text-gray-600">Phí ship:</span>
+            <span className="font-bold">{form.shipFee.toLocaleString()}₫</span>
+          </div>
+
+          <p className="font-bold text-3xl text-red-500 pt-4 text-right">
+            {totalWithShip.toLocaleString()}₫
           </p>
         </div>
-
-        {/* INFO GRID */}
-        <div className="grid grid-cols-2 gap-16 text-2xl mb-12">
-          <div className="space-y-4">
-            <p><strong className="text-blue-900 w-36 inline-block">Khách hàng:</strong> {form.customerName}</p>
-            <p><strong className="text-blue-900 w-36 inline-block">Địa chỉ:</strong> {form.address}</p>
-            <p><strong className="text-blue-900 w-36 inline-block">Điện thoại:</strong> {form.phone}</p>
-          </div>
-          <div className="space-y-4">
-            <p><strong className="text-blue-900 w-36 inline-block">Ngày giao:</strong> {form.deliverDate}</p>
-            <p><strong className="text-blue-900 w-36 inline-block">Ngày đến:</strong> {form.receivedDate}</p>
-            <p><strong className="text-blue-900 w-36 inline-block">Điều khoản:</strong> {form.terms}</p>
-          </div>
-        </div>
-
-        {/* TABLE */}
-        <div className="flex-1">
-            <ReceiptTablePrint />
-        </div>
-
-        {/* FOOTER: LOGO TRÁI - TIỀN PHẢI */}
-        <div className="flex justify-between items-end pt-8 border-t-2 border-gray-300 mt-4">
-            
-            {/* LOGO GÓC TRÁI DƯỚI - TO HƠN GẤP 1.5 LẦN (h-40) */}
-            <div className="flex flex-col justify-end">
-                {logoBase64 ? (
-                    <img src={logoBase64} alt="Logo" className="h-40 object-contain mb-2" loading="eager" />
-                ) : (
-                    <div className="h-40 w-40 bg-gray-100 flex items-center justify-center">No Logo</div>
-                )}
-                <p className="text-gray-500 italic text-xl ml-2">Cảm ơn quý khách đã ủng hộ!</p>
-            </div>
-
-            {/* TỔNG TIỀN BÊN PHẢI */}
-            <div className="w-[450px] text-xl space-y-4 bg-gray-50 p-8 rounded-xl border border-gray-200 shadow-sm">
-                <div className="flex justify-between items-center text-2xl">
-                    <span className="text-gray-600 font-medium">Tạm tính:</span>
-                    <span className="font-bold text-gray-800">{calcTotal().toLocaleString()}₫</span>
-                </div>
-                <div className="flex justify-between items-center text-2xl border-b border-gray-300 pb-4">
-                    <span className="text-gray-600 font-medium">Phí ship:</span>
-                    <span className="font-bold text-gray-800">{form.shipFee.toLocaleString()}₫</span>
-                </div>
-                <div className="flex justify-between items-center pt-2">
-                    <span className="text-3xl font-black text-blue-900">TỔNG CỘNG:</span>
-                    <span className="text-5xl font-black text-red-600">{totalWithShip.toLocaleString()}₫</span>
-                </div>
-            </div>
-        </div>
       </div>
+      <h1 className="text-blue-700 text-center pt-7 font-bold pb-4 ">Preview</h1>
 
-      {/* ========================================================= */}
-      {/* PHẦN 3: PREVIEW (Đồng bộ với Print Layout) */}
-      {/* ========================================================= */}
-      <h1 className="text-blue-700 text-center pt-10 font-bold pb-4 text-xl">XEM TRƯỚC (PREVIEW)</h1>
-      <div className="flex justify-center border-4 border-blue-600 rounded-xl overflow-hidden w-full overflow-x-auto bg-gray-100 p-4">
-        <div className="min-w-[900px] scale-[0.6] sm:scale-100 origin-top-left bg-white text-gray-900 font-sans p-10 shadow-lg flex flex-col min-h-[1200px]">
-          
-          <div className="text-center mb-10 border-b-4 border-blue-900 pb-6">
-            <h2 className="text-6xl font-black text-blue-900 uppercase tracking-widest mb-4">PHIẾU ĐẶT HÀNG</h2>
-            <p className="text-2xl text-gray-500 font-bold tracking-widest">NO: #{Date.now().toString().slice(-6)}</p>
+      <div className="flex justify-center border-4 border-blue-600 rounded-xl overflow-hidden w-full overflow-x-auto">
+        <div className="min-w-[800px] scale-75 sm:scale-100 origin-top-left bg-white text-gray-900 font-sans p-8">
+          <div className="flex justify-between items-center mb-6">
+            <img src="/lunale.png" alt="Logo" className="h-12" />
+            <h2 className="text-2xl font-bold text-center text-blue-700 flex-1">
+              PHIẾU ĐẶT HÀNG
+            </h2>
           </div>
 
-          <div className="grid grid-cols-2 gap-10 text-xl mb-10">
-            <div className="space-y-3">
-              <p><strong className="text-blue-900">Khách hàng:</strong> {form.customerName}</p>
-              <p><strong className="text-blue-900">Địa chỉ:</strong> {form.address}</p>
-              <p><strong className="text-blue-900">Điện thoại:</strong> {form.phone}</p>
+          <div className="grid grid-cols-2 gap-4 text-sm mb-6">
+            <div>
+              <p><strong>Khách hàng:</strong> {form.customerName}</p>
+              <p><strong>Địa chỉ:</strong> {form.address}</p>
+              <p><strong>Điện thoại:</strong> {form.phone}</p>
             </div>
-            <div className="space-y-3">
-              <p><strong className="text-blue-900">Ngày giao:</strong> {form.deliverDate}</p>
-              <p><strong className="text-blue-900">Ngày đến:</strong> {form.receivedDate}</p>
-              <p><strong className="text-blue-900">Điều khoản:</strong> {form.terms}</p>
+            <div>
+              <p><strong>Ngày giao:</strong> {form.deliverDate}</p>
+              <p><strong>Ngày đến:</strong> {form.receivedDate}</p>
+              <p><strong>Điều khoản:</strong> {form.terms}</p>
             </div>
           </div>
 
-          <div className="flex-1">
-             <ReceiptTablePrint />
-          </div>
+          <table className="w-full border-collapse text-sm mb-6">
+            <thead>
+              <tr className="bg-blue-50 border-b">
+                <th className="p-2 text-left border">Sản phẩm</th>
+                <th className="p-2 border text-center">Size</th>
+                <th className="p-2 border text-center">SL</th>
+                <th className="p-2 border text-center text-red-600 border-black">Sale (%)</th>
+                <th className="p-2 border text-right">Đơn giá</th>
+                <th className="p-2 border text-right">Thành tiền</th>
+              </tr>
+            </thead>
+            <tbody>
+              {form.items.map((item, i) => {
+                const p = products.find((x) => String(x._id || x.id) === String(item.productId));
+                return (
+                  <tr key={i} className="border-b">
+                    <td className="p-2 border">{p?.name || "-"}</td>
+                    <td className="p-2 border text-center">{item.size || "-"}</td>
+                    <td className="p-2 border text-center">{item.quantity}</td>
+                    <td className="p-2 border text-center text-red-600 border-black">{item.sale || 0}</td>
+                    <td className="p-2 border text-right">
+                      {p ? p.price.toLocaleString() : "-"}
+                    </td>
+                    <td className="p-2 border text-right">
+                      {calcSubtotal(item).toLocaleString()}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
 
-          <div className="flex justify-between items-end pt-8 border-t-2 border-gray-300 mt-4">
-            <div className="flex flex-col justify-end">
-                 <img src="/lunale.png" alt="Logo" className="h-32 object-contain mb-2" />
-                 <p className="text-gray-500 italic text-lg ml-2">Cảm ơn quý khách đã ủng hộ!</p>
+          <div className="ml-auto w-64 text-sm space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Thành tiền:</span>
+              <span className="font-bold">{calcTotal().toLocaleString()}₫</span>
             </div>
-            <div className="w-[400px] text-lg space-y-3 bg-gray-50 p-6 rounded-xl border border-gray-200">
-                <div className="flex justify-between items-center text-xl"><span className="text-gray-600 font-medium">Tạm tính:</span><span className="font-bold text-gray-800">{calcTotal().toLocaleString()}₫</span></div>
-                <div className="flex justify-between items-center text-xl border-b border-gray-300 pb-3"><span className="text-gray-600 font-medium">Phí ship:</span><span className="font-bold text-gray-800">{form.shipFee.toLocaleString()}₫</span></div>
-                <div className="flex justify-between items-center pt-2"><span className="text-2xl font-black text-blue-900">TỔNG:</span><span className="text-4xl font-black text-red-600">{totalWithShip.toLocaleString()}₫</span></div>
+
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Phí ship:</span>
+              <span className="font-bold">{form.shipFee.toLocaleString()}₫</span>
             </div>
+
+            <p className="font-bold text-3xl text-red-500 pt-4 text-right">
+              {totalWithShip.toLocaleString()}₫
+            </p>
           </div>
         </div>
       </div>
