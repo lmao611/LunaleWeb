@@ -119,29 +119,44 @@ const OrderReceipt = () => {
       const logoImg = el.querySelector("img");
       let originalSrc = "";
       
-      if (logoImg) {
-        originalSrc = logoImg.src;
-        const base64Src = await convertImageToBase64(originalSrc);
-        logoImg.src = base64Src;
-      }
-
       el.style.opacity = "1";
       el.style.pointerEvents = "auto";
       el.style.position = "fixed";
       el.style.top = "0";
       el.style.left = "0";
       el.style.zIndex = "9999";
-      
+
+      if (logoImg) {
+        originalSrc = logoImg.src;
+        try {
+          const base64Src = await convertImageToBase64(originalSrc);
+          logoImg.src = base64Src;
+          
+          if (logoImg.decode) {
+            await logoImg.decode();
+          } else {
+             await new Promise((resolve) => {
+                if (logoImg.complete) resolve();
+                else {
+                  logoImg.onload = resolve;
+                  logoImg.onerror = resolve;
+                }
+             });
+          }
+        } catch (e) {
+          console.error("Lỗi xử lý ảnh:", e);
+        }
+      }
+
+      await new Promise((r) => setTimeout(r, 800)); 
+
       const scale = 3;
       const width = el.offsetWidth;
       const height = el.offsetHeight;
 
-      await new Promise((r) => setTimeout(r, 500)); 
-
       const dataUrl = await domtoimage.toPng(el, {
         quality: 1,
         bgcolor: "#ffffff",
-        cacheBust: true,
         width: width * scale,
         height: height * scale,
         style: {
@@ -170,6 +185,16 @@ const OrderReceipt = () => {
     } catch (err) {
       console.error(err);
       alert("Không thể xuất ảnh, vui lòng thử lại.");
+      
+      const el = printRef.current;
+      if (el) {
+        el.style.opacity = "0";
+        el.style.pointerEvents = "none";
+        el.style.position = "absolute";
+        el.style.top = "-9999px";
+        el.style.left = "-9999px";
+        el.style.zIndex = "-1";
+      }
     }
   };
 
