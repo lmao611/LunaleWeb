@@ -22,8 +22,8 @@ const OrderReceipt = () => {
   });
 
   const { checkingAuth } = useUserStore();
-  const receiptRef = useRef(null);
-  const printRef = useRef(null);
+  const receiptRef = useRef(null); // Ref cho phần nhập liệu
+  const printRef = useRef(null);   // Ref cho phần ẩn dùng để in ảnh
 
   useEffect(() => {
     if (!checkingAuth) {
@@ -101,26 +101,26 @@ const OrderReceipt = () => {
 
     try {
       const el = printRef.current;
+      // Hiển thị element để chụp
+      el.style.display = "block"; 
       el.style.opacity = "1";
-      el.style.pointerEvents = "auto";
       el.style.position = "fixed";
       el.style.top = "0";
       el.style.left = "0";
       el.style.zIndex = "9999"; 
 
+      // Đợi render một chút để layout cập nhật (quan trọng cho mobile)
       await new Promise((r) => setTimeout(r, 500)); 
 
       const dataUrl = await domtoimage.toPng(el, {
         quality: 1,
         bgcolor: "#ffffff",
         cacheBust: true,
-        width: el.scrollWidth,
-        height: el.scrollHeight,
-        style: { transform: "scale(1)", transformOrigin: "top left" },
       });
 
+      // Ẩn lại sau khi chụp
+      el.style.display = "none";
       el.style.opacity = "0";
-      el.style.pointerEvents = "none";
       el.style.position = "absolute";
       el.style.top = "-9999px";
       el.style.left = "-9999px";
@@ -128,7 +128,7 @@ const OrderReceipt = () => {
 
       const link = document.createElement("a");
       link.href = dataUrl;
-      link.download = `phieu_dat_hang_${Date.now()}.png`;
+      link.download = `Don_hang_${form.customerName || "khach"}_${Date.now()}.png`;
       link.click();
     } catch (err) {
       console.error(err);
@@ -137,6 +137,106 @@ const OrderReceipt = () => {
   };
 
   const selectClass = "w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 text-base focus:ring-2 focus:ring-blue-500 outline-none appearance-none relative z-10";
+
+  // --- COMPONENT CON: NỘI DUNG PHIẾU (Dùng chung cho cả Print ẩn và Preview) ---
+  const ReceiptContent = ({ isPreview = false }) => (
+    <div className={`bg-white text-gray-900 font-sans p-8 md:p-12 h-auto min-h-full ${isPreview ? "" : "w-[600px] md:w-[1100px]"}`}>
+      {/* HEADER */}
+      <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 border-b pb-6 border-gray-200">
+        <img 
+            src="/lunale.png" 
+            alt="Logo" 
+            className="h-20 md:h-24 object-contain" // Logo to hơn
+        />
+        <div className="text-center md:text-right">
+            <h2 className="text-3xl md:text-4xl font-bold text-blue-800 uppercase tracking-widest mb-1">
+            PHIẾU ĐẶT HÀNG
+            </h2>
+            <p className="text-gray-500 text-sm md:text-base italic">Cảm ơn bạn đã lựa chọn Lunale</p>
+        </div>
+      </div>
+
+      {/* INFO GRID: Mobile 1 cột, Desktop 2 cột */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 text-base md:text-lg mb-8">
+        <div className="space-y-3">
+          <p className="flex"><strong className="w-24 shrink-0 text-gray-600">Khách hàng:</strong> <span className="font-semibold">{form.customerName}</span></p>
+          <p className="flex"><strong className="w-24 shrink-0 text-gray-600">Địa chỉ:</strong> <span>{form.address}</span></p>
+          <p className="flex"><strong className="w-24 shrink-0 text-gray-600">Điện thoại:</strong> <span>{form.phone}</span></p>
+        </div>
+        <div className="space-y-3">
+          <p className="flex"><strong className="w-24 shrink-0 text-gray-600">Ngày giao:</strong> <span>{form.deliverDate}</span></p>
+          <p className="flex"><strong className="w-24 shrink-0 text-gray-600">Ngày đến:</strong> <span>{form.receivedDate}</span></p>
+          <p className="flex"><strong className="w-24 shrink-0 text-gray-600">Điều khoản:</strong> <span className="italic text-gray-500">{form.terms || "Không có"}</span></p>
+        </div>
+      </div>
+
+      {/* TABLE */}
+      <table className="w-full border-collapse text-base md:text-lg mb-8">
+        <thead>
+          <tr className="bg-blue-50 border-b-2 border-blue-100">
+            <th className="p-3 md:p-4 text-left border-r border-blue-100">Sản phẩm</th>
+            <th className="p-3 md:p-4 border-r border-blue-100 text-center">Size</th>
+            <th className="p-3 md:p-4 border-r border-blue-100 text-center">SL</th>
+            <th className="p-3 md:p-4 border-r border-blue-100 text-center text-red-600">Sale</th>
+            <th className="p-3 md:p-4 border-r border-blue-100 text-right">Đơn giá</th>
+            <th className="p-3 md:p-4 text-right">Thành tiền</th>
+          </tr>
+        </thead>
+        <tbody>
+          {form.items.map((item, i) => {
+            const p = products.find((x) => String(x._id || x.id) === String(item.productId));
+            return (
+              <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
+                <td className="p-3 md:p-4 border-r border-gray-100 font-medium">{p?.name || "-"}</td>
+                <td className="p-3 md:p-4 border-r border-gray-100 text-center">{item.size || "-"}</td>
+                <td className="p-3 md:p-4 border-r border-gray-100 text-center">{item.quantity}</td>
+                <td className="p-3 md:p-4 border-r border-gray-100 text-center text-red-600 font-bold">{item.sale > 0 ? `${item.sale}%` : "-"}</td>
+                <td className="p-3 md:p-4 border-r border-gray-100 text-right text-gray-600">
+                  {p ? p.price.toLocaleString() : "-"}
+                </td>
+                <td className="p-3 md:p-4 text-right font-semibold">
+                  {calcSubtotal(item).toLocaleString()}
+                </td>
+              </tr>
+            );
+          })}
+          {/* Rows trống để phiếu trông dài đẹp hơn nếu ít SP */}
+          {form.items.length < 5 && Array.from({length: 5 - form.items.length}).map((_, idx) => (
+             <tr key={`empty-${idx}`} className="border-b border-gray-50 h-12">
+                <td className="border-r border-gray-50"></td><td className="border-r border-gray-50"></td><td className="border-r border-gray-50"></td><td className="border-r border-gray-50"></td><td className="border-r border-gray-50"></td><td></td>
+             </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {/* TOTALS */}
+      <div className="flex justify-end">
+        <div className="w-full md:w-1/2 lg:w-1/3 space-y-3 text-base md:text-lg border-t pt-4">
+          <div className="flex justify-between items-center text-gray-600">
+            <span>Thành tiền:</span>
+            <span className="font-semibold text-gray-800">{calcTotal().toLocaleString()}₫</span>
+          </div>
+
+          <div className="flex justify-between items-center text-gray-600">
+            <span>Phí ship:</span>
+            <span className="font-semibold text-gray-800">{form.shipFee.toLocaleString()}₫</span>
+          </div>
+
+          <div className="flex justify-between items-center pt-4 border-t border-gray-300">
+            <span className="font-bold text-xl md:text-2xl text-blue-900">TỔNG CỘNG:</span>
+            <span className="font-bold text-2xl md:text-3xl text-red-600">
+              {totalWithShip.toLocaleString()}₫
+            </span>
+          </div>
+        </div>
+      </div>
+      
+      {/* FOOTER */}
+      <div className="mt-12 text-center text-gray-400 text-sm italic">
+        --- Cảm ơn quý khách đã mua hàng ---
+      </div>
+    </div>
+  );
 
   return (
     <motion.div
@@ -147,16 +247,17 @@ const OrderReceipt = () => {
       <div className="flex justify-end mb-4">
         <button
           onClick={handleExportImage}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition shadow-sm"
+          className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition shadow-lg font-bold"
         >
           <ImageDown className="w-5 h-5" />
-          <span className="hidden sm:inline">Xuất ảnh</span>
+          <span>Xuất Ảnh Phiếu</span>
         </button>
       </div>
 
+      {/* --- FORM INPUT --- */}
       <div ref={receiptRef}>
         <h2 className="text-2xl font-bold text-center mb-6 text-blue-700 uppercase tracking-wide">
-          Phiếu Đặt Hàng
+          Nhập Thông Tin Đơn Hàng
         </h2>
 
         <div className="grid sm:grid-cols-2 gap-4 mb-6">
@@ -175,7 +276,7 @@ const OrderReceipt = () => {
                   </option>
                 ))}
               </select>
-              <ChevronDown className="absolute right-3 top-3 w-4 h-4 text-gray-500 pointer-events-none" />
+              <ChevronDown className="absolute right-3 top-3 w-4 h-4 text-gray-500 pointer-events-none z-20" />
             </div>
 
             <input
@@ -313,7 +414,7 @@ const OrderReceipt = () => {
                         </option>
                       ))}
                     </select>
-                    <ChevronDown className="absolute right-2 bottom-2 w-4 h-4 text-gray-500 pointer-events-none" />
+                    <ChevronDown className="absolute right-2 bottom-2 w-4 h-4 text-gray-500 pointer-events-none z-20" />
                   </div>
 
                   <div className="relative">
@@ -335,7 +436,7 @@ const OrderReceipt = () => {
                       <option value="L">L</option>
                       <option value="XL">XL</option>
                     </select>
-                    <ChevronDown className="absolute right-2 bottom-2 w-4 h-4 text-gray-500 pointer-events-none" />
+                    <ChevronDown className="absolute right-2 bottom-2 w-4 h-4 text-gray-500 pointer-events-none z-20" />
                   </div>
 
                   <div>
@@ -398,22 +499,7 @@ const OrderReceipt = () => {
         </div>
 
         <div className="pt-8 relative mt-6 border-t border-gray-100">
-          <div className="sm:absolute right-0 bottom-0 sm:text-right space-y-2 bg-white sm:p-4 rounded-lg">
-            <div className="flex justify-between sm:block">
-               <span className="text-sm text-gray-600 sm:mr-2">Thành tiền:</span>
-               <span>{calcTotal().toLocaleString()}₫</span>
-            </div>
-             <div className="flex justify-between sm:block">
-               <span className="text-sm text-gray-600 sm:mr-2">Phí ship:</span>
-               <span>+{(form.shipFee || 0).toLocaleString()}₫</span>
-            </div>
-            <div className="flex justify-between sm:block border-t pt-2 mt-2">
-               <span className="text-lg font-bold text-blue-700 sm:mr-2">Tổng cộng:</span>
-               <span className="text-lg font-bold text-blue-700">{totalWithShip.toLocaleString()}₫</span>
-            </div>
-          </div>
-
-          <div className="w-full sm:w-40 mt-4 sm:mt-0">
+          <div className="w-full sm:w-40 mt-4 sm:mt-0 mb-4 sm:mb-0">
             <label className="block text-sm mb-1 font-medium text-gray-700">Phí ship (₫)</label>
             <input
               type="number"
@@ -427,158 +513,23 @@ const OrderReceipt = () => {
         </div>
       </div>
 
+      {/* --- PHẦN ẨN ĐỂ IN (DÙNG ĐỂ CHỤP ẢNH) --- */}
       <div
         id="print-area"
         ref={printRef}
-        style={{
-          position: "absolute",
-          top: "-9999px",
-          left: "-9999px",
-          opacity: 0,
-          pointerEvents: "none",
-          zIndex: -1,
-        }}
-        className="w-[1000px] bg-white text-gray-900 font-sans p-8"
+        className="hidden" // Sẽ được hiện lên bởi hàm handleExportImage
       >
-        <div className="flex justify-between items-center mb-6">
-          <img src="/lunale.png" alt="Logo" className="h-12" />
-          <h2 className="text-2xl font-bold text-center text-blue-700 flex-1">
-            PHIẾU ĐẶT HÀNG
-          </h2>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 text-sm mb-6">
-          <div>
-            <p><strong>Khách hàng:</strong> {form.customerName}</p>
-            <p><strong>Địa chỉ:</strong> {form.address}</p>
-            <p><strong>Điện thoại:</strong> {form.phone}</p>
-          </div>
-          <div>
-            <p><strong>Ngày giao:</strong> {form.deliverDate}</p>
-            <p><strong>Ngày đến:</strong> {form.receivedDate}</p>
-            <p><strong>Điều khoản:</strong> {form.terms}</p>
-          </div>
-        </div>
-
-        <table className="w-full border-collapse text-sm mb-6">
-          <thead>
-            <tr className="bg-blue-50 border-b">
-              <th className="p-2 text-left border">Sản phẩm</th>
-              <th className="p-2 border text-center">Size</th>
-              <th className="p-2 border text-center">SL</th>
-              <th className="p-2 border text-center text-red-600 border-black">Sale (%)</th>
-              <th className="p-2 border text-right">Đơn giá</th>
-              <th className="p-2 border text-right">Thành tiền</th>
-            </tr>
-          </thead>
-          <tbody>
-            {form.items.map((item, i) => {
-              const p = products.find((x) => String(x._id || x.id) === String(item.productId));
-              return (
-                <tr key={i} className="border-b">
-                  <td className="p-2 border">{p?.name || "-"}</td>
-                  <td className="p-2 border text-center">{item.size || "-"}</td>
-                  <td className="p-2 border text-center">{item.quantity}</td>
-                  <td className="p-2 border text-center text-red-600 border-black">{item.sale || 0}</td>
-                  <td className="p-2 border text-right">
-                    {p ? p.price.toLocaleString() : "-"}
-                  </td>
-                  <td className="p-2 border text-right">
-                    {calcSubtotal(item).toLocaleString()}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-
-        <div className="ml-auto w-64 text-sm space-y-2">
-          <div className="flex justify-between items-center">
-            <span className="text-gray-600">Thành tiền:</span>
-            <span className="font-bold">{calcTotal().toLocaleString()}₫</span>
-          </div>
-
-          <div className="flex justify-between items-center">
-            <span className="text-gray-600">Phí ship:</span>
-            <span className="font-bold">{form.shipFee.toLocaleString()}₫</span>
-          </div>
-
-          <p className="font-bold text-3xl text-red-500 pt-4 text-right">
-            {totalWithShip.toLocaleString()}₫
-          </p>
-        </div>
+        <ReceiptContent />
       </div>
-      <h1 className="text-blue-700 text-center pt-7 font-bold pb-4 ">Preview</h1>
 
-      <div className="flex justify-center border-4 border-blue-600 rounded-xl overflow-hidden w-full overflow-x-auto">
-        <div className="min-w-[800px] scale-75 sm:scale-100 origin-top-left bg-white text-gray-900 font-sans p-8">
-          <div className="flex justify-between items-center mb-6">
-            <img src="/lunale.png" alt="Logo" className="h-12" />
-            <h2 className="text-2xl font-bold text-center text-blue-700 flex-1">
-              PHIẾU ĐẶT HÀNG
-            </h2>
-          </div>
+      {/* --- PREVIEW SECTION --- */}
+      <h1 className="text-blue-700 text-center pt-10 font-bold pb-4 text-xl">XEM TRƯỚC (PREVIEW)</h1>
+      <p className="text-center text-gray-500 text-sm mb-4">Đây là hình ảnh phiếu khi xuất ra (tự động đổi bố cục theo thiết bị)</p>
 
-          <div className="grid grid-cols-2 gap-4 text-sm mb-6">
-            <div>
-              <p><strong>Khách hàng:</strong> {form.customerName}</p>
-              <p><strong>Địa chỉ:</strong> {form.address}</p>
-              <p><strong>Điện thoại:</strong> {form.phone}</p>
-            </div>
-            <div>
-              <p><strong>Ngày giao:</strong> {form.deliverDate}</p>
-              <p><strong>Ngày đến:</strong> {form.receivedDate}</p>
-              <p><strong>Điều khoản:</strong> {form.terms}</p>
-            </div>
-          </div>
-
-          <table className="w-full border-collapse text-sm mb-6">
-            <thead>
-              <tr className="bg-blue-50 border-b">
-                <th className="p-2 text-left border">Sản phẩm</th>
-                <th className="p-2 border text-center">Size</th>
-                <th className="p-2 border text-center">SL</th>
-                <th className="p-2 border text-center text-red-600 border-black">Sale (%)</th>
-                <th className="p-2 border text-right">Đơn giá</th>
-                <th className="p-2 border text-right">Thành tiền</th>
-              </tr>
-            </thead>
-            <tbody>
-              {form.items.map((item, i) => {
-                const p = products.find((x) => String(x._id || x.id) === String(item.productId));
-                return (
-                  <tr key={i} className="border-b">
-                    <td className="p-2 border">{p?.name || "-"}</td>
-                    <td className="p-2 border text-center">{item.size || "-"}</td>
-                    <td className="p-2 border text-center">{item.quantity}</td>
-                    <td className="p-2 border text-center text-red-600 border-black">{item.sale || 0}</td>
-                    <td className="p-2 border text-right">
-                      {p ? p.price.toLocaleString() : "-"}
-                    </td>
-                    <td className="p-2 border text-right">
-                      {calcSubtotal(item).toLocaleString()}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-
-          <div className="ml-auto w-64 text-sm space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Thành tiền:</span>
-              <span className="font-bold">{calcTotal().toLocaleString()}₫</span>
-            </div>
-
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Phí ship:</span>
-              <span className="font-bold">{form.shipFee.toLocaleString()}₫</span>
-            </div>
-
-            <p className="font-bold text-3xl text-red-500 pt-4 text-right">
-              {totalWithShip.toLocaleString()}₫
-            </p>
-          </div>
+      <div className="flex justify-center border-4 border-blue-600 rounded-xl overflow-hidden w-full bg-gray-100 p-4">
+        {/* Render Preview dùng chung Component với phần in để đảm bảo giống nhau */}
+        <div className="origin-top scale-50 sm:scale-75 md:scale-90 shadow-2xl">
+            <ReceiptContent isPreview={true} />
         </div>
       </div>
     </motion.div>
