@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { PlusCircle, Trash2, ImageDown, ChevronDown } from "lucide-react";
-import html2canvas from "html2canvas";
+import { toPng } from "html-to-image"; // Sử dụng thư viện html-to-image
 import axios from "../lib/axios";
 import { useUserStore } from "../stores/useUserStore";
 
@@ -96,6 +96,7 @@ const OrderReceipt = () => {
 
   const totalWithShip = calcTotal() + (form.shipFee || 0);
 
+  // Hàm helper để convert ảnh sang base64 giúp tránh lỗi CORS khi vẽ lên canvas
   const convertImageToBase64 = async (url) => {
     try {
       const response = await fetch(url);
@@ -106,7 +107,7 @@ const OrderReceipt = () => {
         reader.readAsDataURL(blob);
       });
     } catch (error) {
-      console.error(error);
+      console.error("Lỗi convert ảnh:", error);
       return url;
     }
   };
@@ -119,19 +120,28 @@ const OrderReceipt = () => {
     let originalSrc = "";
 
     try {
+      // 1. Hiển thị phần in ấn lên màn hình để render (nhưng che đi bằng z-index hoặc position)
+      // html-to-image cần element phải "visible" trong DOM để tính toán style
+      el.style.display = "block";
       el.style.opacity = "1";
       el.style.pointerEvents = "auto";
       el.style.position = "fixed";
       el.style.top = "0";
       el.style.left = "0";
-      el.style.zIndex = "9999";
+      el.style.zIndex = "-10"; // Đặt dưới cùng để không che giao diện chính nhưng vẫn render được
+      el.style.backgroundColor = "#ffffff"; // Đảm bảo nền trắng
 
+      // 2. Xử lý ảnh logo (chuyển sang base64 để tránh lỗi Tainted Canvas/CORS)
       if (logoImg) {
         originalSrc = logoImg.src;
         try {
-          const base64Src = await convertImageToBase64(originalSrc);
-          logoImg.src = base64Src;
+          // Chỉ convert nếu là url ảnh mạng, nếu là local path thì html-to-image tự xử lý được
+          if(originalSrc.startsWith('http')) {
+             const base64Src = await convertImageToBase64(originalSrc);
+             logoImg.src = base64Src;
+          }
           
+          // Đợi ảnh load xong
           if (logoImg.decode) {
             await logoImg.decode();
           } else {
@@ -144,34 +154,43 @@ const OrderReceipt = () => {
              });
           }
         } catch (e) {
-          console.error(e);
+          console.error("Lỗi xử lý ảnh logo:", e);
         }
       }
 
+      // Delay nhẹ để đảm bảo layout ổn định
       await new Promise((r) => setTimeout(r, 500)); 
 
-      const canvas = await html2canvas(el, {
-        scale: 3,
-        useCORS: true,
-        backgroundColor: "#ffffff",
-        logging: false,
+      // 3. Sử dụng html-to-image để xuất ảnh
+      // filter: function để loại bỏ các node không mong muốn nếu cần (ở đây ta lấy hết)
+      const dataUrl = await toPng(el, {
+        quality: 1.0,
+        cacheBust: true,
+        backgroundColor: '#ffffff',
+        pixelRatio: 3, // Tăng độ nét (tương đương scale)
+        style: {
+             // Đảm bảo element khi chụp không bị transform sai
+             transform: 'none', 
+             opacity: '1'
+        }
       });
 
-      const dataUrl = canvas.toDataURL("image/png");
-
+      // 4. Trả lại src ảnh gốc
       if (logoImg && originalSrc) {
         logoImg.src = originalSrc;
       }
 
+      // 5. Tải ảnh về
       const link = document.createElement("a");
       link.href = dataUrl;
       link.download = `phieu_dat_hang_${Date.now()}.png`;
       link.click();
 
     } catch (err) {
-      console.error(err);
-      alert("Không thể xuất ảnh, vui lòng thử lại.");
+      console.error("Lỗi xuất ảnh:", err);
+      alert("Không thể xuất ảnh do lỗi trình duyệt hoặc chặn quảng cáo. Vui lòng thử lại.");
     } finally {
+      // 6. Ẩn lại phần in ấn
       el.style.opacity = "0";
       el.style.pointerEvents = "none";
       el.style.position = "absolute";
@@ -204,6 +223,7 @@ const OrderReceipt = () => {
           Phiếu Đặt Hàng
         </h2>
 
+        {/* Form Input Section */}
         <div className="grid sm:grid-cols-2 gap-4 mb-6">
           <div className="relative">
             <label className="block text-sm mb-1 font-medium text-gray-700">Khách hàng</label>
@@ -472,6 +492,7 @@ const OrderReceipt = () => {
         </div>
       </div>
 
+      {/* Hidden Print Area - This is what gets screenshotted */}
       <div
         id="print-area"
         ref={printRef}
@@ -553,6 +574,7 @@ const OrderReceipt = () => {
           </p>
         </div>
       </div>
+      
       <h1 className="text-blue-700 text-center pt-7 font-bold pb-4 ">Preview</h1>
 
       <div className="flex justify-center border-4 border-blue-600 rounded-xl overflow-hidden w-full overflow-x-auto">
