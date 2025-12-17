@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { PlusCircle, Trash2, ImageDown, ChevronDown } from "lucide-react";
-import { toPng } from "html-to-image"; // Sử dụng thư viện html-to-image
+import { toPng } from "html-to-image";
 import axios from "../lib/axios";
 import { useUserStore } from "../stores/useUserStore";
 
@@ -96,20 +96,23 @@ const OrderReceipt = () => {
 
   const totalWithShip = calcTotal() + (form.shipFee || 0);
 
-  // Hàm helper để convert ảnh sang base64 giúp tránh lỗi CORS khi vẽ lên canvas
-  const convertImageToBase64 = async (url) => {
-    try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      return new Promise((resolve) => {
+  const convertImageToBase64 = (url) => {
+    return new Promise((resolve) => {
+      const xhr = new XMLHttpRequest();
+      xhr.onload = function () {
         const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result);
-        reader.readAsDataURL(blob);
-      });
-    } catch (error) {
-      console.error("Lỗi convert ảnh:", error);
-      return url;
-    }
+        reader.onloadend = function () {
+          resolve(reader.result);
+        };
+        reader.readAsDataURL(xhr.response);
+      };
+      xhr.onerror = function () {
+        resolve(url);
+      };
+      xhr.open("GET", url);
+      xhr.responseType = "blob";
+      xhr.send();
+    });
   };
 
   const handleExportImage = async () => {
@@ -120,77 +123,60 @@ const OrderReceipt = () => {
     let originalSrc = "";
 
     try {
-      // 1. Hiển thị phần in ấn lên màn hình để render (nhưng che đi bằng z-index hoặc position)
-      // html-to-image cần element phải "visible" trong DOM để tính toán style
       el.style.display = "block";
       el.style.opacity = "1";
       el.style.pointerEvents = "auto";
       el.style.position = "fixed";
       el.style.top = "0";
       el.style.left = "0";
-      el.style.zIndex = "-10"; // Đặt dưới cùng để không che giao diện chính nhưng vẫn render được
-      el.style.backgroundColor = "#ffffff"; // Đảm bảo nền trắng
+      el.style.zIndex = "-10";
+      el.style.backgroundColor = "#ffffff";
 
-      // 2. Xử lý ảnh logo (chuyển sang base64 để tránh lỗi Tainted Canvas/CORS)
       if (logoImg) {
         originalSrc = logoImg.src;
         try {
-          // Chỉ convert nếu là url ảnh mạng, nếu là local path thì html-to-image tự xử lý được
-          if(originalSrc.startsWith('http')) {
-             const base64Src = await convertImageToBase64(originalSrc);
-             logoImg.src = base64Src;
-          }
+          const base64Src = await convertImageToBase64(originalSrc);
+          logoImg.src = base64Src;
           
-          // Đợi ảnh load xong
-          if (logoImg.decode) {
-            await logoImg.decode();
-          } else {
-             await new Promise((resolve) => {
-                if (logoImg.complete) resolve();
-                else {
-                  logoImg.onload = resolve;
-                  logoImg.onerror = resolve;
-                }
-             });
-          }
+          await new Promise((resolve) => {
+            if (logoImg.complete) resolve();
+            else {
+              logoImg.onload = resolve;
+              logoImg.onerror = resolve;
+            }
+          });
         } catch (e) {
-          console.error("Lỗi xử lý ảnh logo:", e);
+          console.error(e);
         }
       }
 
-      // Delay nhẹ để đảm bảo layout ổn định
-      await new Promise((r) => setTimeout(r, 500)); 
+      await new Promise((r) => setTimeout(r, 800)); 
 
-      // 3. Sử dụng html-to-image để xuất ảnh
-      // filter: function để loại bỏ các node không mong muốn nếu cần (ở đây ta lấy hết)
       const dataUrl = await toPng(el, {
-        quality: 1.0,
+        quality: 0.95,
         cacheBust: true,
+        pixelRatio: 2,
+        skipAutoScale: true,
         backgroundColor: '#ffffff',
-        pixelRatio: 3, // Tăng độ nét (tương đương scale)
         style: {
-             // Đảm bảo element khi chụp không bị transform sai
              transform: 'none', 
              opacity: '1'
         }
       });
 
-      // 4. Trả lại src ảnh gốc
       if (logoImg && originalSrc) {
         logoImg.src = originalSrc;
       }
 
-      // 5. Tải ảnh về
       const link = document.createElement("a");
       link.href = dataUrl;
       link.download = `phieu_dat_hang_${Date.now()}.png`;
       link.click();
 
     } catch (err) {
-      console.error("Lỗi xuất ảnh:", err);
-      alert("Không thể xuất ảnh do lỗi trình duyệt hoặc chặn quảng cáo. Vui lòng thử lại.");
+      console.error(err);
+      alert("Lỗi khi xuất ảnh. Hãy thử tải lại trang.");
     } finally {
-      // 6. Ẩn lại phần in ấn
       el.style.opacity = "0";
       el.style.pointerEvents = "none";
       el.style.position = "absolute";
@@ -223,7 +209,6 @@ const OrderReceipt = () => {
           Phiếu Đặt Hàng
         </h2>
 
-        {/* Form Input Section */}
         <div className="grid sm:grid-cols-2 gap-4 mb-6">
           <div className="relative">
             <label className="block text-sm mb-1 font-medium text-gray-700">Khách hàng</label>
@@ -492,7 +477,6 @@ const OrderReceipt = () => {
         </div>
       </div>
 
-      {/* Hidden Print Area - This is what gets screenshotted */}
       <div
         id="print-area"
         ref={printRef}
