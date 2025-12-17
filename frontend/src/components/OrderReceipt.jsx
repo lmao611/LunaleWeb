@@ -96,17 +96,45 @@ const OrderReceipt = () => {
 
   const totalWithShip = calcTotal() + (form.shipFee || 0);
 
+  const convertImageToBase64 = async (url) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error(error);
+      return url;
+    }
+  };
+
   const handleExportImage = async () => {
     if (!printRef.current) return;
 
     try {
       const el = printRef.current;
+      const logoImg = el.querySelector("img");
+      let originalSrc = "";
+      
+      if (logoImg) {
+        originalSrc = logoImg.src;
+        const base64Src = await convertImageToBase64(originalSrc);
+        logoImg.src = base64Src;
+      }
+
       el.style.opacity = "1";
       el.style.pointerEvents = "auto";
       el.style.position = "fixed";
       el.style.top = "0";
       el.style.left = "0";
-      el.style.zIndex = "9999"; 
+      el.style.zIndex = "9999";
+      
+      const scale = 3;
+      const width = el.offsetWidth;
+      const height = el.offsetHeight;
 
       await new Promise((r) => setTimeout(r, 500)); 
 
@@ -114,10 +142,19 @@ const OrderReceipt = () => {
         quality: 1,
         bgcolor: "#ffffff",
         cacheBust: true,
-        width: el.scrollWidth,
-        height: el.scrollHeight,
-        style: { transform: "scale(1)", transformOrigin: "top left" },
+        width: width * scale,
+        height: height * scale,
+        style: {
+          transform: `scale(${scale})`,
+          transformOrigin: "top left",
+          width: `${width}px`,
+          height: `${height}px`,
+        },
       });
+
+      if (logoImg && originalSrc) {
+        logoImg.src = originalSrc;
+      }
 
       el.style.opacity = "0";
       el.style.pointerEvents = "none";
