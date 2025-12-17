@@ -4,23 +4,20 @@ import toast from "react-hot-toast";
 import { ShoppingCart } from "lucide-react";
 import { useUserStore } from "../stores/useUserStore";
 import { optimizeUrl } from "../lib/cloudinary";
-import AddToCartModal from "./AddToCartModal"; // ✅ Import Modal mới
+import AddToCartModal from "./AddToCartModal";
 
 const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = false }) => {
   const cardRef = useRef(null);
   const glareRef = useRef(null);
   const { user } = useUserStore();
   
-  // ✅ State để bật/tắt modal
   const [showModal, setShowModal] = useState(false);
   
   const PLACEHOLDER_IMAGE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
 
   const handleAddToCartClick = (e) => {
-    e.preventDefault(); // Chặn link
+    e.preventDefault();
     if (!user) return toast.error("Vui lòng đăng nhập", { id: "login" });
-    
-    // ✅ Mở Modal thay vì gọi addToCart trực tiếp
     setShowModal(true);
   };
 
@@ -32,7 +29,22 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
   const originalDisplay = originalPrice.toLocaleString("vi-VN", { maximumFractionDigits: 0 }) + "đ";
   const discountedDisplay = discountedPrice.toLocaleString("vi-VN", { maximumFractionDigits: 0 }) + "đ";
 
-  // ... (Giữ nguyên phần animation MouseMove/Leave)
+  // --- 🔥 LOGIC MỚI: Xử lý hiển thị trạng thái (Totem) ---
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case "preorder": 
+        return { label: "Pre-Order", color: "bg-purple-500 text-white" };
+      case "out": 
+        return { label: "Hết hàng", color: "bg-red-500 text-white" };
+      case "low": 
+        return { label: "Số lượng còn ít", color: "bg-yellow-400 text-gray-900" };
+      default: 
+        return null; // None hoặc khác thì không hiện
+    }
+  };
+  
+  const statusInfo = getStatusBadge(product.isPreOrder);
+
   const handleMouseMove = (e) => {
     if (window.innerWidth < 1024) return;
     const card = cardRef.current;
@@ -80,11 +92,20 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
     >
       <div ref={glareRef} className="pointer-events-none absolute inset-0 rounded-xl z-20 transition-opacity duration-300" />
 
-      {/* ... (Phần hiển thị Sale/Preorder giữ nguyên) */}
+      {/* --- PHẦN TOTEM (Góc trên phải) --- */}
       <div className="absolute top-2 right-2 z-40 flex flex-col items-end gap-1 pointer-events-none">
-         {isSale && <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-md">-{percent}%</span>}
-         {product.isPreOrder && product.isPreOrder !== "None" && (
-            <span className="bg-purple-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-md opacity-90">{product.isPreOrder}</span>
+         {/* Giữ nguyên phần Sale */}
+         {isSale && (
+            <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-md">
+               -{percent}%
+            </span>
+         )}
+         
+         {/* Cập nhật phần Trạng thái (Pre-order / Out / Low) */}
+         {statusInfo && (
+            <span className={`${statusInfo.color} text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-md opacity-90`}>
+              {statusInfo.label}
+            </span>
          )}
       </div>
 
@@ -106,7 +127,7 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
             {isSale ? (
                <div className="flex items-center gap-2">
                   <span className="text-red-400 font-bold text-lg">{discountedDisplay}</span>
-                  <span className="text-gray-300 text-[10px] line-through">{originalDisplay}</span>
+                  <span className="text-gray-300 text-[10px] line-through decoration-gray-400 opacity-80">{originalDisplay}</span>
                </div>
             ) : (
                <span className="text-white font-bold text-sm">{originalDisplay}</span>
@@ -114,7 +135,7 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
           </div>
 
           <button className={`flex items-center justify-center w-full rounded-md bg-white/90 text-gray-950 hover:bg-blue-600 hover:text-white active:scale-95 font-medium shadow-sm transition-all ${size.button}`} 
-            onClick={handleAddToCartClick} // ✅ GỌI HÀM MỚI
+            onClick={handleAddToCartClick}
           >
             <ShoppingCart size={14} className="mr-1.5" /> Thêm giỏ
           </button>
@@ -123,17 +144,19 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
     </div>
   );
 
+  if (isFeedback) {
+     const isInternal = product.productLink && product.productLink.includes(window.location.origin);
+     if (isInternal) {
+        return <Link to={product.productLink.replace(window.location.origin, "")} className="group relative block">{CardContent}</Link>;
+     }
+     return <a href={product.productLink || "#"} target="_blank" rel="noopener noreferrer" className="group relative block">{CardContent}</a>;
+  }
+
+  if (disableLink) return <div className="group relative block">{CardContent}</div>;
+
   return (
     <>
-      {isFeedback ? (
-         <a href={product.productLink || "#"} target="_blank" rel="noopener noreferrer" className="group relative block">{CardContent}</a>
-      ) : disableLink ? (
-         <div className="group relative block">{CardContent}</div>
-      ) : (
-         <Link to={`/product/${product._id}`} className="group relative block">{CardContent}</Link>
-      )}
-
-      {/* ✅ MODAL POPUP */}
+      <Link to={`/product/${product._id}`} className="group relative block">{CardContent}</Link>
       {showModal && <AddToCartModal product={product} onClose={() => setShowModal(false)} />}
     </>
   );
