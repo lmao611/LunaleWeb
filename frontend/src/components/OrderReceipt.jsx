@@ -22,24 +22,27 @@ const OrderReceipt = () => {
   });
 
   const { checkingAuth } = useUserStore();
-  const receiptRef = useRef(null); // Ref cho phần nhập liệu
-  const printRef = useRef(null);   // Ref cho phần ẩn dùng để in ảnh
+  const receiptRef = useRef(null);
+  const printRef = useRef(null);
 
   useEffect(() => {
     if (!checkingAuth) {
       const fetchData = async () => {
         try {
           const [custRes, prodRes] = await Promise.all([
-            axios.get("/auth/users"), 
+            axios.get("/auth/users"),
             axios.get("/products"),
           ]);
 
-          const loadedCustomers = Array.isArray(custRes.data) ? custRes.data : (custRes.data.users || []);
+          const loadedCustomers = Array.isArray(custRes.data)
+            ? custRes.data
+            : custRes.data.users || [];
           setCustomers(loadedCustomers);
 
-          const loadedProducts = prodRes.data.products || (Array.isArray(prodRes.data) ? prodRes.data : []);
+          const loadedProducts =
+            prodRes.data.products ||
+            (Array.isArray(prodRes.data) ? prodRes.data : []);
           setProducts(loadedProducts);
-
         } catch (err) {
           console.error(err);
         }
@@ -82,9 +85,12 @@ const OrderReceipt = () => {
     }));
 
   const calcSubtotal = (item) => {
-    const product = products.find((p) => String(p._id || p.id) === String(item.productId));
+    const product = products.find(
+      (p) => String(p._id || p.id) === String(item.productId)
+    );
     if (!product) return 0;
-    const discount = ((product.price * (item.sale || 0)) / 100) * (item.quantity || 1);
+    const discount =
+      ((product.price * (item.sale || 0)) / 100) * (item.quantity || 1);
     return product.price * (item.quantity || 1) - discount;
   };
 
@@ -101,16 +107,17 @@ const OrderReceipt = () => {
 
     try {
       const el = printRef.current;
-      // Hiển thị element để chụp
-      el.style.display = "block"; 
+      // Hiển thị element để chụp (quan trọng để dom-to-image nhận diện đúng layout)
+      el.style.display = "block";
       el.style.opacity = "1";
       el.style.position = "fixed";
       el.style.top = "0";
       el.style.left = "0";
-      el.style.zIndex = "9999"; 
+      el.style.zIndex = "9999";
+      el.style.backgroundColor = "#ffffff"; // Đảm bảo nền trắng
 
-      // Đợi render một chút để layout cập nhật (quan trọng cho mobile)
-      await new Promise((r) => setTimeout(r, 500)); 
+      // Đợi render layout
+      await new Promise((r) => setTimeout(r, 500));
 
       const dataUrl = await domtoimage.toPng(el, {
         quality: 1,
@@ -136,104 +143,167 @@ const OrderReceipt = () => {
     }
   };
 
-  const selectClass = "w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 text-base focus:ring-2 focus:ring-blue-500 outline-none appearance-none relative z-10";
+  const selectClass =
+    "w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 text-base focus:ring-2 focus:ring-blue-500 outline-none appearance-none relative z-10";
 
-  // --- COMPONENT CON: NỘI DUNG PHIẾU (Dùng chung cho cả Print ẩn và Preview) ---
-  const ReceiptContent = ({ isPreview = false }) => (
-    <div className={`bg-white text-gray-900 font-sans p-8 md:p-12 h-auto min-h-full ${isPreview ? "" : "w-[600px] md:w-[1100px]"}`}>
-      {/* HEADER */}
+  // --- COMPONENT NỘI DUNG PHIẾU (Dùng chung) ---
+  const ReceiptContent = () => (
+    <div
+      className={`bg-white text-gray-900 font-sans p-8 md:p-12 h-auto min-h-full mx-auto shadow-2xl
+        w-[600px] md:w-[1100px]`} // ✅ CỐ ĐỊNH KÍCH THƯỚC: Mobile 600px, Desktop 1100px
+    >
+      {/* HEADER: Mobile dọc, Desktop ngang */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 border-b pb-6 border-gray-200">
-        <img 
-            src="/lunale.png" 
-            alt="Logo" 
-            className="h-20 md:h-24 object-contain" // Logo to hơn
-        />
+        <div className="flex-shrink-0">
+          <img
+            src="/lunale.png"
+            alt="Logo"
+            className="h-20 md:h-28 object-contain"
+          />
+        </div>
         <div className="text-center md:text-right">
-            <h2 className="text-3xl md:text-4xl font-bold text-blue-800 uppercase tracking-widest mb-1">
+          <h2 className="text-3xl md:text-5xl font-bold text-blue-800 uppercase tracking-widest mb-2">
             PHIẾU ĐẶT HÀNG
-            </h2>
-            <p className="text-gray-500 text-sm md:text-base italic">Cảm ơn bạn đã lựa chọn Lunale</p>
+          </h2>
+          <p className="text-gray-500 text-sm md:text-lg italic">
+            Cảm ơn bạn đã lựa chọn Lunale
+          </p>
         </div>
       </div>
 
       {/* INFO GRID: Mobile 1 cột, Desktop 2 cột */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 text-base md:text-lg mb-8">
-        <div className="space-y-3">
-          <p className="flex"><strong className="w-24 shrink-0 text-gray-600">Khách hàng:</strong> <span className="font-semibold">{form.customerName}</span></p>
-          <p className="flex"><strong className="w-24 shrink-0 text-gray-600">Địa chỉ:</strong> <span>{form.address}</span></p>
-          <p className="flex"><strong className="w-24 shrink-0 text-gray-600">Điện thoại:</strong> <span>{form.phone}</span></p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12 text-base md:text-xl mb-10">
+        <div className="space-y-4">
+          <p className="flex border-b border-dashed border-gray-200 pb-1">
+            <strong className="w-32 shrink-0 text-gray-600">Khách hàng:</strong>{" "}
+            <span className="font-semibold">{form.customerName}</span>
+          </p>
+          <p className="flex border-b border-dashed border-gray-200 pb-1">
+            <strong className="w-32 shrink-0 text-gray-600">Địa chỉ:</strong>{" "}
+            <span>{form.address}</span>
+          </p>
+          <p className="flex border-b border-dashed border-gray-200 pb-1">
+            <strong className="w-32 shrink-0 text-gray-600">Điện thoại:</strong>{" "}
+            <span>{form.phone}</span>
+          </p>
         </div>
-        <div className="space-y-3">
-          <p className="flex"><strong className="w-24 shrink-0 text-gray-600">Ngày giao:</strong> <span>{form.deliverDate}</span></p>
-          <p className="flex"><strong className="w-24 shrink-0 text-gray-600">Ngày đến:</strong> <span>{form.receivedDate}</span></p>
-          <p className="flex"><strong className="w-24 shrink-0 text-gray-600">Điều khoản:</strong> <span className="italic text-gray-500">{form.terms || "Không có"}</span></p>
+        <div className="space-y-4">
+          <p className="flex border-b border-dashed border-gray-200 pb-1">
+            <strong className="w-32 shrink-0 text-gray-600">Ngày giao:</strong>{" "}
+            <span>{form.deliverDate}</span>
+          </p>
+          <p className="flex border-b border-dashed border-gray-200 pb-1">
+            <strong className="w-32 shrink-0 text-gray-600">Ngày đến:</strong>{" "}
+            <span>{form.receivedDate}</span>
+          </p>
+          <p className="flex border-b border-dashed border-gray-200 pb-1">
+            <strong className="w-32 shrink-0 text-gray-600">Điều khoản:</strong>{" "}
+            <span className="italic text-gray-500">
+              {form.terms || "Không có"}
+            </span>
+          </p>
         </div>
       </div>
 
       {/* TABLE */}
-      <table className="w-full border-collapse text-base md:text-lg mb-8">
+      <table className="w-full border-collapse text-base md:text-xl mb-8">
         <thead>
-          <tr className="bg-blue-50 border-b-2 border-blue-100">
-            <th className="p-3 md:p-4 text-left border-r border-blue-100">Sản phẩm</th>
-            <th className="p-3 md:p-4 border-r border-blue-100 text-center">Size</th>
-            <th className="p-3 md:p-4 border-r border-blue-100 text-center">SL</th>
-            <th className="p-3 md:p-4 border-r border-blue-100 text-center text-red-600">Sale</th>
-            <th className="p-3 md:p-4 border-r border-blue-100 text-right">Đơn giá</th>
-            <th className="p-3 md:p-4 text-right">Thành tiền</th>
+          <tr className="bg-blue-50 border-b-2 border-blue-200">
+            <th className="p-3 md:p-4 text-left border-r border-blue-200">
+              Sản phẩm
+            </th>
+            <th className="p-3 md:p-4 border-r border-blue-200 text-center w-20">
+              Size
+            </th>
+            <th className="p-3 md:p-4 border-r border-blue-200 text-center w-20">
+              SL
+            </th>
+            <th className="p-3 md:p-4 border-r border-blue-200 text-center text-red-600 w-24">
+              Sale
+            </th>
+            <th className="p-3 md:p-4 border-r border-blue-200 text-right w-32">
+              Đơn giá
+            </th>
+            <th className="p-3 md:p-4 text-right w-40">Thành tiền</th>
           </tr>
         </thead>
         <tbody>
           {form.items.map((item, i) => {
-            const p = products.find((x) => String(x._id || x.id) === String(item.productId));
+            const p = products.find(
+              (x) => String(x._id || x.id) === String(item.productId)
+            );
             return (
-              <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
-                <td className="p-3 md:p-4 border-r border-gray-100 font-medium">{p?.name || "-"}</td>
-                <td className="p-3 md:p-4 border-r border-gray-100 text-center">{item.size || "-"}</td>
-                <td className="p-3 md:p-4 border-r border-gray-100 text-center">{item.quantity}</td>
-                <td className="p-3 md:p-4 border-r border-gray-100 text-center text-red-600 font-bold">{item.sale > 0 ? `${item.sale}%` : "-"}</td>
-                <td className="p-3 md:p-4 border-r border-gray-100 text-right text-gray-600">
+              <tr
+                key={i}
+                className="border-b border-gray-200 hover:bg-gray-50 text-gray-800"
+              >
+                <td className="p-3 md:p-4 border-r border-gray-200 font-medium">
+                  {p?.name || "-"}
+                </td>
+                <td className="p-3 md:p-4 border-r border-gray-200 text-center">
+                  {item.size || "-"}
+                </td>
+                <td className="p-3 md:p-4 border-r border-gray-200 text-center">
+                  {item.quantity}
+                </td>
+                <td className="p-3 md:p-4 border-r border-gray-200 text-center text-red-600 font-bold">
+                  {item.sale > 0 ? `${item.sale}%` : "-"}
+                </td>
+                <td className="p-3 md:p-4 border-r border-gray-200 text-right text-gray-600">
                   {p ? p.price.toLocaleString() : "-"}
                 </td>
-                <td className="p-3 md:p-4 text-right font-semibold">
+                <td className="p-3 md:p-4 text-right font-bold text-gray-900">
                   {calcSubtotal(item).toLocaleString()}
                 </td>
               </tr>
             );
           })}
-          {/* Rows trống để phiếu trông dài đẹp hơn nếu ít SP */}
-          {form.items.length < 5 && Array.from({length: 5 - form.items.length}).map((_, idx) => (
-             <tr key={`empty-${idx}`} className="border-b border-gray-50 h-12">
-                <td className="border-r border-gray-50"></td><td className="border-r border-gray-50"></td><td className="border-r border-gray-50"></td><td className="border-r border-gray-50"></td><td className="border-r border-gray-50"></td><td></td>
-             </tr>
-          ))}
+          {/* Rows trống để phiếu trông dài đẹp hơn */}
+          {form.items.length < 5 &&
+            Array.from({ length: 5 - form.items.length }).map((_, idx) => (
+              <tr key={`empty-${idx}`} className="border-b border-gray-100 h-16">
+                <td className="border-r border-gray-100"></td>
+                <td className="border-r border-gray-100"></td>
+                <td className="border-r border-gray-100"></td>
+                <td className="border-r border-gray-100"></td>
+                <td className="border-r border-gray-100"></td>
+                <td></td>
+              </tr>
+            ))}
         </tbody>
       </table>
 
       {/* TOTALS */}
       <div className="flex justify-end">
-        <div className="w-full md:w-1/2 lg:w-1/3 space-y-3 text-base md:text-lg border-t pt-4">
+        <div className="w-full md:w-1/2 space-y-4 text-base md:text-xl border-t-2 border-gray-200 pt-6">
           <div className="flex justify-between items-center text-gray-600">
             <span>Thành tiền:</span>
-            <span className="font-semibold text-gray-800">{calcTotal().toLocaleString()}₫</span>
+            <span className="font-semibold text-gray-800">
+              {calcTotal().toLocaleString()}₫
+            </span>
           </div>
 
           <div className="flex justify-between items-center text-gray-600">
             <span>Phí ship:</span>
-            <span className="font-semibold text-gray-800">{form.shipFee.toLocaleString()}₫</span>
+            <span className="font-semibold text-gray-800">
+              {form.shipFee.toLocaleString()}₫
+            </span>
           </div>
 
           <div className="flex justify-between items-center pt-4 border-t border-gray-300">
-            <span className="font-bold text-xl md:text-2xl text-blue-900">TỔNG CỘNG:</span>
-            <span className="font-bold text-2xl md:text-3xl text-red-600">
+            <span className="font-bold text-2xl md:text-3xl text-blue-900">
+              TỔNG CỘNG:
+            </span>
+            <span className="font-bold text-3xl md:text-4xl text-red-600">
               {totalWithShip.toLocaleString()}₫
             </span>
           </div>
         </div>
       </div>
-      
+
       {/* FOOTER */}
-      <div className="mt-12 text-center text-gray-400 text-sm italic">
-        --- Cảm ơn quý khách đã mua hàng ---
+      <div className="mt-16 text-center text-gray-400 text-sm md:text-base italic border-t border-gray-100 pt-4">
+        --- Cảm ơn quý khách đã tin tưởng và mua hàng ---
       </div>
     </div>
   );
@@ -254,7 +324,7 @@ const OrderReceipt = () => {
         </button>
       </div>
 
-      {/* --- FORM INPUT --- */}
+      {/* --- FORM NHẬP LIỆU (Giữ nguyên như cũ) --- */}
       <div ref={receiptRef}>
         <h2 className="text-2xl font-bold text-center mb-6 text-blue-700 uppercase tracking-wide">
           Nhập Thông Tin Đơn Hàng
@@ -262,7 +332,9 @@ const OrderReceipt = () => {
 
         <div className="grid sm:grid-cols-2 gap-4 mb-6">
           <div className="relative">
-            <label className="block text-sm mb-1 font-medium text-gray-700">Khách hàng</label>
+            <label className="block text-sm mb-1 font-medium text-gray-700">
+              Khách hàng
+            </label>
             <div className="relative">
               <select
                 value={form.customerId}
@@ -291,18 +363,24 @@ const OrderReceipt = () => {
           </div>
 
           <div>
-            <label className="block text-sm mb-1 font-medium text-gray-700">Điều khoản</label>
+            <label className="block text-sm mb-1 font-medium text-gray-700">
+              Điều khoản
+            </label>
             <input
               type="text"
               placeholder="Nhập điều khoản..."
               value={form.terms}
-              onChange={(e) => setForm((f) => ({ ...f, terms: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, terms: e.target.value }))
+              }
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
 
           <div>
-            <label className="block text-sm mb-1 font-medium text-gray-700">Ngày giao</label>
+            <label className="block text-sm mb-1 font-medium text-gray-700">
+              Ngày giao
+            </label>
             <input
               type="text"
               placeholder="dd/mm/yyyy"
@@ -317,7 +395,9 @@ const OrderReceipt = () => {
           </div>
 
           <div>
-            <label className="block text-sm mb-1 font-medium text-gray-700">Ngày đến</label>
+            <label className="block text-sm mb-1 font-medium text-gray-700">
+              Ngày đến
+            </label>
             <input
               type="text"
               placeholder="dd/mm/yyyy"
@@ -332,7 +412,9 @@ const OrderReceipt = () => {
           </div>
 
           <div>
-            <label className="block text-sm mb-1 font-medium text-gray-700">Địa chỉ</label>
+            <label className="block text-sm mb-1 font-medium text-gray-700">
+              Địa chỉ
+            </label>
             <input
               type="text"
               placeholder="Nhập địa chỉ"
@@ -345,12 +427,16 @@ const OrderReceipt = () => {
           </div>
 
           <div>
-            <label className="block text-sm mb-1 font-medium text-gray-700">Điện thoại</label>
+            <label className="block text-sm mb-1 font-medium text-gray-700">
+              Điện thoại
+            </label>
             <input
               type="text"
               placeholder="Nhập số điện thoại"
               value={form.phone}
-              onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, phone: e.target.value }))
+              }
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
@@ -386,8 +472,12 @@ const OrderReceipt = () => {
 
           <div className="space-y-4 sm:space-y-2">
             {form.items.map((item, i) => {
-              const product = products.find((p) => String(p._id || p.id) === String(item.productId));
-              const basePrice = product ? product.price * (item.quantity || 1) : 0;
+              const product = products.find(
+                (p) => String(p._id || p.id) === String(item.productId)
+              );
+              const basePrice = product
+                ? product.price * (item.quantity || 1)
+                : 0;
               const salePrice = calcSubtotal(item);
               return (
                 <div
@@ -395,7 +485,9 @@ const OrderReceipt = () => {
                   className="grid grid-cols-1 sm:grid-cols-7 gap-3 border rounded-lg p-3 items-center bg-gray-50 sm:bg-white shadow-sm sm:shadow-none"
                 >
                   <div className="relative">
-                    <label className="sm:hidden text-xs text-gray-500 mb-1 block">Sản phẩm</label>
+                    <label className="sm:hidden text-xs text-gray-500 mb-1 block">
+                      Sản phẩm
+                    </label>
                     <select
                       value={item.productId}
                       onChange={(e) =>
@@ -414,11 +506,13 @@ const OrderReceipt = () => {
                         </option>
                       ))}
                     </select>
-                    <ChevronDown className="absolute right-2 bottom-2 w-4 h-4 text-gray-500 pointer-events-none z-20" />
+                    <ChevronDown className="absolute right-2 bottom-2 w-4 h-4 text-gray-500 pointer-events-none" />
                   </div>
 
                   <div className="relative">
-                    <label className="sm:hidden text-xs text-gray-500 mb-1 block">Size</label>
+                    <label className="sm:hidden text-xs text-gray-500 mb-1 block">
+                      Size
+                    </label>
                     <select
                       value={item.size}
                       onChange={(e) =>
@@ -436,11 +530,13 @@ const OrderReceipt = () => {
                       <option value="L">L</option>
                       <option value="XL">XL</option>
                     </select>
-                    <ChevronDown className="absolute right-2 bottom-2 w-4 h-4 text-gray-500 pointer-events-none z-20" />
+                    <ChevronDown className="absolute right-2 bottom-2 w-4 h-4 text-gray-500 pointer-events-none" />
                   </div>
 
                   <div>
-                     <label className="sm:hidden text-xs text-gray-500 mb-1 block">SL</label>
+                    <label className="sm:hidden text-xs text-gray-500 mb-1 block">
+                      SL
+                    </label>
                     <input
                       type="number"
                       min="1"
@@ -457,7 +553,9 @@ const OrderReceipt = () => {
                   </div>
 
                   <div>
-                    <label className="sm:hidden text-xs text-gray-500 mb-1 block">Sale (%)</label>
+                    <label className="sm:hidden text-xs text-gray-500 mb-1 block">
+                      Sale (%)
+                    </label>
                     <input
                       type="number"
                       min="0"
@@ -475,13 +573,21 @@ const OrderReceipt = () => {
                   </div>
 
                   <div className="flex justify-between sm:block text-right">
-                    <span className="sm:hidden text-sm text-gray-500">Giá gốc:</span>
-                    <span className="text-gray-600">{basePrice.toLocaleString()}₫</span>
+                    <span className="sm:hidden text-sm text-gray-500">
+                      Giá gốc:
+                    </span>
+                    <span className="text-gray-600">
+                      {basePrice.toLocaleString()}₫
+                    </span>
                   </div>
 
                   <div className="flex justify-between sm:block text-right">
-                    <span className="sm:hidden text-sm text-gray-500">Thành tiền:</span>
-                    <span className="font-bold text-blue-700">{salePrice.toLocaleString()}₫</span>
+                    <span className="sm:hidden text-sm text-gray-500">
+                      Thành tiền:
+                    </span>
+                    <span className="font-bold text-blue-700">
+                      {salePrice.toLocaleString()}₫
+                    </span>
                   </div>
 
                   <div className="flex justify-center sm:justify-center mt-2 sm:mt-0">
@@ -500,7 +606,9 @@ const OrderReceipt = () => {
 
         <div className="pt-8 relative mt-6 border-t border-gray-100">
           <div className="w-full sm:w-40 mt-4 sm:mt-0 mb-4 sm:mb-0">
-            <label className="block text-sm mb-1 font-medium text-gray-700">Phí ship (₫)</label>
+            <label className="block text-sm mb-1 font-medium text-gray-700">
+              Phí ship (₫)
+            </label>
             <input
               type="number"
               value={form.shipFee}
@@ -513,23 +621,23 @@ const OrderReceipt = () => {
         </div>
       </div>
 
-      {/* --- PHẦN ẨN ĐỂ IN (DÙNG ĐỂ CHỤP ẢNH) --- */}
-      <div
-        id="print-area"
-        ref={printRef}
-        className="hidden" // Sẽ được hiện lên bởi hàm handleExportImage
-      >
+      {/* --- PHẦN ẨN ĐỂ IN (Được hiện lên khi bấm nút Export) --- */}
+      <div id="print-area" ref={printRef} className="hidden">
         <ReceiptContent />
       </div>
 
       {/* --- PREVIEW SECTION --- */}
-      <h1 className="text-blue-700 text-center pt-10 font-bold pb-4 text-xl">XEM TRƯỚC (PREVIEW)</h1>
-      <p className="text-center text-gray-500 text-sm mb-4">Đây là hình ảnh phiếu khi xuất ra (tự động đổi bố cục theo thiết bị)</p>
+      <h1 className="text-blue-700 text-center pt-10 font-bold pb-4 text-xl">
+        XEM TRƯỚC (PREVIEW)
+      </h1>
+      <p className="text-center text-gray-500 text-sm mb-4">
+        (Bố cục dưới đây mô phỏng phiếu khi xuất ra ảnh)
+      </p>
 
       <div className="flex justify-center border-4 border-blue-600 rounded-xl overflow-hidden w-full bg-gray-100 p-4">
-        {/* Render Preview dùng chung Component với phần in để đảm bảo giống nhau */}
+        {/* Container scale nội dung cho vừa màn hình */}
         <div className="origin-top scale-50 sm:scale-75 md:scale-90 shadow-2xl">
-            <ReceiptContent isPreview={true} />
+          <ReceiptContent />
         </div>
       </div>
     </motion.div>
