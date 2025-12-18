@@ -77,3 +77,59 @@ export const deleteOrder = async (req, res) => {
     res.status(500).json({ message: "Lỗi xóa đơn hàng" });
   }
 };
+export const getMyOrders = async (req, res) => {
+  try {
+    // Tìm đơn hàng có user trùng với user đang login
+    const orders = await CustomerOrder.find({ user: req.user._id }).sort({ createdAt: -1 });
+    res.json(orders);
+  } catch (error) {
+    console.error("Get my orders error:", error);
+    res.status(500).json({ message: "Lỗi tải lịch sử đơn hàng" });
+  }
+};
+
+// 2. Hủy đơn hàng (Chỉ cho phép khi trạng thái là Pending)
+export const cancelMyOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const order = await CustomerOrder.findOne({ _id: id, user: req.user._id });
+
+    if (!order) {
+      return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
+    }
+
+    if (order.status !== "Pending") {
+      return res.status(400).json({ message: "Không thể hủy đơn hàng đã được xử lý" });
+    }
+
+    order.status = "Cancelled";
+    await order.save();
+
+    res.json({ message: "Đã hủy đơn hàng thành công", order });
+  } catch (error) {
+    console.error("Cancel order error:", error);
+    res.status(500).json({ message: "Lỗi hủy đơn hàng" });
+  }
+};
+
+// 3. Cập nhật địa chỉ đơn hàng (Chỉ cho phép khi Pending)
+export const updateOrderAddress = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { address } = req.body;
+    
+    const order = await CustomerOrder.findOne({ _id: id, user: req.user._id });
+
+    if (!order) return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
+    if (order.status !== "Pending") return res.status(400).json({ message: "Chỉ có thể sửa địa chỉ khi đơn đang chờ xử lý" });
+
+    // Cập nhật địa chỉ trong customerInfo
+    order.customerInfo.address = address;
+    await order.save();
+
+    res.json({ message: "Cập nhật địa chỉ thành công", order });
+  } catch (error) {
+    console.error("Update address error:", error);
+    res.status(500).json({ message: "Lỗi cập nhật địa chỉ" });
+  }
+}

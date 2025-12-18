@@ -27,7 +27,7 @@ const Navbar = () => {
 
   // --- STATE ĐƠN HÀNG & TAB ---
   const [activeTab, setActiveTab] = useState("profile"); // 'profile' | 'orders'
-  const [orders, setOrders] = useState([]); // Khởi tạo rỗng để tránh dữ liệu ảo
+  const [orders, setOrders] = useState([]); 
   const [loadingOrders, setLoadingOrders] = useState(false);
   
   // State chỉnh sửa địa chỉ nhanh
@@ -95,12 +95,13 @@ const Navbar = () => {
   const fetchMyOrders = async () => {
     setLoadingOrders(true);
     try {
-      // Đảm bảo endpoint này trả về đơn hàng CỦA USER (thường backend sẽ lọc theo req.user._id)
-      const res = await axios.get("/orders");
-      console.log("Orders data:", res.data); // Debug xem dữ liệu trả về là gì
-      setOrders(Array.isArray(res.data) ? res.data : res.data.orders || []);
+      // QUAN TRỌNG: Gọi API riêng cho khách hàng để chỉ lấy đơn của mình
+      const res = await axios.get("/customer-orders/my-orders");
+      setOrders(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
       console.error("Lỗi tải đơn hàng:", error);
+      // Nếu lỗi 404 (chưa có backend mới), tạm thời set rỗng để không lỗi giao diện
+      setOrders([]);
     } finally {
       setLoadingOrders(false);
     }
@@ -147,28 +148,29 @@ const Navbar = () => {
   const handleCancelOrder = async (orderId) => {
     if (!window.confirm("Bạn có chắc chắn muốn hủy đơn hàng này không?")) return;
     try {
-      await axios.put(`/orders/${orderId}/cancel`); 
+      await axios.put(`/customer-orders/${orderId}/cancel`); 
       alert("Đã hủy đơn hàng thành công.");
       fetchMyOrders(); 
       if (selectedOrder) setSelectedOrder(null);
     } catch (error) {
-      alert("Không thể hủy đơn hàng.");
+      alert(error.response?.data?.message || "Không thể hủy đơn hàng.");
     }
   };
 
   const startEditOrder = (order) => {
     setEditingOrderId(order._id);
-    setEditOrderAddress(order.address || order.direction || "");
+    // Ưu tiên lấy địa chỉ trong customerInfo (snapshot lúc đặt), nếu không có thì lấy address gốc
+    setEditOrderAddress(order.customerInfo?.address || order.address || "");
   };
 
   const saveOrderAddress = async (orderId) => {
     try {
-      await axios.put(`/orders/${orderId}/address`, { address: editOrderAddress });
+      await axios.put(`/customer-orders/${orderId}/address`, { address: editOrderAddress });
       alert("Cập nhật địa chỉ nhận hàng thành công.");
       setEditingOrderId(null);
       fetchMyOrders();
     } catch (error) {
-      alert("Lỗi cập nhật địa chỉ đơn hàng.");
+      alert(error.response?.data?.message || "Lỗi cập nhật địa chỉ đơn hàng.");
     }
   };
 
@@ -179,16 +181,16 @@ const Navbar = () => {
 
   const getStatusBadge = (status) => {
     const s = status?.toLowerCase() || "";
-    if (s.includes("pending") || s === "chờ xử lý") return <span className="text-yellow-600 bg-yellow-100 px-2 py-1 rounded text-xs font-bold">Đang xử lý</span>;
-    if (s.includes("shipping") || s === "đang giao") return <span className="text-blue-600 bg-blue-100 px-2 py-1 rounded text-xs font-bold">Đang giao</span>;
-    if (s.includes("delivered") || s === "đã giao") return <span className="text-green-600 bg-green-100 px-2 py-1 rounded text-xs font-bold">Hoàn thành</span>;
-    if (s.includes("cancelled") || s === "đã hủy") return <span className="text-red-600 bg-red-100 px-2 py-1 rounded text-xs font-bold">Đã hủy</span>;
+    if (s === "pending" || s === "chờ xử lý") return <span className="text-yellow-600 bg-yellow-100 px-2 py-1 rounded text-xs font-bold">Đang xử lý</span>;
+    if (s === "processed" || s === "shipping" || s === "đang giao") return <span className="text-blue-600 bg-blue-100 px-2 py-1 rounded text-xs font-bold">Đã xác nhận</span>;
+    if (s === "delivered" || s === "đã giao") return <span className="text-green-600 bg-green-100 px-2 py-1 rounded text-xs font-bold">Hoàn thành</span>;
+    if (s === "cancelled" || s === "đã hủy") return <span className="text-red-600 bg-red-100 px-2 py-1 rounded text-xs font-bold">Đã hủy</span>;
     return <span className="text-gray-600 bg-gray-100 px-2 py-1 rounded text-xs">{status}</span>;
   };
 
   const isEditable = (status) => {
     const s = status?.toLowerCase() || "";
-    return s.includes("pending") || s === "chờ xử lý" || s === "processing";
+    return s === "pending" || s === "chờ xử lý";
   };
 
   return (
@@ -381,7 +383,7 @@ const Navbar = () => {
                             >
                                 <ChevronLeft size={20} /> Quay lại
                             </button>
-                            <span className="font-bold text-gray-800">#{ (selectedOrder._id || selectedOrder.id).slice(-6).toUpperCase() }</span>
+                            <span className="font-bold text-gray-800">#{ (selectedOrder._id).slice(-6).toUpperCase() }</span>
                         </div>
 
                         {/* Body Chi tiết */}
@@ -396,11 +398,11 @@ const Navbar = () => {
                             <div className="grid sm:grid-cols-2 gap-4 text-sm">
                                 <div className="p-3 bg-gray-50 rounded border">
                                     <h4 className="font-semibold text-gray-700 flex items-center gap-2 mb-2"><MapPin size={16}/> Địa chỉ nhận hàng</h4>
-                                    <p className="text-gray-600">{selectedOrder.address || selectedOrder.direction || "Chưa có địa chỉ"}</p>
+                                    <p className="text-gray-600">{selectedOrder.customerInfo?.address || selectedOrder.address || "Chưa có địa chỉ"}</p>
                                 </div>
                                 <div className="p-3 bg-gray-50 rounded border">
                                     <h4 className="font-semibold text-gray-700 flex items-center gap-2 mb-2"><CreditCard size={16}/> Phương thức thanh toán</h4>
-                                    <p className="text-gray-600">{selectedOrder.paymentMethod === "COD" ? "Thanh toán khi nhận hàng" : selectedOrder.paymentMethod || "COD"}</p>
+                                    <p className="text-gray-600">COD (Thanh toán khi nhận hàng)</p>
                                 </div>
                             </div>
 
@@ -411,10 +413,10 @@ const Navbar = () => {
                                     {selectedOrder.products?.map((item, idx) => (
                                         <div key={idx} className="flex gap-3 items-center border-b pb-3 last:border-0">
                                             <div className="w-16 h-16 bg-gray-100 rounded overflow-hidden flex-shrink-0">
-                                                <img src={item.product?.image || item.image || "/placeholder.png"} alt="Product" className="w-full h-full object-cover" />
+                                                <img src={item.image || "/placeholder.png"} alt="Product" className="w-full h-full object-cover" />
                                             </div>
                                             <div className="flex-1">
-                                                <p className="font-medium text-gray-800 text-sm line-clamp-1">{item.product?.name || item.name || "Sản phẩm"}</p>
+                                                <p className="font-medium text-gray-800 text-sm line-clamp-1">{item.name}</p>
                                                 <p className="text-xs text-gray-500">Size: {item.size} | SL: {item.quantity}</p>
                                             </div>
                                             <div className="text-right">
@@ -431,11 +433,11 @@ const Navbar = () => {
                         <div className="p-4 bg-gray-50 border-t space-y-2">
                             <div className="flex justify-between text-sm">
                                 <span className="text-gray-600">Tạm tính:</span>
-                                <span>{formatCurrency(selectedOrder.totalAmount || selectedOrder.total)}</span>
+                                <span>{formatCurrency(selectedOrder.totalAmount)}</span>
                             </div>
                             <div className="flex justify-between font-bold text-lg text-blue-700 pt-2 border-t">
                                 <span>Tổng cộng:</span>
-                                <span>{formatCurrency(selectedOrder.totalAmount || selectedOrder.total)}</span>
+                                <span>{formatCurrency(selectedOrder.totalAmount)}</span>
                             </div>
                             {/* Nút hủy trong chi tiết */}
                             {isEditable(selectedOrder.status) && (
@@ -463,11 +465,11 @@ const Navbar = () => {
                           </div>
                         ) : (
                           orders.map((order) => (
-                            <div key={order._id || order.id} className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 transition hover:shadow-md">
+                            <div key={order._id} className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 transition hover:shadow-md">
                               <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b pb-4 mb-4">
                                 <div>
                                   <div className="flex items-center gap-2">
-                                    <span className="font-bold text-lg text-gray-800">#{ (order._id || order.id).slice(-6).toUpperCase() }</span>
+                                    <span className="font-bold text-lg text-gray-800">#{ (order._id).slice(-6).toUpperCase() }</span>
                                     {getStatusBadge(order.status)}
                                   </div>
                                   <p className="text-sm text-gray-500 mt-1">
@@ -476,14 +478,14 @@ const Navbar = () => {
                                 </div>
                                 <div className="text-right">
                                   <span className="block text-sm text-gray-500">Tổng tiền</span>
-                                  <span className="font-bold text-xl text-blue-700">{formatCurrency(order.totalAmount || order.total)}</span>
+                                  <span className="font-bold text-xl text-blue-700">{formatCurrency(order.totalAmount)}</span>
                                 </div>
                               </div>
 
                               <div className="space-y-2 mb-4">
                                  {order.products && order.products.slice(0, 2).map((item, idx) => (
                                    <div key={idx} className="flex justify-between text-sm text-gray-600">
-                                      <span>{item.quantity}x {item.product?.name || item.name || "Sản phẩm"} (Size: {item.size})</span>
+                                      <span>{item.quantity}x {item.name} (Size: {item.size})</span>
                                       <span>{formatCurrency((item.price || 0) * item.quantity)}</span>
                                    </div>
                                  ))}
@@ -508,7 +510,7 @@ const Navbar = () => {
                                            <button onClick={() => setEditingOrderId(null)} className="text-red-500 hover:bg-red-100 p-1 rounded"><XCircle size={16}/></button>
                                          </div>
                                        ) : (
-                                         <span className="text-gray-600 line-clamp-2">{order.address || order.direction || "Chưa có địa chỉ"}</span>
+                                         <span className="text-gray-600 line-clamp-2">{order.customerInfo?.address || order.address || "Chưa có địa chỉ"}</span>
                                        )}
                                     </div>
                                     {isEditable(order.status) && editingOrderId !== order._id && (
@@ -528,7 +530,7 @@ const Navbar = () => {
                                       </button>
                                     )}
                                     <button 
-                                      onClick={() => setSelectedOrder(order)} // CẬP NHẬT: Gắn hàm vào nút này
+                                      onClick={() => setSelectedOrder(order)}
                                       className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs font-medium transition"
                                     >
                                       Xem chi tiết
