@@ -1,226 +1,276 @@
-import Collection from "../models/collection.model.js";
-import cloudinary from "../lib/cloudinary.js"; 
+import CustomerOrder from "../models/customerOrder.model.js";
+import Order from "../models/orders.model.js"; 
+import User from "../models/user.model.js";
 
-// 1. Lấy tất cả collection
-export const getAllCollections = async (req, res) => {
+// 1. TẠO ĐƠN HÀNG (Có logic gộp đơn nếu còn đơn Pending)
+export const createOrder = async (req, res) => {
   try {
-    const collections = await Collection.find()
-      .select("-products") 
-      .lean()
-      .sort({ createdAt: -1 });
-    res.json(collections);
-  } catch (err) {
-    console.error("❌ Lỗi getAllCollections:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
+    const { products, totalAmount, note } = req.body;
+    const user = req.user;
 
-// 2. Lấy chi tiết collection
-export const getCollectionById = async (req, res) => {
-  try {
-    const collection = await Collection.findById(req.params.id)
-      .populate({
-         path: "products",
-         select: "name price image isSale salePercentage isPreOrder category productLink",
-      });
-      
-    if (!collection) return res.status(404).json({ message: "Not found" });
-    res.json(collection);
-  } catch (err) {
-    console.error("❌ Lỗi getCollectionById:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-// 3. Tạo collection mới (Đã bổ sung Special Fields)
-export const createCollection = async (req, res) => {
-  try {
-    // 👇 LẤY THÊM CÁC TRƯỜNG SPECIAL TỪ REQ.BODY
-    const { 
-        name, description, coverMedia, gradientFrom, gradientTo,
-        isSpecial, specialPosition, 
-        mobileWidth, mobileHeight, desktopWidth, desktopHeight,
-        isFullSize, hideName, hideDescription
-    } = req.body;
-
-    let mediaUrl = "";
-    let mediaType = "image"; 
-
-    // Logic upload Cloudinary
-    if (coverMedia && coverMedia.url) {
-        if (coverMedia.url.startsWith("data:")) {
-            try {
-                const uploadResponse = await cloudinary.uploader.upload(coverMedia.url, {
-                    folder: "collections",
-                    resource_type: "auto" 
-                });
-                mediaUrl = uploadResponse.secure_url;
-                mediaType = uploadResponse.resource_type; 
-            } catch (uploadError) {
-                console.error("❌ Lỗi upload Cloudinary:", uploadError);
-                return res.status(500).json({ message: "Lỗi khi upload ảnh/video" });
-            }
-        } else {
-            mediaUrl = coverMedia.url;
-            mediaType = coverMedia.type || "image";
-        }
+    if (!products || products.length === 0) {
+      return res.status(400).json({ message: "Giỏ hàng trống" });
     }
 
-    const newCol = await Collection.create({
-      name,
-      description,
-      coverMedia: {
-          url: mediaUrl,
-          type: mediaType
-      },
-      gradientFrom: gradientFrom || "#3b82f6",
-      gradientTo: gradientTo || "#06b6d4",
-      products: [],
-      // 👇 LƯU CÁC TRƯỜNG SPECIAL VÀO DB
-      isSpecial: isSpecial || false,
-      specialPosition: specialPosition || "below_featured",
-      mobileWidth: mobileWidth || 100,
-      mobileHeight: mobileHeight || 400,
-      desktopWidth: desktopWidth || 100,
-      desktopHeight: desktopHeight || 600,
-      isFullSize: isFullSize || false,
-      hideName: hideName || false,
-      hideDescription: hideDescription || false,
+    const existingOrder = await CustomerOrder.findOne({
+      user: user._id,
+      status: "Pending",
     });
 
-    res.status(201).json(newCol);
-  } catch (err) {
-    console.error("❌ Lỗi createCollection:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
+    if (existingOrder) {
+      products.forEach((newProduct) => {
+        const existingItemIndex = existingOrder.products.findIndex(
+          (p) =>
+            p.product.toString() === newProduct.product.toString() &&
+            p.size === newProduct.size
+        );
 
-// 4. Cập nhật Collection (Đã bổ sung Special Fields)
-export const updateCollection = async (req, res) => {
-  try {
-    const { 
-        name, description, coverMedia, gradientFrom, gradientTo,
-        isSpecial, specialPosition, 
-        mobileWidth, mobileHeight, desktopWidth, desktopHeight,
-        isFullSize, hideName, hideDescription
-    } = req.body;
-
-    const collection = await Collection.findById(req.params.id);
-
-    if (!collection) {
-      return res.status(404).json({ message: "Collection not found" });
-    }
-
-    // Cập nhật thông tin cơ bản
-    collection.name = name || collection.name;
-    collection.description = description || collection.description;
-    collection.gradientFrom = gradientFrom || collection.gradientFrom;
-    collection.gradientTo = gradientTo || collection.gradientTo;
-
-    // 👇 CẬP NHẬT CÁC TRƯỜNG SPECIAL (Kiểm tra undefined để cho phép set false/0)
-    if (isSpecial !== undefined) collection.isSpecial = isSpecial;
-    if (specialPosition !== undefined) collection.specialPosition = specialPosition;
-    if (mobileWidth !== undefined) collection.mobileWidth = mobileWidth;
-    if (mobileHeight !== undefined) collection.mobileHeight = mobileHeight;
-    if (desktopWidth !== undefined) collection.desktopWidth = desktopWidth;
-    if (desktopHeight !== undefined) collection.desktopHeight = desktopHeight;
-    if (isFullSize !== undefined) collection.isFullSize = isFullSize;
-    if (hideName !== undefined) collection.hideName = hideName;
-    if (hideDescription !== undefined) collection.hideDescription = hideDescription;
-
-    // Logic upload Cloudinary cho Update
-    if (coverMedia && coverMedia.url) {
-      if (coverMedia.url.startsWith("data:")) {
-        try {
-            const uploadResponse = await cloudinary.uploader.upload(coverMedia.url, {
-                folder: "collections",
-                resource_type: "auto"
-            });
-            collection.coverMedia = {
-                url: uploadResponse.secure_url,
-                type: uploadResponse.resource_type
-            };
-        } catch (error) {
-            console.error("❌ Lỗi upload update:", error);
-            return res.status(500).json({ message: "Upload failed" });
+        if (existingItemIndex > -1) {
+          existingOrder.products[existingItemIndex].quantity += newProduct.quantity;
+        } else {
+          existingOrder.products.push(newProduct);
         }
-      } else {
-        collection.coverMedia = coverMedia; 
+      });
+
+      existingOrder.totalAmount += totalAmount;
+      if (note) existingOrder.note = existingOrder.note ? `${existingOrder.note} | ${note}` : note;
+      existingOrder.customerInfo = {
+        name: user.name,
+        email: user.email,
+        phone: user.phoneNumber,
+        address: user.direction,
+      };
+      existingOrder.createdAt = Date.now(); // Đẩy lên đầu danh sách
+
+      await existingOrder.save();
+
+      if (req.body.isFromCart) {
+        user.cartItems = [];
+        await user.save();
       }
+
+      return res.status(200).json(existingOrder);
     }
 
-    const updatedCollection = await collection.save();
-    res.json(updatedCollection);
-  } catch (err) {
-    console.error("❌ Lỗi updateCollection:", err);
-    res.status(500).json({ message: "Server error" });
+    const newOrder = await CustomerOrder.create({
+      user: user._id,
+      customerInfo: {
+        name: user.name,
+        email: user.email,
+        phone: user.phoneNumber,
+        address: user.direction,
+      },
+      products,
+      totalAmount,
+      note,
+    });
+
+    if (req.body.isFromCart) {
+        user.cartItems = [];
+        await user.save();
+    }
+
+    res.status(201).json(newOrder);
+  } catch (error) {
+    console.error("Error creating order:", error);
+    res.status(500).json({ message: "Lỗi tạo đơn hàng", error: error.message });
   }
 };
 
-// 5. Xóa Collection
-export const deleteCollection = async (req, res) => {
+// 2. LẤY ĐƠN CỦA TÔI (Ẩn đơn đã xác nhận để tránh trùng lặp)
+export const getMyOrders = async (req, res) => {
   try {
-    const collection = await Collection.findById(req.params.id);
-    if (!collection) return res.status(404).json({ message: "Not found" });
+    const userId = req.user._id;
 
-    if (collection.coverMedia && collection.coverMedia.url) {
-        try {
-            const url = collection.coverMedia.url;
-            const publicId = url.split("/").pop().split(".")[0];
-            await cloudinary.uploader.destroy("collections/" + publicId);
-        } catch (e) {
-            console.log("Ignored cloud delete error");
-        }
-    }
+    // A. Lấy đơn khách tự đặt (TRỪ những đơn đã xác nhận - Processed)
+    // Vì đơn Processed đã được chuyển sang bảng Order (Admin) rồi
+    const myCustomerOrders = await CustomerOrder.find({ 
+      user: userId,
+      status: { $ne: "Processed" } 
+    }).lean();
 
-    await Collection.findByIdAndDelete(req.params.id);
-    res.json({ message: "Deleted successfully" });
-  } catch (err) {
-    console.error("❌ Lỗi deleteCollection:", err);
-    res.status(500).json({ message: "Server error" });
+    // B. Lấy đơn do Admin tạo (bao gồm cả đơn Processed vừa chuyển sang)
+    const myAdminOrders = await Order.find({ customerId: userId })
+      .populate("items.productId", "name image price") 
+      .lean();
+
+    // C. Chuẩn hóa đơn Admin
+    const normalizedAdminOrders = myAdminOrders.map(order => ({
+      _id: order._id,
+      createdAt: order.createdAt,
+      status: order.status,
+      totalAmount: order.total,
+      paymentMethod: order.paymentMethod,
+      customerInfo: {
+        address: order.address,
+        phone: order.phone,
+        name: order.customerName
+      },
+      products: order.items.map(item => ({
+        product: item.productId?._id,
+        name: item.productId?.name || "Sản phẩm đã xóa",
+        image: item.productId?.image || "/placeholder.png",
+        price: item.price || 0,
+        quantity: item.quantity,
+        size: item.size
+      })),
+      type: 'admin_created'
+    }));
+
+    const allOrders = [...myCustomerOrders, ...normalizedAdminOrders].sort((a, b) => {
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+
+    res.json(allOrders);
+  } catch (error) {
+    console.error("Get my orders error:", error);
+    res.status(500).json({ message: "Lỗi tải lịch sử đơn hàng" });
   }
 };
 
-// 6. Thêm sản phẩm
-export const addProductToCollection = async (req, res) => {
+// 3. CẬP NHẬT TRẠNG THÁI & ĐỒNG BỘ ĐƠN ADMIN
+export const updateOrderStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const product = req.body;
+    const { status } = req.body;
     
-    const collection = await Collection.findById(id);
-    if (!collection) return res.status(404).json({ message: "Not found" });
+    // Lấy đơn hàng cũ để so sánh trạng thái
+    const oldOrder = await CustomerOrder.findById(id);
+    if (!oldOrder) return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
 
-    const exists = collection.products.some((p) => p.toString() === product._id || p._id?.toString() === product._id);
+    // Cập nhật trạng thái mới
+    const customerOrder = await CustomerOrder.findByIdAndUpdate(
+      id, 
+      { status }, 
+      { new: true }
+    );
+
+    // LOGIC ĐỒNG BỘ:
     
-    if (exists) {
-      return res.status(400).json({ message: "Sản phẩm đã tồn tại trong collection" });
+    // TH1: Xác nhận đơn (Pending -> Processed) => TẠO ĐƠN ADMIN
+    if (status === "Processed" && oldOrder.status !== "Processed") {
+        const orderItems = customerOrder.products.map(p => ({
+            productId: p.product,
+            size: p.size,
+            quantity: p.quantity,
+            price: p.price
+        }));
+
+        await Order.create({
+            customerId: customerOrder.user,
+            customerName: customerOrder.customerInfo.name,
+            address: customerOrder.customerInfo.address,
+            phone: customerOrder.customerInfo.phone,
+            items: orderItems,
+            total: customerOrder.totalAmount,
+            status: "chưa giao",
+            receivedDate: null,
+            deliverDate: null,
+            paymentMethod: "COD",
+            // Kiểm tra req.user có tồn tại không trước khi lấy _id
+            createdBy: req.user ? req.user._id : null 
+        });
     }
 
-    collection.products.push(product); 
-    
-    await collection.save();
-    res.json(collection);
-  } catch (err) {
-    console.error("❌ Lỗi addProductToCollection:", err);
-    res.status(500).json({ message: "Server error" });
+    // TH2: Hoàn tác (Processed -> Pending) => XÓA ĐƠN ADMIN TƯƠNG ỨNG
+    else if (status === "Pending" && oldOrder.status === "Processed") {
+        // Tìm và xóa đơn Admin tương ứng (đơn mới nhất của khách này có trạng thái 'chưa giao')
+        await Order.findOneAndDelete(
+            {
+                customerId: customerOrder.user,
+                total: customerOrder.totalAmount,
+                status: "chưa giao" 
+            }, 
+            { sort: { createdAt: -1 } } // Xóa đơn mới nhất khớp điều kiện
+        );
+    }
+
+    res.json(customerOrder);
+  } catch (error) {
+    console.error("Lỗi update status:", error);
+    res.status(500).json({ message: "Lỗi cập nhật đơn hàng", error: error.message });
   }
 };
 
-// 7. Xóa sản phẩm
-export const removeProductFromCollection = async (req, res) => {
+// 4. HỦY ĐƠN HÀNG (Đã fix lỗi validate)
+export const cancelMyOrder = async (req, res) => {
   try {
-    const { id, productId } = req.params;
-    const collection = await Collection.findById(id);
-    if (!collection) return res.status(404).json({ message: "Not found" });
+    const { id } = req.params;
+    const userId = req.user._id;
 
-    collection.products = collection.products.filter((p) => 
-        p._id.toString() !== productId && p.toString() !== productId
-    );
+    // Tìm trong CustomerOrder
+    let order = await CustomerOrder.findOne({ _id: id, user: userId });
     
-    await collection.save();
-    res.json(collection);
-  } catch (err) {
-    console.error("❌ Lỗi removeProductFromCollection:", err);
-    res.status(500).json({ message: "Server error" });
+    if (order) {
+      if (order.status !== "Pending") {
+        return res.status(400).json({ message: "Không thể hủy đơn đã xác nhận" });
+      }
+      order.status = "Cancelled";
+      await order.save();
+      return res.json({ message: "Đã hủy đơn hàng", order });
+    }
+
+    // Nếu không thấy, tìm trong Order (Admin)
+    order = await Order.findOne({ _id: id, customerId: userId });
+    
+    if (order) {
+      if (order.status !== "chưa giao") {
+        return res.status(400).json({ message: "Không thể hủy đơn hàng đã giao/đang giao" });
+      }
+      order.status = "đã hủy";
+      await order.save();
+      return res.json({ message: "Đã hủy đơn hàng", order });
+    }
+
+    return res.status(404).json({ message: "Không tìm thấy đơn hàng để hủy" });
+  } catch (error) {
+    console.error("Cancel order error:", error);
+    res.status(500).json({ message: "Lỗi server khi hủy đơn", error: error.message });
+  }
+};
+
+// 5. CẬP NHẬT ĐỊA CHỈ
+export const updateOrderAddress = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { address } = req.body;
+    const userId = req.user._id;
+
+    let order = await CustomerOrder.findOne({ _id: id, user: userId });
+    if (order) {
+       if (order.status !== "Pending") return res.status(400).json({ message: "Không thể sửa đơn đã xử lý" });
+       order.customerInfo.address = address;
+       await order.save();
+       return res.json({ message: "Cập nhật thành công", order });
+    }
+
+    order = await Order.findOne({ _id: id, customerId: userId });
+    if (order) {
+       if (order.status !== "chưa giao") return res.status(400).json({ message: "Không thể sửa đơn đã giao" });
+       order.address = address;
+       await order.save();
+       return res.json({ message: "Cập nhật thành công", order });
+    }
+    return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi cập nhật địa chỉ" });
+  }
+};
+
+export const getAllOrders = async (req, res) => {
+  try {
+    const orders = await CustomerOrder.find().sort({ createdAt: -1 });
+    res.json(orders);
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi lấy danh sách" });
+  }
+};
+
+export const deleteOrder = async (req, res) => {
+  try {
+    await CustomerOrder.findByIdAndDelete(req.params.id);
+    res.json({ message: "Đã xóa đơn hàng" });
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi xóa đơn hàng" });
   }
 };

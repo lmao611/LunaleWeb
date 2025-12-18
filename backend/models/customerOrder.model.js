@@ -7,7 +7,7 @@ const customerOrderSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    // Lưu lại thông tin khách tại thời điểm đặt (tránh trường hợp user đổi profile sau này)
+    // Lưu lại thông tin khách tại thời điểm đặt
     customerInfo: {
       name: String,
       email: String,
@@ -24,16 +24,17 @@ const customerOrderSchema = new mongoose.Schema(
         image: String,
         price: Number,
         quantity: { type: Number, default: 1 },
-        size: String, // Lưu size nếu mua từ ContactModal
+        size: String,
       },
     ],
     totalAmount: { type: Number, required: true },
     status: {
       type: String,
-      enum: ["Pending", "Processed"], // Chờ xử lý, Đã xử lý
+      // QUAN TRỌNG: Thêm "Cancelled" vào đây để tránh lỗi 500 khi hủy đơn
+      enum: ["Pending", "Processed", "Cancelled"], 
       default: "Pending",
     },
-    note: String, // Ghi chú thêm nếu cần
+    note: String,
   },
   { timestamps: true }
 );
