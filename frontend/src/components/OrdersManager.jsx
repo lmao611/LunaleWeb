@@ -71,10 +71,8 @@ export default function OrdersManager() {
   }
 
   // --- LOGIC NHÓM THEO THÁNG ---
-  // 1. Lọc theo status trước
   const filteredOrders = orders.filter((o) => (filterStatus ? o.status === filterStatus : true));
 
-  // 2. Nhóm theo tháng
   const groupedOrders = filteredOrders.reduce((groups, order) => {
     const d = new Date(order.createdAt);
     const monthKey = `${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
@@ -86,21 +84,18 @@ export default function OrdersManager() {
     return groups;
   }, {});
 
-  // 3. Sắp xếp tháng giảm dần
   const sortedMonthKeys = Object.keys(groupedOrders).sort((a, b) => {
     const [m1, y1] = a.split("/");
     const [m2, y2] = b.split("/");
     return new Date(`${y2}-${m2}-01`) - new Date(`${y1}-${m1}-01`);
   });
 
-  // 4. Chọn tháng mặc định
   useEffect(() => {
     if (sortedMonthKeys.length > 0 && !selectedMonthKey) {
       setSelectedMonthKey(sortedMonthKeys[0]);
     }
   }, [sortedMonthKeys, selectedMonthKey]);
 
-  // Danh sách đơn hàng hiện tại để hiển thị
   const currentMonthOrders = selectedMonthKey ? groupedOrders[selectedMonthKey] : [];
 
   // --- CÁC HÀM XỬ LÝ (MODAL, CRUD) ---
@@ -229,44 +224,52 @@ export default function OrdersManager() {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Đơn hàng");
   
-    // Header đầy đủ như cũ
     const headers = [
       "STT", "Trạng thái", "Ngày nhận", "Ngày giao", "Khách hàng",
       "Địa chỉ", "SĐT", "Sản phẩm", "Tổng tiền", "Thanh toán",
     ];
     worksheet.addRow(headers);
   
-    // Xuất danh sách đang hiển thị (theo tháng)
+    // Xuất đơn hàng THÁNG ĐANG CHỌN
     currentMonthOrders.forEach((o, idx) => {
-      const itemsStr = (o.items || []).map((it) => {
-          const prod = products.find((p) => String(p._id) === String(it.productId?._id ?? it.productId));
-          return `${prod ? prod.name : "SP xóa"} (size ${it.size}, SL ${it.quantity})`;
-        }).join("; ");
+      const itemsStr = (o.items || [])
+        .map((it) => {
+          const prod = products.find(
+            (p) => String(p._id) === String(it.productId?._id ?? it.productId)
+          );
+          return `${prod ? prod.name : it.productId?.name ?? "SP đã xóa"} (size ${it.size}, SL ${it.quantity})`;
+        })
+        .join("; ");
   
       worksheet.addRow([
-        idx + 1, o.status, formatDate(o.receivedDate), formatDate(o.deliverDate),
-        o.customerName ?? o.customerId?.name ?? "-", o.address, o.phone, itemsStr,
-        (o.total || 0).toLocaleString() + " ₫", o.paymentMethod,
+        idx + 1,
+        o.status,
+        formatDate(o.receivedDate),
+        formatDate(o.deliverDate),
+        o.customerName ?? o.customerId?.name ?? "-",
+        o.address,
+        o.phone,
+        itemsStr,
+        (o.total || 0).toLocaleString() + " ₫",
+        o.paymentMethod,
       ]);
     });
   
-    // Style header
+    // Style Excel
+    worksheet.columns.forEach((column) => {
+      column.width = 25;
+    });
     const headerRow = worksheet.getRow(1);
     headerRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
     headerRow.alignment = { horizontal: "center", vertical: "middle" };
     headerRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF666666" } };
-
-    // Auto width
-    worksheet.columns.forEach((column) => {
-        column.width = 20;
-    });
-
+  
     const buffer = await workbook.xlsx.writeBuffer();
     saveAs(new Blob([buffer]), `DonHang_${selectedMonthKey?.replace('/','-')}.xlsx`);
   }
 
   return (
-    <div className="p-4 max-w-[95%] mx-auto min-h-screen flex flex-col">
+    <div className="p-4 max-w-[98%] mx-auto min-h-screen flex flex-col">
       <div className="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
         <div>
            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
@@ -297,7 +300,7 @@ export default function OrdersManager() {
         </div>
       </div>
 
-      {/* --- CONTENT AREA (TABLE DẠNG CŨ) --- */}
+      {/* --- CONTENT AREA (BẢNG DỮ LIỆU CŨ NHƯNG GROUP THEO THÁNG) --- */}
       <div className="flex-1 bg-white rounded-xl shadow border border-gray-200 relative overflow-hidden flex flex-col">
         {loading ? (
             <div className="flex-1 flex items-center justify-center text-gray-400">Đang tải dữ liệu...</div>
@@ -313,26 +316,26 @@ export default function OrdersManager() {
                             transition={{ duration: 0.2 }}
                             className="min-w-max w-full"
                         >
-                            {/* BẢNG DỮ LIỆU CHI TIẾT NHƯ CŨ */}
+                            {/* BẢNG DỮ LIỆU CŨ */}
                             <table className="w-full text-sm text-left border-collapse">
                                 <thead className="bg-gray-100 text-gray-700 font-semibold border-b">
                                     <tr>
-                                        <th className="px-4 py-3 whitespace-nowrap">#</th>
-                                        <th className="px-4 py-3 whitespace-nowrap">Trạng thái</th>
-                                        <th className="px-4 py-3 whitespace-nowrap">Ngày nhận</th>
-                                        <th className="px-4 py-3 whitespace-nowrap">Ngày giao</th>
-                                        <th className="px-4 py-3 whitespace-nowrap">Khách hàng</th>
-                                        <th className="px-4 py-3 whitespace-nowrap">Địa chỉ</th>
-                                        <th className="px-4 py-3 whitespace-nowrap">SĐT</th>
-                                        <th className="px-4 py-3 whitespace-nowrap">Sản phẩm</th>
-                                        <th className="px-4 py-3 whitespace-nowrap text-center">SL</th>
-                                        <th className="px-4 py-3 whitespace-nowrap text-center">Size</th>
-                                        <th className="px-4 py-3 whitespace-nowrap text-right">Tổng tiền</th>
-                                        <th className="px-4 py-3 whitespace-nowrap">Thanh toán</th>
-                                        <th className="px-4 py-3 whitespace-nowrap text-center">Hành động</th>
+                                        <th className="px-4 py-2 text-left whitespace-nowrap">#</th>
+                                        <th className="px-4 py-2 text-left whitespace-nowrap">Trạng thái</th>
+                                        <th className="px-4 py-2 text-left whitespace-nowrap">Ngày nhận</th>
+                                        <th className="px-4 py-2 text-left whitespace-nowrap">Ngày giao</th>
+                                        <th className="px-4 py-2 text-left whitespace-nowrap">Khách hàng</th>
+                                        <th className="px-4 py-2 text-left whitespace-nowrap">Địa chỉ</th>
+                                        <th className="px-4 py-2 text-left whitespace-nowrap">SĐT</th>
+                                        <th className="px-4 py-2 text-left whitespace-nowrap">Sản phẩm</th>
+                                        <th className="px-4 py-2 text-left whitespace-nowrap">Số lượng</th>
+                                        <th className="px-4 py-2 text-left whitespace-nowrap">Size</th>
+                                        <th className="px-4 py-2 text-left whitespace-nowrap">Tổng</th>
+                                        <th className="px-4 py-2 text-left whitespace-nowrap">Thanh toán</th>
+                                        <th className="px-4 py-2 text-left whitespace-nowrap">Hành động</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-100">
+                                <tbody>
                                     {currentMonthOrders.map((o, idx) => {
                                         const statusColor = o.status === "chưa giao" ? "bg-red-100 text-red-700"
                                             : o.status === "đang giao" ? "bg-yellow-100 text-yellow-700"
@@ -340,26 +343,24 @@ export default function OrdersManager() {
                                             : "bg-green-100 text-green-700";
                                         
                                         return (
-                                            <tr key={o._id ?? o.id} className="hover:bg-gray-50 transition">
-                                                <td className="px-4 py-3 align-top font-medium text-gray-500">{idx + 1}</td>
-                                                <td className="px-4 py-3 align-top">
-                                                    <span className={`px-2 py-1 rounded text-xs font-bold whitespace-nowrap ${statusColor}`}>
-                                                        {o.status}
-                                                    </span>
+                                            <tr key={o._id ?? o.id} className="odd:bg-white even:bg-gray-50 hover:bg-gray-100 transition">
+                                                <td className="px-4 py-2 align-top font-medium">{idx + 1}</td>
+                                                <td className={`px-4 py-2 align-top font-semibold ${statusColor} whitespace-nowrap`}>
+                                                    {o.status}
                                                 </td>
-                                                <td className="px-4 py-3 align-top whitespace-nowrap">{formatDate(o.receivedDate)}</td>
-                                                <td className="px-4 py-3 align-top whitespace-nowrap">{formatDate(o.deliverDate)}</td>
-                                                <td className="px-4 py-3 align-top font-medium text-gray-900">
+                                                <td className="px-4 py-2 align-top whitespace-nowrap">{formatDate(o.receivedDate)}</td>
+                                                <td className="px-4 py-2 align-top whitespace-nowrap">{formatDate(o.deliverDate)}</td>
+                                                <td className="px-4 py-2 align-top font-medium">
                                                     {o.customerName ?? o.customerId?.name ?? "-"}
                                                 </td>
-                                                <td className="px-4 py-3 align-top max-w-[200px] truncate" title={o.address}>
+                                                <td className="px-4 py-2 align-top max-w-[200px] truncate" title={o.address}>
                                                     {o.address}
                                                 </td>
-                                                <td className="px-4 py-3 align-top">{o.phone}</td>
-                                                
-                                                {/* Cột Tên Sản Phẩm */}
-                                                <td className="px-4 py-3 align-top">
-                                                    <ul className="list-disc pl-4 space-y-1">
+                                                <td className="px-4 py-2 align-top whitespace-nowrap">{o.phone}</td>
+
+                                                {/* SP */}
+                                                <td className="px-4 py-2 align-top">
+                                                    <ul className="list-disc ml-4">
                                                         {(o.items || []).map((it, i) => {
                                                             const prod = products.find(p => String(p._id) === String(it.productId?._id ?? it.productId));
                                                             return <li key={i} className="truncate max-w-[150px]" title={prod?.name}>{prod ? prod.name : "SP đã xóa"}</li>;
@@ -367,32 +368,28 @@ export default function OrdersManager() {
                                                     </ul>
                                                 </td>
 
-                                                {/* Cột Số Lượng */}
-                                                <td className="px-4 py-3 align-top text-center">
-                                                    <ul className="space-y-1">
-                                                        {(o.items || []).map((it, i) => <li key={i}>x{it.quantity}</li>)}
-                                                    </ul>
+                                                {/* SL */}
+                                                <td className="px-4 py-2 align-top">
+                                                    <ul>{(o.items || []).map((it, i) => <li key={i}>x{it.quantity}</li>)}</ul>
                                                 </td>
 
-                                                {/* Cột Size */}
-                                                <td className="px-4 py-3 align-top text-center">
-                                                    <ul className="space-y-1">
-                                                        {(o.items || []).map((it, i) => <li key={i}>{it.size}</li>)}
-                                                    </ul>
+                                                {/* Size */}
+                                                <td className="px-4 py-2 align-top">
+                                                    <ul>{(o.items || []).map((it, i) => <li key={i}>{it.size}</li>)}</ul>
                                                 </td>
 
-                                                <td className="px-4 py-3 align-top text-right font-bold text-blue-600 whitespace-nowrap">
+                                                <td className="px-4 py-2 align-top font-semibold text-gray-900 whitespace-nowrap">
                                                     {(o.total || 0).toLocaleString()} ₫
                                                 </td>
-                                                <td className="px-4 py-3 align-top">{o.paymentMethod}</td>
-                                                
-                                                <td className="px-4 py-3 align-top text-center">
-                                                    <div className="flex items-center justify-center gap-2">
-                                                        <button onClick={() => openEdit(o)} className="text-blue-600 hover:text-blue-800 transition flex items-center gap-1" title="Sửa">
-                                                            <Edit2 size={16} /> <span className="hidden xl:inline text-xs">Sửa</span>
+                                                <td className="px-4 py-2 align-top whitespace-nowrap">{o.paymentMethod}</td>
+
+                                                <td className="px-4 py-2 align-top whitespace-nowrap">
+                                                    <div className="flex gap-3">
+                                                        <button onClick={() => openEdit(o)} className="text-blue-600 hover:underline flex items-center gap-1">
+                                                            <Edit2 className="w-4 h-4" /> Sửa
                                                         </button>
-                                                        <button onClick={() => handleDelete(o._id ?? o.id)} className="text-red-600 hover:text-red-800 transition flex items-center gap-1" title="Xóa">
-                                                            <Trash2 size={16} /> <span className="hidden xl:inline text-xs">Xóa</span>
+                                                        <button onClick={() => handleDelete(o._id ?? o.id)} className="text-red-600 hover:underline flex items-center gap-1">
+                                                            <Trash2 className="w-4 h-4" /> Xóa
                                                         </button>
                                                     </div>
                                                 </td>
@@ -412,7 +409,7 @@ export default function OrdersManager() {
             </div>
         )}
 
-        {/* --- FOOTER: MONTH SELECTOR BAR (Vẫn giữ lại) --- */}
+        {/* --- FOOTER: MONTH SELECTOR BAR --- */}
         <div className="bg-white border-t p-3 overflow-x-auto custom-scrollbar">
              <div className="flex items-center gap-3 min-w-max pb-1">
                 <span className="text-xs font-bold text-gray-400 uppercase mr-2 tracking-wide sticky left-0 bg-white pl-1">Chọn tháng:</span>
@@ -437,7 +434,7 @@ export default function OrdersManager() {
         </div>
       </div>
 
-      {/* --- MODAL EDIT (GIỮ NGUYÊN) --- */}
+      {/* --- MODAL EDIT --- */}
       {showModal && editing && (
         <div className="fixed inset-0 bg-black/40 flex items-start justify-center z-[100] pt-10 overflow-y-auto">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white w-full max-w-3xl rounded-xl p-6 shadow-2xl mb-10 border border-gray-100">
