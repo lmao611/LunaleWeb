@@ -71,12 +71,12 @@ export default function OrdersManager() {
   }
 
   // --- LOGIC NHÓM THEO THÁNG ---
-  // Lọc theo status trước nếu có filter
+  // 1. Lọc theo status trước
   const filteredOrders = orders.filter((o) => (filterStatus ? o.status === filterStatus : true));
 
+  // 2. Nhóm theo tháng
   const groupedOrders = filteredOrders.reduce((groups, order) => {
     const d = new Date(order.createdAt);
-    // Key dạng "MM/YYYY" (Ví dụ: "12/2024")
     const monthKey = `${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
     
     if (!groups[monthKey]) {
@@ -86,21 +86,21 @@ export default function OrdersManager() {
     return groups;
   }, {});
 
-  // Sắp xếp các tháng giảm dần (Mới nhất trước)
+  // 3. Sắp xếp tháng giảm dần
   const sortedMonthKeys = Object.keys(groupedOrders).sort((a, b) => {
     const [m1, y1] = a.split("/");
     const [m2, y2] = b.split("/");
     return new Date(`${y2}-${m2}-01`) - new Date(`${y1}-${m1}-01`);
   });
 
-  // Tự động chọn tháng mới nhất khi load xong
+  // 4. Chọn tháng mặc định
   useEffect(() => {
     if (sortedMonthKeys.length > 0 && !selectedMonthKey) {
       setSelectedMonthKey(sortedMonthKeys[0]);
     }
   }, [sortedMonthKeys, selectedMonthKey]);
 
-  // Lấy danh sách đơn của tháng đang chọn
+  // Danh sách đơn hàng hiện tại để hiển thị
   const currentMonthOrders = selectedMonthKey ? groupedOrders[selectedMonthKey] : [];
 
   // --- CÁC HÀM XỬ LÝ (MODAL, CRUD) ---
@@ -229,14 +229,18 @@ export default function OrdersManager() {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Đơn hàng");
   
-    const headers = ["STT", "Trạng thái", "Ngày nhận", "Ngày giao", "Khách hàng", "Địa chỉ", "SĐT", "Sản phẩm", "Tổng tiền", "Thanh toán"];
+    // Header đầy đủ như cũ
+    const headers = [
+      "STT", "Trạng thái", "Ngày nhận", "Ngày giao", "Khách hàng",
+      "Địa chỉ", "SĐT", "Sản phẩm", "Tổng tiền", "Thanh toán",
+    ];
     worksheet.addRow(headers);
   
-    // Xuất đơn hàng của THÁNG ĐANG CHỌN
+    // Xuất danh sách đang hiển thị (theo tháng)
     currentMonthOrders.forEach((o, idx) => {
       const itemsStr = (o.items || []).map((it) => {
           const prod = products.find((p) => String(p._id) === String(it.productId?._id ?? it.productId));
-          return `${prod ? prod.name : "SP xóa"} (${it.size}, SL ${it.quantity})`;
+          return `${prod ? prod.name : "SP xóa"} (size ${it.size}, SL ${it.quantity})`;
         }).join("; ");
   
       worksheet.addRow([
@@ -258,11 +262,11 @@ export default function OrdersManager() {
     });
 
     const buffer = await workbook.xlsx.writeBuffer();
-    saveAs(new Blob([buffer]), `DonHang_Thang_${selectedMonthKey?.replace('/','-')}.xlsx`);
+    saveAs(new Blob([buffer]), `DonHang_${selectedMonthKey?.replace('/','-')}.xlsx`);
   }
 
   return (
-    <div className="p-4 max-w-7xl mx-auto min-h-screen flex flex-col">
+    <div className="p-4 max-w-[95%] mx-auto min-h-screen flex flex-col">
       <div className="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
         <div>
            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
@@ -293,12 +297,12 @@ export default function OrdersManager() {
         </div>
       </div>
 
-      {/* --- CONTENT AREA (TABLE) --- */}
+      {/* --- CONTENT AREA (TABLE DẠNG CŨ) --- */}
       <div className="flex-1 bg-white rounded-xl shadow border border-gray-200 relative overflow-hidden flex flex-col">
         {loading ? (
             <div className="flex-1 flex items-center justify-center text-gray-400">Đang tải dữ liệu...</div>
         ) : (
-            <div className="flex-1 overflow-x-auto">
+            <div className="flex-1 overflow-x-auto custom-scrollbar">
                  <AnimatePresence mode="wait">
                     {currentMonthOrders.length > 0 ? (
                         <motion.div
@@ -309,17 +313,23 @@ export default function OrdersManager() {
                             transition={{ duration: 0.2 }}
                             className="min-w-max w-full"
                         >
-                            <table className="w-full text-sm text-left">
-                                <thead className="bg-gray-100 text-gray-700 font-semibold uppercase text-xs border-b">
+                            {/* BẢNG DỮ LIỆU CHI TIẾT NHƯ CŨ */}
+                            <table className="w-full text-sm text-left border-collapse">
+                                <thead className="bg-gray-100 text-gray-700 font-semibold border-b">
                                     <tr>
-                                        <th className="px-4 py-3 text-center">#</th>
-                                        <th className="px-4 py-3 text-center">Trạng thái</th>
-                                        <th className="px-4 py-3">Ngày nhận/giao</th>
-                                        <th className="px-4 py-3">Khách hàng</th>
-                                        <th className="px-4 py-3 w-[25%]">Sản phẩm</th>
-                                        <th className="px-4 py-3 text-right">Tổng tiền</th>
-                                        <th className="px-4 py-3 text-center">Thanh toán</th>
-                                        <th className="px-4 py-3 text-center">Hành động</th>
+                                        <th className="px-4 py-3 whitespace-nowrap">#</th>
+                                        <th className="px-4 py-3 whitespace-nowrap">Trạng thái</th>
+                                        <th className="px-4 py-3 whitespace-nowrap">Ngày nhận</th>
+                                        <th className="px-4 py-3 whitespace-nowrap">Ngày giao</th>
+                                        <th className="px-4 py-3 whitespace-nowrap">Khách hàng</th>
+                                        <th className="px-4 py-3 whitespace-nowrap">Địa chỉ</th>
+                                        <th className="px-4 py-3 whitespace-nowrap">SĐT</th>
+                                        <th className="px-4 py-3 whitespace-nowrap">Sản phẩm</th>
+                                        <th className="px-4 py-3 whitespace-nowrap text-center">SL</th>
+                                        <th className="px-4 py-3 whitespace-nowrap text-center">Size</th>
+                                        <th className="px-4 py-3 whitespace-nowrap text-right">Tổng tiền</th>
+                                        <th className="px-4 py-3 whitespace-nowrap">Thanh toán</th>
+                                        <th className="px-4 py-3 whitespace-nowrap text-center">Hành động</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
@@ -331,47 +341,58 @@ export default function OrdersManager() {
                                         
                                         return (
                                             <tr key={o._id ?? o.id} className="hover:bg-gray-50 transition">
-                                                <td className="px-4 py-3 font-medium text-gray-500 text-center align-top">{idx + 1}</td>
-                                                <td className="px-4 py-3 text-center align-top">
-                                                    <span className={`px-2 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${statusColor}`}>
+                                                <td className="px-4 py-3 align-top font-medium text-gray-500">{idx + 1}</td>
+                                                <td className="px-4 py-3 align-top">
+                                                    <span className={`px-2 py-1 rounded text-xs font-bold whitespace-nowrap ${statusColor}`}>
                                                         {o.status}
                                                     </span>
                                                 </td>
-                                                <td className="px-4 py-3 align-top">
-                                                    <div className="text-xs text-gray-500">Nhận: <span className="text-gray-800">{formatDate(o.receivedDate)}</span></div>
-                                                    <div className="text-xs text-gray-500 mt-1">Giao: <span className="text-gray-800">{formatDate(o.deliverDate)}</span></div>
+                                                <td className="px-4 py-3 align-top whitespace-nowrap">{formatDate(o.receivedDate)}</td>
+                                                <td className="px-4 py-3 align-top whitespace-nowrap">{formatDate(o.deliverDate)}</td>
+                                                <td className="px-4 py-3 align-top font-medium text-gray-900">
+                                                    {o.customerName ?? o.customerId?.name ?? "-"}
                                                 </td>
-                                                <td className="px-4 py-3 align-top">
-                                                    <div className="font-bold text-gray-800">{o.customerName ?? o.customerId?.name ?? "Khách lẻ"}</div>
-                                                    <div className="text-xs text-gray-500">{o.phone}</div>
-                                                    <div className="text-xs text-gray-400 truncate max-w-[150px] mt-0.5" title={o.address}>{o.address}</div>
+                                                <td className="px-4 py-3 align-top max-w-[200px] truncate" title={o.address}>
+                                                    {o.address}
                                                 </td>
+                                                <td className="px-4 py-3 align-top">{o.phone}</td>
+                                                
+                                                {/* Cột Tên Sản Phẩm */}
                                                 <td className="px-4 py-3 align-top">
-                                                    <ul className="space-y-1.5">
+                                                    <ul className="list-disc pl-4 space-y-1">
                                                         {(o.items || []).map((it, i) => {
                                                             const prod = products.find(p => String(p._id) === String(it.productId?._id ?? it.productId));
-                                                            return (
-                                                                <li key={i} className="flex items-start gap-1.5 text-xs text-gray-700">
-                                                                    <div className="mt-1 w-1 h-1 bg-gray-400 rounded-full shrink-0"></div>
-                                                                    <div>
-                                                                        <span className="font-bold">{it.quantity}x</span> 
-                                                                        <span className="mx-1">{prod ? prod.name : "SP đã xóa"}</span>
-                                                                        <span className="bg-gray-100 px-1.5 py-0.5 rounded text-[10px] border border-gray-200 text-gray-500 font-medium">Size {it.size}</span>
-                                                                    </div>
-                                                                </li>
-                                                            );
+                                                            return <li key={i} className="truncate max-w-[150px]" title={prod?.name}>{prod ? prod.name : "SP đã xóa"}</li>;
                                                         })}
                                                     </ul>
                                                 </td>
-                                                <td className="px-4 py-3 text-right font-bold text-blue-700 align-top">{(o.total || 0).toLocaleString()} ₫</td>
-                                                <td className="px-4 py-3 text-center text-xs align-top text-gray-600">{o.paymentMethod}</td>
-                                                <td className="px-4 py-3 text-center align-top">
+
+                                                {/* Cột Số Lượng */}
+                                                <td className="px-4 py-3 align-top text-center">
+                                                    <ul className="space-y-1">
+                                                        {(o.items || []).map((it, i) => <li key={i}>x{it.quantity}</li>)}
+                                                    </ul>
+                                                </td>
+
+                                                {/* Cột Size */}
+                                                <td className="px-4 py-3 align-top text-center">
+                                                    <ul className="space-y-1">
+                                                        {(o.items || []).map((it, i) => <li key={i}>{it.size}</li>)}
+                                                    </ul>
+                                                </td>
+
+                                                <td className="px-4 py-3 align-top text-right font-bold text-blue-600 whitespace-nowrap">
+                                                    {(o.total || 0).toLocaleString()} ₫
+                                                </td>
+                                                <td className="px-4 py-3 align-top">{o.paymentMethod}</td>
+                                                
+                                                <td className="px-4 py-3 align-top text-center">
                                                     <div className="flex items-center justify-center gap-2">
-                                                        <button onClick={() => openEdit(o)} className="p-1.5 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition" title="Sửa">
-                                                            <Edit2 size={16} />
+                                                        <button onClick={() => openEdit(o)} className="text-blue-600 hover:text-blue-800 transition flex items-center gap-1" title="Sửa">
+                                                            <Edit2 size={16} /> <span className="hidden xl:inline text-xs">Sửa</span>
                                                         </button>
-                                                        <button onClick={() => handleDelete(o._id ?? o.id)} className="p-1.5 bg-red-50 text-red-600 rounded hover:bg-red-100 transition" title="Xóa">
-                                                            <Trash2 size={16} />
+                                                        <button onClick={() => handleDelete(o._id ?? o.id)} className="text-red-600 hover:text-red-800 transition flex items-center gap-1" title="Xóa">
+                                                            <Trash2 size={16} /> <span className="hidden xl:inline text-xs">Xóa</span>
                                                         </button>
                                                     </div>
                                                 </td>
@@ -384,14 +405,14 @@ export default function OrdersManager() {
                     ) : (
                         <div className="flex flex-col items-center justify-center h-[300px] text-gray-400">
                             <ShoppingBag size={48} className="mb-4 text-gray-200" />
-                            <p>Không có đơn hàng nào trong tháng {selectedMonthKey}.</p>
+                            <p>Tháng {selectedMonthKey} chưa có đơn hàng nào.</p>
                         </div>
                     )}
                  </AnimatePresence>
             </div>
         )}
 
-        {/* --- FOOTER: MONTH SELECTOR BAR --- */}
+        {/* --- FOOTER: MONTH SELECTOR BAR (Vẫn giữ lại) --- */}
         <div className="bg-white border-t p-3 overflow-x-auto custom-scrollbar">
              <div className="flex items-center gap-3 min-w-max pb-1">
                 <span className="text-xs font-bold text-gray-400 uppercase mr-2 tracking-wide sticky left-0 bg-white pl-1">Chọn tháng:</span>
@@ -502,7 +523,7 @@ export default function OrdersManager() {
                <div className="flex justify-end gap-3 pt-6 border-t mt-2">
                   <button type="button" onClick={() => setShowModal(false)} className="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition">Hủy bỏ</button>
                   <button type="submit" className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-lg shadow-blue-200 font-medium transition flex items-center gap-2">
-                    <Save size={18} /> Lưu đơn hàng
+                    Lưu đơn hàng
                   </button>
                </div>
             </form>
