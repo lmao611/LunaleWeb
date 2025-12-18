@@ -2,7 +2,7 @@ import CustomerOrder from "../models/customerOrder.model.js";
 import Order from "../models/orders.model.js"; 
 import User from "../models/user.model.js";
 
-// 1. TẠO ĐƠN HÀNG (Có logic gộp đơn nếu còn đơn Pending)
+// 1. TẠO ĐƠN HÀNG
 export const createOrder = async (req, res) => {
   try {
     const { products, totalAmount, note } = req.body;
@@ -40,7 +40,7 @@ export const createOrder = async (req, res) => {
         phone: user.phoneNumber,
         address: user.direction,
       };
-      existingOrder.createdAt = Date.now(); // Đẩy lên đầu danh sách
+      existingOrder.createdAt = Date.now();
 
       await existingOrder.save();
 
@@ -77,24 +77,23 @@ export const createOrder = async (req, res) => {
   }
 };
 
-// 2. LẤY ĐƠN CỦA TÔI (Ẩn đơn đã xác nhận để tránh trùng lặp)
+// 2. LẤY ĐƠN CỦA TÔI (Đã ẩn đơn Processed)
 export const getMyOrders = async (req, res) => {
   try {
     const userId = req.user._id;
 
-    // A. Lấy đơn khách tự đặt (TRỪ những đơn đã xác nhận - Processed)
-    // Vì đơn Processed đã được chuyển sang bảng Order (Admin) rồi
+    // A. Lấy đơn khách tự đặt (TRỪ Processed để tránh hiện 2 lần)
     const myCustomerOrders = await CustomerOrder.find({ 
       user: userId,
       status: { $ne: "Processed" } 
     }).lean();
 
-    // B. Lấy đơn do Admin tạo (bao gồm cả đơn Processed vừa chuyển sang)
+    // B. Lấy đơn Admin quản lý
     const myAdminOrders = await Order.find({ customerId: userId })
       .populate("items.productId", "name image price") 
       .lean();
 
-    // C. Chuẩn hóa đơn Admin
+    // C. Chuẩn hóa
     const normalizedAdminOrders = myAdminOrders.map(order => ({
       _id: order._id,
       createdAt: order.createdAt,
@@ -128,77 +127,80 @@ export const getMyOrders = async (req, res) => {
   }
 };
 
-// 3. CẬP NHẬT TRẠNG THÁI & ĐỒNG BỘ ĐƠN ADMIN
+// 3. XÁC NHẬN & HOÀN TÁC (Đã fix lỗi 500)
 export const updateOrderStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
     
-    // Lấy đơn hàng cũ để so sánh trạng thái
     const oldOrder = await CustomerOrder.findById(id);
     if (!oldOrder) return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
 
-    // Cập nhật trạng thái mới
+    // 1. Cập nhật trạng thái trước
     const customerOrder = await CustomerOrder.findByIdAndUpdate(
       id, 
       { status }, 
       { new: true }
     );
 
-    // LOGIC ĐỒNG BỘ:
-    
-    // TH1: Xác nhận đơn (Pending -> Processed) => TẠO ĐƠN ADMIN
-    if (status === "Processed" && oldOrder.status !== "Processed") {
-        const orderItems = customerOrder.products.map(p => ({
-            productId: p.product,
-            size: p.size,
-            quantity: p.quantity,
-            price: p.price
-        }));
+    // 2. Xử lý Logic Đồng bộ
+    try {
+        // --- CASE 1: XÁC NHẬN ĐƠN (Tạo bên Orders) ---
+        if (status === "Processed" && oldOrder.status !== "Processed") {
+            const orderItems = customerOrder.products.map(p => ({
+                productId: p.product,
+                size: p.size || "", // Fallback nếu không có size
+                quantity: p.quantity,
+                price: p.price
+            }));
 
-        await Order.create({
-            customerId: customerOrder.user,
-            customerName: customerOrder.customerInfo.name,
-            address: customerOrder.customerInfo.address,
-            phone: customerOrder.customerInfo.phone,
-            items: orderItems,
-            total: customerOrder.totalAmount,
-            status: "chưa giao",
-            receivedDate: null,
-            deliverDate: null,
-            paymentMethod: "COD",
-            // Kiểm tra req.user có tồn tại không trước khi lấy _id
-            createdBy: req.user ? req.user._id : null 
-        });
-    }
-
-    // TH2: Hoàn tác (Processed -> Pending) => XÓA ĐƠN ADMIN TƯƠNG ỨNG
-    else if (status === "Pending" && oldOrder.status === "Processed") {
-        // Tìm và xóa đơn Admin tương ứng (đơn mới nhất của khách này có trạng thái 'chưa giao')
-        await Order.findOneAndDelete(
-            {
+            await Order.create({
                 customerId: customerOrder.user,
+                customerName: customerOrder.customerInfo.name,
+                address: customerOrder.customerInfo.address,
+                phone: customerOrder.customerInfo.phone,
+                items: orderItems,
                 total: customerOrder.totalAmount,
-                status: "chưa giao" 
-            }, 
-            { sort: { createdAt: -1 } } // Xóa đơn mới nhất khớp điều kiện
-        );
+                status: "chưa giao",
+                receivedDate: null,
+                deliverDate: null,
+                paymentMethod: "COD",
+                createdBy: req.user ? req.user._id : null
+            });
+        }
+
+        // --- CASE 2: HOÀN TÁC (Xóa bên Orders) ---
+        else if (status === "Pending" && oldOrder.status === "Processed") {
+            // Tìm đơn Admin mới nhất của khách này khớp số tiền và trạng thái "chưa giao"
+            await Order.findOneAndDelete(
+                {
+                    customerId: customerOrder.user,
+                    total: customerOrder.totalAmount,
+                    status: "chưa giao" 
+                }, 
+                { sort: { createdAt: -1 } }
+            );
+        }
+    } catch (syncError) {
+        // Nếu tạo/xóa đơn Admin lỗi -> Hoàn tác lại trạng thái CustomerOrder để không bị lệch data
+        console.error("Sync error:", syncError);
+        await CustomerOrder.findByIdAndUpdate(id, { status: oldOrder.status });
+        return res.status(500).json({ message: "Lỗi đồng bộ đơn hàng (Đã hoàn tác)", error: syncError.message });
     }
 
     res.json(customerOrder);
   } catch (error) {
     console.error("Lỗi update status:", error);
-    res.status(500).json({ message: "Lỗi cập nhật đơn hàng", error: error.message });
+    res.status(500).json({ message: "Lỗi server", error: error.message });
   }
 };
 
-// 4. HỦY ĐƠN HÀNG (Đã fix lỗi validate)
+// 4. HỦY ĐƠN
 export const cancelMyOrder = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user._id;
 
-    // Tìm trong CustomerOrder
     let order = await CustomerOrder.findOne({ _id: id, user: userId });
     
     if (order) {
@@ -210,26 +212,25 @@ export const cancelMyOrder = async (req, res) => {
       return res.json({ message: "Đã hủy đơn hàng", order });
     }
 
-    // Nếu không thấy, tìm trong Order (Admin)
     order = await Order.findOne({ _id: id, customerId: userId });
     
     if (order) {
       if (order.status !== "chưa giao") {
-        return res.status(400).json({ message: "Không thể hủy đơn hàng đã giao/đang giao" });
+        return res.status(400).json({ message: "Không thể hủy đơn hàng đã giao" });
       }
-      order.status = "đã hủy";
+      order.status = "đã hủy"; // Đảm bảo khớp enum bên Order
       await order.save();
       return res.json({ message: "Đã hủy đơn hàng", order });
     }
 
-    return res.status(404).json({ message: "Không tìm thấy đơn hàng để hủy" });
+    return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
   } catch (error) {
     console.error("Cancel order error:", error);
-    res.status(500).json({ message: "Lỗi server khi hủy đơn", error: error.message });
+    res.status(500).json({ message: "Lỗi hủy đơn", error: error.message });
   }
 };
 
-// 5. CẬP NHẬT ĐỊA CHỈ
+// 5. UPDATE ADDRESS
 export const updateOrderAddress = async (req, res) => {
   try {
     const { id } = req.params;
@@ -238,7 +239,7 @@ export const updateOrderAddress = async (req, res) => {
 
     let order = await CustomerOrder.findOne({ _id: id, user: userId });
     if (order) {
-       if (order.status !== "Pending") return res.status(400).json({ message: "Không thể sửa đơn đã xử lý" });
+       if (order.status !== "Pending") return res.status(400).json({ message: "Không được sửa đơn đã xác nhận" });
        order.customerInfo.address = address;
        await order.save();
        return res.json({ message: "Cập nhật thành công", order });
@@ -246,7 +247,7 @@ export const updateOrderAddress = async (req, res) => {
 
     order = await Order.findOne({ _id: id, customerId: userId });
     if (order) {
-       if (order.status !== "chưa giao") return res.status(400).json({ message: "Không thể sửa đơn đã giao" });
+       if (order.status !== "chưa giao") return res.status(400).json({ message: "Không được sửa đơn đã giao" });
        order.address = address;
        await order.save();
        return res.json({ message: "Cập nhật thành công", order });

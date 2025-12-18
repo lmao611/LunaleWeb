@@ -2,7 +2,8 @@ import mongoose from "mongoose";
 
 const orderItemSchema = new mongoose.Schema({
   productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
-  size: { type: String, enum: ["S", "M", "L", "XL"], required: true },
+  // Bỏ enum và required strict để tránh lỗi khi sync từ CustomerOrder
+  size: { type: String, default: "" }, 
   quantity: { type: Number, required: true, min: 1 },
   price: { type: Number, required: true, min: 0 }
 });
@@ -17,7 +18,7 @@ const orderSchema = new mongoose.Schema(
     total: { type: Number, required: true, min: 0 },
     status: {
       type: String,
-      enum: ["chưa giao", "đang giao", "đã giao"],
+      enum: ["chưa giao", "đang giao", "đã giao", "đã hủy"],
       default: "chưa giao"
     },
     receivedDate: Date,

@@ -7,7 +7,6 @@ const customerOrderSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    // Lưu lại thông tin khách tại thời điểm đặt
     customerInfo: {
       name: String,
       email: String,
@@ -30,7 +29,7 @@ const customerOrderSchema = new mongoose.Schema(
     totalAmount: { type: Number, required: true },
     status: {
       type: String,
-      // QUAN TRỌNG: Thêm "Cancelled" vào đây để tránh lỗi 500 khi hủy đơn
+      // QUAN TRỌNG: Phải có Cancelled để hủy đơn được
       enum: ["Pending", "Processed", "Cancelled"], 
       default: "Pending",
     },
