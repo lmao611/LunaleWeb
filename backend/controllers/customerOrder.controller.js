@@ -1,7 +1,8 @@
 import CustomerOrder from "../models/customerOrder.model.js";
+import Order from "../models/orders.model.js"; // Import model đơn hàng của Admin
 import User from "../models/user.model.js";
 
-// Tạo đơn hàng mới
+// Tạo đơn hàng mới (Có logic gộp đơn)
 export const createOrder = async (req, res) => {
   try {
     const { products, totalAmount, note } = req.body;
@@ -12,7 +13,66 @@ export const createOrder = async (req, res) => {
       return res.status(400).json({ message: "Giỏ hàng trống" });
     }
 
-    // Tạo đơn hàng
+    // 1. Kiểm tra xem user này có đơn hàng nào đang CHỜ XỬ LÝ (Pending) không
+    const existingOrder = await CustomerOrder.findOne({
+      user: user._id,
+      status: "Pending", // Chỉ gộp vào đơn chưa xử lý
+    });
+
+    if (existingOrder) {
+      // --- LOGIC GỘP ĐƠN ---
+      
+      // Duyệt qua từng sản phẩm mới để gộp vào danh sách cũ
+      products.forEach((newProduct) => {
+        // Kiểm tra xem sản phẩm này (cùng ID và cùng Size) đã có trong đơn cũ chưa
+        const existingItemIndex = existingOrder.products.findIndex(
+          (p) =>
+            p.product.toString() === newProduct.product.toString() &&
+            p.size === newProduct.size
+        );
+
+        if (existingItemIndex > -1) {
+          // Nếu có rồi -> Cộng dồn số lượng
+          existingOrder.products[existingItemIndex].quantity += newProduct.quantity;
+        } else {
+          // Nếu chưa có -> Thêm mới vào mảng
+          existingOrder.products.push(newProduct);
+        }
+      });
+
+      // Cộng dồn tổng tiền
+      existingOrder.totalAmount += totalAmount;
+
+      // Nối thêm ghi chú (nếu có)
+      if (note) {
+        existingOrder.note = existingOrder.note
+          ? `${existingOrder.note} | ${note}`
+          : note;
+      }
+
+      // Cập nhật lại thông tin khách hàng (trường hợp khách đổi địa chỉ/sđt ở lần đặt sau)
+      existingOrder.customerInfo = {
+        name: user.name,
+        email: user.email,
+        phone: user.phoneNumber,
+        address: user.direction,
+      };
+
+      // QUAN TRỌNG: Cập nhật thời gian tạo thành hiện tại để đơn hàng nhảy lên đầu danh sách
+      existingOrder.createdAt = Date.now();
+
+      await existingOrder.save();
+
+      // Xóa giỏ hàng sau khi gộp xong
+      if (req.body.isFromCart) {
+        user.cartItems = [];
+        await user.save();
+      }
+
+      return res.status(200).json(existingOrder);
+    }
+
+    // 2. Nếu không có đơn Pending -> Tạo đơn mới hoàn toàn như bình thường
     const newOrder = await CustomerOrder.create({
       user: user._id,
       customerInfo: {
@@ -26,8 +86,7 @@ export const createOrder = async (req, res) => {
       note,
     });
 
-    // Nếu đặt thành công, có thể xóa giỏ hàng của user (tùy chọn, ở đây mình làm luôn)
-    // Nếu mua từ CartPage thì xóa cart, mua lẻ từ ContactModal thì không xóa cart cũ
+    // Xóa giỏ hàng
     if (req.body.isFromCart) {
         user.cartItems = [];
         await user.save();
@@ -51,19 +110,53 @@ export const getAllOrders = async (req, res) => {
   }
 };
 
-// Cập nhật trạng thái đơn hàng (Đã xử lý)
+// Cập nhật trạng thái đơn hàng (Đã xử lý) & Tự động tạo đơn Admin
 export const updateOrderStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
     
-    const order = await CustomerOrder.findByIdAndUpdate(
+    // Cập nhật trạng thái đơn CustomerOrder
+    const customerOrder = await CustomerOrder.findByIdAndUpdate(
       id, 
       { status }, 
       { new: true }
     );
-    res.json(order);
+
+    if (!customerOrder) {
+        return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
+    }
+
+    // --- LOGIC TỰ ĐỘNG TẠO ĐƠN BÊN ORDERS (ADMIN) ---
+    // Khi trạng thái chuyển sang 'Processed' (Đã xác nhận), tạo bản sao bên bảng Orders
+    if (status === "Processed") {
+        // Chuẩn bị danh sách items theo format của Order Model
+        const orderItems = customerOrder.products.map(p => ({
+            productId: p.product, // ID sản phẩm
+            size: p.size,
+            quantity: p.quantity,
+            price: p.price
+        }));
+
+        // Tạo đơn hàng mới trong collection 'Order'
+        await Order.create({
+            customerId: customerOrder.user, // Link tới user gốc
+            customerName: customerOrder.customerInfo.name,
+            address: customerOrder.customerInfo.address,
+            phone: customerOrder.customerInfo.phone,
+            items: orderItems,
+            total: customerOrder.totalAmount,
+            status: "chưa giao", // Trạng thái mặc định bạn yêu cầu
+            receivedDate: null,
+            deliverDate: null,
+            paymentMethod: "COD", // Mặc định là COD vì đơn khách đặt thường là COD
+            createdBy: req.user._id // Ghi nhận Admin nào đã xác nhận (người đang login)
+        });
+    }
+
+    res.json(customerOrder);
   } catch (error) {
+    console.error("Lỗi update status:", error);
     res.status(500).json({ message: "Lỗi cập nhật đơn hàng" });
   }
 };
@@ -77,59 +170,3 @@ export const deleteOrder = async (req, res) => {
     res.status(500).json({ message: "Lỗi xóa đơn hàng" });
   }
 };
-export const getMyOrders = async (req, res) => {
-  try {
-    // Tìm đơn hàng có user trùng với user đang login
-    const orders = await CustomerOrder.find({ user: req.user._id }).sort({ createdAt: -1 });
-    res.json(orders);
-  } catch (error) {
-    console.error("Get my orders error:", error);
-    res.status(500).json({ message: "Lỗi tải lịch sử đơn hàng" });
-  }
-};
-
-// 2. Hủy đơn hàng (Chỉ cho phép khi trạng thái là Pending)
-export const cancelMyOrder = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const order = await CustomerOrder.findOne({ _id: id, user: req.user._id });
-
-    if (!order) {
-      return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
-    }
-
-    if (order.status !== "Pending") {
-      return res.status(400).json({ message: "Không thể hủy đơn hàng đã được xử lý" });
-    }
-
-    order.status = "Cancelled";
-    await order.save();
-
-    res.json({ message: "Đã hủy đơn hàng thành công", order });
-  } catch (error) {
-    console.error("Cancel order error:", error);
-    res.status(500).json({ message: "Lỗi hủy đơn hàng" });
-  }
-};
-
-// 3. Cập nhật địa chỉ đơn hàng (Chỉ cho phép khi Pending)
-export const updateOrderAddress = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { address } = req.body;
-    
-    const order = await CustomerOrder.findOne({ _id: id, user: req.user._id });
-
-    if (!order) return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
-    if (order.status !== "Pending") return res.status(400).json({ message: "Chỉ có thể sửa địa chỉ khi đơn đang chờ xử lý" });
-
-    // Cập nhật địa chỉ trong customerInfo
-    order.customerInfo.address = address;
-    await order.save();
-
-    res.json({ message: "Cập nhật địa chỉ thành công", order });
-  } catch (error) {
-    console.error("Update address error:", error);
-    res.status(500).json({ message: "Lỗi cập nhật địa chỉ" });
-  }
-}

@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { Trash2, PlusCircle, Edit2, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Trash2, PlusCircle, Edit2, X, Calendar, ShoppingBag } from "lucide-react";
 import axios from "../lib/axios";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
-import { useUserStore } from "../stores/useUserStore"; 
+import { useUserStore } from "../stores/useUserStore";
 
 const sizes = ["S", "M", "L", "XL"];
-const statuses = ["chưa giao", "đang giao", "đã giao"];
+const statuses = ["chưa giao", "đang giao", "đã giao", "đã hủy"];
 const paymentMethods = ["COD", "Chuyển khoản"];
 
 export default function OrdersManager() {
@@ -15,6 +15,11 @@ export default function OrdersManager() {
   const [customers, setCustomers] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
+  
+  // State quản lý tab tháng
+  const [selectedMonthKey, setSelectedMonthKey] = useState(null); // Format: "MM/YYYY"
+
+  // State Modal & Filter
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [filterStatus, setFilterStatus] = useState("");
@@ -32,12 +37,12 @@ export default function OrdersManager() {
   async function fetchAll() {
     setLoading(true);
     try {
-      const res = await axios.get("/orders"); 
+      const res = await axios.get("/orders");
       const data = Array.isArray(res.data) ? res.data : (res.data.orders || []);
       setOrders(data);
     } catch (err) {
       console.error(err);
-      setOrders([]); 
+      setOrders([]);
     } finally {
       setLoading(false);
     }
@@ -49,7 +54,6 @@ export default function OrdersManager() {
       const data = Array.isArray(res.data) ? res.data : (res.data.users || []);
       setCustomers(data);
     } catch (err) {
-      console.error(err);
       setCustomers([]);
     }
   }
@@ -58,20 +62,48 @@ export default function OrdersManager() {
     try {
       const res = await axios.get("/products");
       let list = [];
-      if (Array.isArray(res.data)) {
-        list = res.data;
-      } else if (res.data && Array.isArray(res.data.products)) {
-        list = res.data.products;
-      }
+      if (Array.isArray(res.data)) list = res.data;
+      else if (res.data?.products) list = res.data.products;
       setProducts(list);
     } catch (err) {
-      console.error(err);
       setProducts([]);
     }
   }
 
-  // ... (Phần còn lại giữ nguyên, không thay đổi)
-  
+  // --- LOGIC NHÓM THEO THÁNG ---
+  // Lọc theo status trước nếu có filter
+  const filteredOrders = orders.filter((o) => (filterStatus ? o.status === filterStatus : true));
+
+  const groupedOrders = filteredOrders.reduce((groups, order) => {
+    const d = new Date(order.createdAt);
+    // Key dạng "MM/YYYY" (Ví dụ: "12/2024")
+    const monthKey = `${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+    
+    if (!groups[monthKey]) {
+      groups[monthKey] = [];
+    }
+    groups[monthKey].push(order);
+    return groups;
+  }, {});
+
+  // Sắp xếp các tháng giảm dần (Mới nhất trước)
+  const sortedMonthKeys = Object.keys(groupedOrders).sort((a, b) => {
+    const [m1, y1] = a.split("/");
+    const [m2, y2] = b.split("/");
+    return new Date(`${y2}-${m2}-01`) - new Date(`${y1}-${m1}-01`);
+  });
+
+  // Tự động chọn tháng mới nhất khi load xong
+  useEffect(() => {
+    if (sortedMonthKeys.length > 0 && !selectedMonthKey) {
+      setSelectedMonthKey(sortedMonthKeys[0]);
+    }
+  }, [sortedMonthKeys, selectedMonthKey]);
+
+  // Lấy danh sách đơn của tháng đang chọn
+  const currentMonthOrders = selectedMonthKey ? groupedOrders[selectedMonthKey] : [];
+
+  // --- CÁC HÀM XỬ LÝ (MODAL, CRUD) ---
   function openCreate() {
     setEditing({
       customerId: "",
@@ -152,14 +184,11 @@ export default function OrdersManager() {
   function formatDate(dateStr) {
     if (!dateStr) return "-";
     const d = new Date(dateStr);
-    const day = String(d.getDate()).padStart(2, "0");
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const year = d.getFullYear();
-    return `${day}/${month}/${year}`;
+    return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
   }
 
   async function handleSave(e) {
-    e && e.preventDefault && e.preventDefault();
+    e && e.preventDefault();
     try {
       const payload = {
         customerId: editing.customerId,
@@ -174,20 +203,14 @@ export default function OrdersManager() {
         paymentMethod: editing.paymentMethod,
       };
       if (editing.id) {
-        const res = await axios.put(`/orders/${editing.id}`, payload);
-        setOrders((s) =>
-          s.map((o) =>
-            String(o._id ?? o.id) === String(res.data._id ?? res.data.id) ? res.data : o
-          )
-        );
+        await axios.put(`/orders/${editing.id}`, payload);
       } else {
-        const res = await axios.post("/orders", payload);
-        setOrders((s) => [res.data, ...s]);
+        await axios.post("/orders", payload);
       }
+      fetchAll();
       setShowModal(false);
       setEditing(null);
     } catch (err) {
-      console.error(err);
       alert("Lưu thất bại: " + (err.response?.data?.message || err.message));
     }
   }
@@ -196,9 +219,8 @@ export default function OrdersManager() {
     if (!confirm("Xóa đơn hàng này?")) return;
     try {
       await axios.delete(`/orders/${id}`);
-      setOrders((s) => s.filter((o) => String(o._id ?? o.id) !== String(id)));
+      fetchAll();
     } catch (err) {
-      console.error(err);
       alert("Xóa thất bại");
     }
   }
@@ -207,448 +229,282 @@ export default function OrdersManager() {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Đơn hàng");
   
-    const headers = [
-      "STT", "Trạng thái", "Ngày nhận", "Ngày giao", "Khách hàng",
-      "Địa chỉ", "SĐT", "Sản phẩm", "Tổng tiền", "Thanh toán",
-    ];
+    const headers = ["STT", "Trạng thái", "Ngày nhận", "Ngày giao", "Khách hàng", "Địa chỉ", "SĐT", "Sản phẩm", "Tổng tiền", "Thanh toán"];
     worksheet.addRow(headers);
   
-    const safeOrders = Array.isArray(orders) ? orders : [];
-
-    safeOrders.forEach((o, idx) => {
-      const itemsStr = (o.items || [])
-        .map((it) => {
-          const prod = products.find(
-            (p) => String(p._id) === String(it.productId?._id ?? it.productId)
-          );
-          return `${prod ? prod.name : it.productId?.name ?? "SP đã xóa"} (size ${it.size}, SL ${it.quantity})`;
-        })
-        .join("; ");
+    // Xuất đơn hàng của THÁNG ĐANG CHỌN
+    currentMonthOrders.forEach((o, idx) => {
+      const itemsStr = (o.items || []).map((it) => {
+          const prod = products.find((p) => String(p._id) === String(it.productId?._id ?? it.productId));
+          return `${prod ? prod.name : "SP xóa"} (${it.size}, SL ${it.quantity})`;
+        }).join("; ");
   
       worksheet.addRow([
-        idx + 1,
-        o.status,
-        formatDate(o.receivedDate),
-        formatDate(o.deliverDate),
-        o.customerName ?? o.customerId?.name ?? "-",
-        o.address,
-        o.phone,
-        itemsStr,
-        (o.total || 0).toLocaleString() + " ₫",
-        o.paymentMethod,
+        idx + 1, o.status, formatDate(o.receivedDate), formatDate(o.deliverDate),
+        o.customerName ?? o.customerId?.name ?? "-", o.address, o.phone, itemsStr,
+        (o.total || 0).toLocaleString() + " ₫", o.paymentMethod,
       ]);
     });
   
-    worksheet.columns.forEach((column) => {
-      let maxLength = 0;
-      column.eachCell({ includeEmpty: true }, (cell) => {
-        const len = cell.value ? cell.value.toString().length : 0;
-        if (len > maxLength) maxLength = len;
-      });
-      column.width = Math.min(maxLength + 4, 50);
-    });
-  
+    // Style header
     const headerRow = worksheet.getRow(1);
     headerRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
     headerRow.alignment = { horizontal: "center", vertical: "middle" };
-    headerRow.fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FF666666" },
-    };
-  
-    try {
-      const response = await fetch("/lunale.png");
-      if (response.ok) {
-        const imgBuffer = await response.arrayBuffer();
-        const logoId = workbook.addImage({
-          buffer: imgBuffer,
-          extension: "png",
-        });
-    
-        const lastRow = worksheet.lastRow.number + 2;
-        const lastCol = worksheet.columns.length;
-        worksheet.addImage(logoId, {
-          tl: { col: lastCol - 2, row: lastRow },
-          ext: { width: 180, height: 80 },
-        });
-      }
-    } catch (e) {
-      console.log("Logo not found, skipping...");
-    }
-  
-    const buffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    headerRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF666666" } };
+
+    // Auto width
+    worksheet.columns.forEach((column) => {
+        column.width = 20;
     });
-    saveAs(blob, `DonHang_${new Date().toISOString().slice(0, 10)}.xlsx`);
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    saveAs(new Blob([buffer]), `DonHang_Thang_${selectedMonthKey?.replace('/','-')}.xlsx`);
   }
 
-  const safeOrders = Array.isArray(orders) ? orders : [];
-  const filtered = safeOrders.filter((o) => (filterStatus ? o.status === filterStatus : true));
-
   return (
-    <div className="p-4 max-w-6xl mx-auto">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-semibold">Quản lý đơn hàng</h2>
-        <div className="flex items-center gap-3">
+    <div className="p-4 max-w-7xl mx-auto min-h-screen flex flex-col">
+      <div className="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
+        <div>
+           <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+             <Calendar className="text-blue-600" /> Quản lý đơn hàng
+           </h2>
+           <p className="text-gray-500 text-sm mt-1">
+             Tháng: <span className="font-bold text-blue-700">{selectedMonthKey || "..."}</span> 
+             {" • "} Tổng: {currentMonthOrders.length} đơn
+           </p>
+        </div>
+        
+        <div className="flex items-center gap-2">
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="border px-2 py-1 rounded"
+            className="border border-gray-300 px-3 py-2 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="">Tất cả</option>
-            {statuses.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
+            <option value="">-- Tất cả trạng thái --</option>
+            {statuses.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
-          <button
-            onClick={exportToExcel}
-            className="bg-green-600 text-white px-3 py-1 rounded inline-flex items-center gap-2"
-          >
-            📊 Xuất Excel
-          </button>
 
-          <button
-            onClick={openCreate}
-            className="bg-blue-600 text-white px-3 py-1 rounded inline-flex items-center gap-2"
-          >
-            <PlusCircle className="w-4 h-4" /> Thêm đơn
+          <button onClick={exportToExcel} className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition shadow-sm">
+            📊 Excel
+          </button>
+          <button onClick={openCreate} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition shadow-sm">
+            <PlusCircle size={16} /> Thêm đơn
           </button>
         </div>
       </div>
-      {loading ? (
-        <div>Đang tải...</div>
-      ) : (
 
-<div className="w-screen relative left-1/2 right-1/2 -translate-x-1/2 px-8">
-  <div className="overflow-x-auto bg-white rounded shadow w-full">
-    <table className="w-full min-w-max table-auto text-sm border-collapse">
-      <thead className="bg-gray-100 text-gray-700">
-        <tr>
-          <th className="px-4 py-2 text-left">#</th>
-          <th className="px-4 py-2 text-left">Trạng thái</th>
-          <th className="px-4 py-2 text-left">Ngày nhận</th>
-          <th className="px-4 py-2 text-left">Ngày giao</th>
-          <th className="px-4 py-2 text-left">Khách hàng</th>
-          <th className="px-4 py-2 text-left">Địa chỉ</th>
-          <th className="px-4 py-2 text-left">SĐT</th>
-          <th className="px-4 py-2 text-left">Sản phẩm</th>
-          <th className="px-4 py-2 text-left">Số lượng</th>
-          <th className="px-4 py-2 text-left">Size</th>
-          <th className="px-4 py-2 text-left">Tổng</th>
-          <th className="px-4 py-2 text-left">Thanh toán</th>
-          <th className="px-4 py-2 text-left">Hành động</th>
-        </tr>
-      </thead>
-      <tbody>
-        {filtered.map((o, idx) => {
-          const statusColor =
-            o.status === "chưa giao"
-              ? "bg-red-100 text-red-700"
-              : o.status === "đang giao"
-              ? "bg-yellow-100 text-yellow-700"
-              : "bg-green-100 text-green-700";
-
-          return (
-            <tr
-              key={o._id ?? o.id}
-              className="odd:bg-white even:bg-gray-50 hover:bg-gray-100 transition"
-            >
-              <td className="px-4 py-2 align-top font-medium">{idx + 1}</td>
-
-              <td className={`px-4 py-2 align-top font-semibold ${statusColor}`}>
-                {o.status}
-              </td>
-
-              <td className="px-4 py-2 align-top">{formatDate(o.receivedDate)}</td>
-              <td className="px-4 py-2 align-top">{formatDate(o.deliverDate)}</td>
-              <td className="px-4 py-2 align-top">
-                {o.customerName ?? o.customerId?.name ?? "-"}
-              </td>
-              <td className="px-4 py-2 align-top">{o.address}</td>
-              <td className="px-4 py-2 align-top">{o.phone}</td>
-
-              {/* sản phẩm */}
-              <td className="px-4 py-2 align-top">
-                <ul className="list-disc ml-4">
-                  {(o.items || []).map((it, i) => {
-                    const prod = products.find(
-                      (p) =>
-                        String(p._id) ===
-                        String(it.productId?._id ?? it.productId)
-                    );
-                    return (
-                      <li key={i}>{prod ? prod.name : "Sản phẩm đã xóa"}</li>
-                    );
-                  })}
-                </ul>
-              </td>
-
-              {/* số lượng */}
-              <td className="px-4 py-2 align-top">
-                <ul>
-                  {(o.items || []).map((it, i) => (
-                    <li key={i}>x{it.quantity}</li>
-                  ))}
-                </ul>
-              </td>
-
-              {/* size */}
-              <td className="px-4 py-2 align-top">
-                <ul>
-                  {(o.items || []).map((it, i) => (
-                    <li key={i}>{it.size}</li>
-                  ))}
-                </ul>
-              </td>
-
-              <td className="px-4 py-2 align-top font-semibold text-gray-900">
-                {(o.total || 0).toLocaleString()} ₫
-              </td>
-              <td className="px-4 py-2 align-top">{o.paymentMethod}</td>
-
-              <td className="px-4 py-2 align-top">
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => openEdit(o)}
-                    className="text-blue-600 hover:underline flex items-center gap-1"
-                  >
-                    <Edit2 className="w-4 h-4" /> Sửa
-                  </button>
-                  <button
-                    onClick={() => handleDelete(o._id ?? o.id)}
-                    className="text-red-600 hover:underline flex items-center gap-1"
-                  >
-                    <Trash2 className="w-4 h-4" /> Xóa
-                  </button>
-                </div>
-              </td>
-            </tr>
-          );
-        })}
-        {filtered.length === 0 && (
-          <tr>
-            <td colSpan={13} className="px-3 py-6 text-center text-gray-500">
-              Không có đơn hàng
-            </td>
-          </tr>
-        )}
-      </tbody>
-    </table>
-  </div>
-</div>
-
-      )}
-      {showModal && editing && (
-        <div className="fixed inset-0 bg-black/40 flex items-start justify-center z-50 pt-30">
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white w-full max-w-3xl rounded p-4 shadow-lg"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold">
-                {editing.id ? "Sửa đơn hàng" : "Thêm đơn hàng"}
-              </h3>
-              <button
-                onClick={() => {
-                  setShowModal(false);
-                  setEditing(null);
-                }}
-                className="p-1 rounded bg-gray-100"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <form onSubmit={handleSave} className="space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="text-sm">Khách hàng</label>
-                  <select
-                    value={editing.customerId}
-                    onChange={(e) => onCustomerSelect(e.target.value)}
-                    className="w-full border px-2 py-1 rounded"
-                  >
-                    <option value="">Chọn khách</option>
-                    {customers.map((c) => (
-                      <option key={c._id} value={c._id}>
-                        {c.name} — {c.phoneNumber}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm">Địa chỉ</label>
-                  <input
-                    value={editing.address || ""}
-                    onChange={(e) => setEditing((p) => ({ ...p, address: e.target.value }))}
-                    className="w-full border px-2 py-1 rounded"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm">SĐT</label>
-                  <input
-                    value={editing.phone || ""}
-                    onChange={(e) => setEditing((p) => ({ ...p, phone: e.target.value }))}
-                    className="w-full border px-2 py-1 rounded"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="text-sm">Trạng thái</label>
-                  <select
-                    value={editing.status}
-                    onChange={(e) => setEditing((p) => ({ ...p, status: e.target.value }))}
-                    className="w-full border px-2 py-1 rounded"
-                  >
-                    {statuses.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm">Ngày nhận</label>
-                  <input
-                    type="text"
-                    value={editing.receivedDate || ""}
-                    onChange={(e) => setEditing((p) => ({ ...p, receivedDate: e.target.value }))}
-                    placeholder="ngày/tháng/năm"
-                    className="w-full border px-2 py-1 rounded"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm">Ngày giao</label>
-                  <input
-                    type="text"
-                    value={editing.deliverDate || ""}
-                    onChange={(e) => setEditing((p) => ({ ...p, deliverDate: e.target.value }))}
-                    placeholder="ngày/tháng/năm"
-                    className="w-full border px-2 py-1 rounded"
-                  />
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-medium">Sản phẩm</h4>
-                  <button
-                    type="button"
-                    onClick={addItem}
-                    className="inline-flex items-center gap-2 text-blue-600"
-                  >
-                    <PlusCircle className="w-4 h-4" /> Thêm sản phẩm
-                  </button>
-                </div>
-                <div className="space-y-2">
-                  {(editing.items || []).map((it, idx) => (
-                    <div
-                      key={idx}
-                      className="grid grid-cols-1 sm:grid-cols-6 gap-2 items-center border rounded p-2"
-                    >
-                      <div className="sm:col-span-2">
-                        <select
-                          value={it.productId}
-                          onChange={(e) => onItemChange(idx, "productId", e.target.value)}
-                          className="w-full border px-2 py-1 rounded"
+      {/* --- CONTENT AREA (TABLE) --- */}
+      <div className="flex-1 bg-white rounded-xl shadow border border-gray-200 relative overflow-hidden flex flex-col">
+        {loading ? (
+            <div className="flex-1 flex items-center justify-center text-gray-400">Đang tải dữ liệu...</div>
+        ) : (
+            <div className="flex-1 overflow-x-auto">
+                 <AnimatePresence mode="wait">
+                    {currentMonthOrders.length > 0 ? (
+                        <motion.div
+                            key={selectedMonthKey}
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            transition={{ duration: 0.2 }}
+                            className="min-w-max w-full"
                         >
-                          <option value="">Chọn sản phẩm</option>
-                          {products.map((p) => (
-                            <option key={p._id} value={p._id}>
-                              {p.name} — {p.price.toLocaleString()} ₫
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <select
-                          value={it.size}
-                          onChange={(e) => onItemChange(idx, "size", e.target.value)}
-                          className="w-full border px-2 py-1 rounded"
-                        >
-                          {sizes.map((s) => (
-                            <option key={s} value={s}>
-                              {s}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <input
-                          type="number"
-                          min={1}
-                          value={it.quantity}
-                          onChange={(e) => onItemChange(idx, "quantity", e.target.value)}
-                          className="w-full border px-2 py-1 rounded"
-                        />
-                      </div>
-                      <div>
-                        <input
-                          type="text"
-                          value={(it.price || 0).toLocaleString() + " ₫"}
-                          readOnly
-                          className="w-full border px-2 py-1 rounded bg-gray-50"
-                        />
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium">
-                          {((it.price || 0) * (it.quantity || 0)).toLocaleString()} ₫
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-gray-100 text-gray-700 font-semibold uppercase text-xs border-b">
+                                    <tr>
+                                        <th className="px-4 py-3 text-center">#</th>
+                                        <th className="px-4 py-3 text-center">Trạng thái</th>
+                                        <th className="px-4 py-3">Ngày nhận/giao</th>
+                                        <th className="px-4 py-3">Khách hàng</th>
+                                        <th className="px-4 py-3 w-[25%]">Sản phẩm</th>
+                                        <th className="px-4 py-3 text-right">Tổng tiền</th>
+                                        <th className="px-4 py-3 text-center">Thanh toán</th>
+                                        <th className="px-4 py-3 text-center">Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {currentMonthOrders.map((o, idx) => {
+                                        const statusColor = o.status === "chưa giao" ? "bg-red-100 text-red-700"
+                                            : o.status === "đang giao" ? "bg-yellow-100 text-yellow-700"
+                                            : o.status === "đã hủy" ? "bg-gray-100 text-gray-500 line-through"
+                                            : "bg-green-100 text-green-700";
+                                        
+                                        return (
+                                            <tr key={o._id ?? o.id} className="hover:bg-gray-50 transition">
+                                                <td className="px-4 py-3 font-medium text-gray-500 text-center align-top">{idx + 1}</td>
+                                                <td className="px-4 py-3 text-center align-top">
+                                                    <span className={`px-2 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${statusColor}`}>
+                                                        {o.status}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3 align-top">
+                                                    <div className="text-xs text-gray-500">Nhận: <span className="text-gray-800">{formatDate(o.receivedDate)}</span></div>
+                                                    <div className="text-xs text-gray-500 mt-1">Giao: <span className="text-gray-800">{formatDate(o.deliverDate)}</span></div>
+                                                </td>
+                                                <td className="px-4 py-3 align-top">
+                                                    <div className="font-bold text-gray-800">{o.customerName ?? o.customerId?.name ?? "Khách lẻ"}</div>
+                                                    <div className="text-xs text-gray-500">{o.phone}</div>
+                                                    <div className="text-xs text-gray-400 truncate max-w-[150px] mt-0.5" title={o.address}>{o.address}</div>
+                                                </td>
+                                                <td className="px-4 py-3 align-top">
+                                                    <ul className="space-y-1.5">
+                                                        {(o.items || []).map((it, i) => {
+                                                            const prod = products.find(p => String(p._id) === String(it.productId?._id ?? it.productId));
+                                                            return (
+                                                                <li key={i} className="flex items-start gap-1.5 text-xs text-gray-700">
+                                                                    <div className="mt-1 w-1 h-1 bg-gray-400 rounded-full shrink-0"></div>
+                                                                    <div>
+                                                                        <span className="font-bold">{it.quantity}x</span> 
+                                                                        <span className="mx-1">{prod ? prod.name : "SP đã xóa"}</span>
+                                                                        <span className="bg-gray-100 px-1.5 py-0.5 rounded text-[10px] border border-gray-200 text-gray-500 font-medium">Size {it.size}</span>
+                                                                    </div>
+                                                                </li>
+                                                            );
+                                                        })}
+                                                    </ul>
+                                                </td>
+                                                <td className="px-4 py-3 text-right font-bold text-blue-700 align-top">{(o.total || 0).toLocaleString()} ₫</td>
+                                                <td className="px-4 py-3 text-center text-xs align-top text-gray-600">{o.paymentMethod}</td>
+                                                <td className="px-4 py-3 text-center align-top">
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        <button onClick={() => openEdit(o)} className="p-1.5 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition" title="Sửa">
+                                                            <Edit2 size={16} />
+                                                        </button>
+                                                        <button onClick={() => handleDelete(o._id ?? o.id)} className="p-1.5 bg-red-50 text-red-600 rounded hover:bg-red-100 transition" title="Xóa">
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </motion.div>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center h-[300px] text-gray-400">
+                            <ShoppingBag size={48} className="mb-4 text-gray-200" />
+                            <p>Không có đơn hàng nào trong tháng {selectedMonthKey}.</p>
                         </div>
-                      </div>
-                      <div className="flex gap-2 justify-end">
-                        <button
-                          type="button"
-                          onClick={() => removeItem(idx)}
-                          className="text-red-600 p-1 rounded"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
-                <div>
-                  <label className="text-sm">Thanh toán</label>
-                  <select
-                    value={editing.paymentMethod}
-                    onChange={(e) => setEditing((p) => ({ ...p, paymentMethod: e.target.value }))}
-                    className="w-full border px-2 py-1 rounded"
-                  >
-                    {paymentMethods.map((m) => (
-                      <option key={m} value={m}>
-                        {m}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="sm:col-span-1">
-                  <div className="text-sm text-gray-600">Tổng</div>
-                  <div className="text-lg font-semibold">
-                    {calcTotal(editing.items).toLocaleString()} ₫
+                    )}
+                 </AnimatePresence>
+            </div>
+        )}
+
+        {/* --- FOOTER: MONTH SELECTOR BAR --- */}
+        <div className="bg-white border-t p-3 overflow-x-auto custom-scrollbar">
+             <div className="flex items-center gap-3 min-w-max pb-1">
+                <span className="text-xs font-bold text-gray-400 uppercase mr-2 tracking-wide sticky left-0 bg-white pl-1">Chọn tháng:</span>
+                {sortedMonthKeys.map(key => (
+                    <button
+                        key={key}
+                        onClick={() => setSelectedMonthKey(key)}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all flex items-center gap-2
+                            ${selectedMonthKey === key 
+                                ? "bg-blue-600 text-white border-blue-600 shadow-md transform -translate-y-0.5" 
+                                : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-white hover:border-blue-300 hover:text-blue-600"
+                            }`}
+                    >
+                        {key}
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${selectedMonthKey === key ? "bg-white/20 text-white" : "bg-gray-200 text-gray-500"}`}>
+                            {groupedOrders[key].length}
+                        </span>
+                    </button>
+                ))}
+                {sortedMonthKeys.length === 0 && <span className="text-sm italic text-gray-400 px-2">Chưa có dữ liệu đơn hàng</span>}
+             </div>
+        </div>
+      </div>
+
+      {/* --- MODAL EDIT (GIỮ NGUYÊN) --- */}
+      {showModal && editing && (
+        <div className="fixed inset-0 bg-black/40 flex items-start justify-center z-[100] pt-10 overflow-y-auto">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white w-full max-w-3xl rounded-xl p-6 shadow-2xl mb-10 border border-gray-100">
+            <div className="flex items-center justify-between mb-5 border-b pb-4">
+              <h3 className="text-xl font-bold text-gray-800">{editing.id ? "Cập nhật đơn hàng" : "Tạo đơn hàng mới"}</h3>
+              <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition text-gray-500 hover:text-gray-800"><X size={20}/></button>
+            </div>
+            <form onSubmit={handleSave} className="space-y-5">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <label className="text-sm font-semibold text-gray-700 mb-1 block">Khách hàng</label>
+                    <select value={editing.customerId} onChange={(e) => onCustomerSelect(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-gray-50 focus:bg-white transition">
+                        <option value="">-- Khách lẻ / Vãng lai --</option>
+                        {customers.map(c => <option key={c._id} value={c._id}>{c.name} - {c.phoneNumber}</option>)}
+                    </select>
                   </div>
-                </div>
-                <div className="flex gap-2 justify-end">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowModal(false);
-                      setEditing(null);
-                    }}
-                    className="px-3 py-1 bg-gray-200 rounded"
-                  >
-                    Hủy
+                  <div>
+                    <label className="text-sm font-semibold text-gray-700 mb-1 block">Số điện thoại</label>
+                    <input value={editing.phone || ""} onChange={(e) => setEditing({...editing, phone: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 text-sm" placeholder="Nhập SĐT..." />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="text-sm font-semibold text-gray-700 mb-1 block">Địa chỉ giao hàng</label>
+                    <input value={editing.address || ""} onChange={(e) => setEditing({...editing, address: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 text-sm" placeholder="Nhập địa chỉ..." />
+                  </div>
+               </div>
+
+               <div className="border-t pt-5 border-dashed">
+                  <div className="flex justify-between items-center mb-3">
+                     <label className="text-sm font-bold text-gray-800">Danh sách sản phẩm</label>
+                     <button type="button" onClick={addItem} className="text-sm text-blue-600 font-bold hover:bg-blue-50 px-2 py-1 rounded transition flex items-center gap-1"><PlusCircle size={16}/> Thêm dòng</button>
+                  </div>
+                  <div className="space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                     {editing.items.map((it, idx) => (
+                        <div key={idx} className="flex gap-2 items-center bg-white p-2 rounded shadow-sm border border-gray-200">
+                            <select value={it.productId} onChange={(e) => onItemChange(idx, "productId", e.target.value)} className="flex-1 border-0 bg-transparent text-sm font-medium focus:ring-0">
+                                <option value="">-- Chọn sản phẩm --</option>
+                                {products.map(p => <option key={p._id} value={p._id}>{p.name} ({p.price?.toLocaleString()}đ)</option>)}
+                            </select>
+                            <div className="h-4 w-px bg-gray-300 mx-1"></div>
+                            <select value={it.size} onChange={(e) => onItemChange(idx, "size", e.target.value)} className="w-16 border-0 bg-transparent text-sm focus:ring-0">
+                                {sizes.map(s => <option key={s} value={s}>{s}</option>)}
+                            </select>
+                            <div className="h-4 w-px bg-gray-300 mx-1"></div>
+                            <input type="number" min="1" value={it.quantity} onChange={(e) => onItemChange(idx, "quantity", e.target.value)} className="w-16 border-0 bg-transparent text-center text-sm font-bold focus:ring-0" placeholder="SL" />
+                            <div className="h-4 w-px bg-gray-300 mx-1"></div>
+                            <button type="button" onClick={() => removeItem(idx)} className="text-gray-400 hover:text-red-500 p-1 transition"><Trash2 size={16}/></button>
+                        </div>
+                     ))}
+                     {editing.items.length === 0 && <p className="text-center text-sm text-gray-400 py-2">Chưa có sản phẩm nào. Nhấn "Thêm dòng" để bắt đầu.</p>}
+                  </div>
+               </div>
+
+               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 border-t pt-5 border-dashed">
+                  <div>
+                      <label className="text-xs text-gray-500 font-bold uppercase mb-1 block">Trạng thái</label>
+                      <select value={editing.status} onChange={(e) => setEditing({...editing, status: e.target.value})} className="w-full border border-gray-300 rounded px-2 py-2 text-sm font-medium">
+                          {statuses.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                  </div>
+                  <div>
+                      <label className="text-xs text-gray-500 font-bold uppercase mb-1 block">Thanh toán</label>
+                      <select value={editing.paymentMethod} onChange={(e) => setEditing({...editing, paymentMethod: e.target.value})} className="w-full border border-gray-300 rounded px-2 py-2 text-sm">
+                          {paymentMethods.map(m => <option key={m} value={m}>{m}</option>)}
+                      </select>
+                  </div>
+                  <div className="md:col-span-2 text-right">
+                      <span className="block text-xs text-gray-500 uppercase font-bold mb-1">Tổng tiền đơn hàng</span>
+                      <span className="text-3xl font-bold text-blue-700 tracking-tight">{calcTotal(editing.items).toLocaleString()} ₫</span>
+                  </div>
+               </div>
+
+               <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-gray-500 font-bold uppercase mb-1 block">Ngày nhận (Dự kiến)</label>
+                    <input type="date" value={editing.receivedDate} onChange={(e) => setEditing({...editing, receivedDate: e.target.value})} className="w-full border border-gray-300 rounded px-2 py-2 text-sm text-gray-600" />
+                  </div>
+                   <div>
+                    <label className="text-xs text-gray-500 font-bold uppercase mb-1 block">Ngày giao (Thực tế)</label>
+                    <input type="date" value={editing.deliverDate} onChange={(e) => setEditing({...editing, deliverDate: e.target.value})} className="w-full border border-gray-300 rounded px-2 py-2 text-sm text-gray-600" />
+                  </div>
+               </div>
+
+               <div className="flex justify-end gap-3 pt-6 border-t mt-2">
+                  <button type="button" onClick={() => setShowModal(false)} className="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition">Hủy bỏ</button>
+                  <button type="submit" className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-lg shadow-blue-200 font-medium transition flex items-center gap-2">
+                    <Save size={18} /> Lưu đơn hàng
                   </button>
-                  <button type="submit" className="px-3 py-1 bg-blue-600 text-white rounded">
-                    Lưu
-                  </button>
-                </div>
-              </div>
+               </div>
             </form>
           </motion.div>
         </div>
