@@ -5,7 +5,7 @@ import User from "../models/user.model.js";
 // 1. TẠO ĐƠN HÀNG
 export const createOrder = async (req, res) => {
   try {
-    const { products, totalAmount, note } = req.body;
+    const { products, totalAmount, note, paymentMethod } = req.body; // Lấy paymentMethod
     const user = req.user;
 
     if (!products || products.length === 0) {
@@ -34,6 +34,10 @@ export const createOrder = async (req, res) => {
 
       existingOrder.totalAmount += totalAmount;
       if (note) existingOrder.note = existingOrder.note ? `${existingOrder.note} | ${note}` : note;
+      
+      // Cập nhật phương thức thanh toán mới nhất nếu khách chọn khác
+      if (paymentMethod) existingOrder.paymentMethod = paymentMethod;
+
       existingOrder.customerInfo = {
         name: user.name,
         email: user.email,
@@ -63,6 +67,7 @@ export const createOrder = async (req, res) => {
       products,
       totalAmount,
       note,
+      paymentMethod: paymentMethod || "COD" // Lưu phương thức thanh toán
     });
 
     if (req.body.isFromCart) {
@@ -77,23 +82,20 @@ export const createOrder = async (req, res) => {
   }
 };
 
-// 2. LẤY ĐƠN CỦA TÔI (Đã ẩn đơn Processed)
+// 2. LẤY ĐƠN CỦA TÔI
 export const getMyOrders = async (req, res) => {
   try {
     const userId = req.user._id;
 
-    // A. Lấy đơn khách tự đặt (TRỪ Processed để tránh hiện 2 lần)
     const myCustomerOrders = await CustomerOrder.find({ 
       user: userId,
       status: { $ne: "Processed" } 
     }).lean();
 
-    // B. Lấy đơn Admin quản lý
     const myAdminOrders = await Order.find({ customerId: userId })
       .populate("items.productId", "name image price") 
       .lean();
 
-    // C. Chuẩn hóa
     const normalizedAdminOrders = myAdminOrders.map(order => ({
       _id: order._id,
       createdAt: order.createdAt,
@@ -127,7 +129,7 @@ export const getMyOrders = async (req, res) => {
   }
 };
 
-// 3. XÁC NHẬN & HOÀN TÁC (Đã fix lỗi 500)
+// 3. XÁC NHẬN & HOÀN TÁC
 export const updateOrderStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -136,20 +138,17 @@ export const updateOrderStatus = async (req, res) => {
     const oldOrder = await CustomerOrder.findById(id);
     if (!oldOrder) return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
 
-    // 1. Cập nhật trạng thái trước
     const customerOrder = await CustomerOrder.findByIdAndUpdate(
       id, 
       { status }, 
       { new: true }
     );
 
-    // 2. Xử lý Logic Đồng bộ
     try {
-        // --- CASE 1: XÁC NHẬN ĐƠN (Tạo bên Orders) ---
         if (status === "Processed" && oldOrder.status !== "Processed") {
             const orderItems = customerOrder.products.map(p => ({
                 productId: p.product,
-                size: p.size || "", // Fallback nếu không có size
+                size: p.size || "", 
                 quantity: p.quantity,
                 price: p.price
             }));
@@ -164,14 +163,11 @@ export const updateOrderStatus = async (req, res) => {
                 status: "chưa giao",
                 receivedDate: null,
                 deliverDate: null,
-                paymentMethod: "COD",
+                paymentMethod: customerOrder.paymentMethod || "COD", // Đồng bộ paymentMethod
                 createdBy: req.user ? req.user._id : null
             });
         }
-
-        // --- CASE 2: HOÀN TÁC (Xóa bên Orders) ---
         else if (status === "Pending" && oldOrder.status === "Processed") {
-            // Tìm đơn Admin mới nhất của khách này khớp số tiền và trạng thái "chưa giao"
             await Order.findOneAndDelete(
                 {
                     customerId: customerOrder.user,
@@ -182,7 +178,6 @@ export const updateOrderStatus = async (req, res) => {
             );
         }
     } catch (syncError) {
-        // Nếu tạo/xóa đơn Admin lỗi -> Hoàn tác lại trạng thái CustomerOrder để không bị lệch data
         console.error("Sync error:", syncError);
         await CustomerOrder.findByIdAndUpdate(id, { status: oldOrder.status });
         return res.status(500).json({ message: "Lỗi đồng bộ đơn hàng (Đã hoàn tác)", error: syncError.message });
@@ -218,7 +213,7 @@ export const cancelMyOrder = async (req, res) => {
       if (order.status !== "chưa giao") {
         return res.status(400).json({ message: "Không thể hủy đơn hàng đã giao" });
       }
-      order.status = "đã hủy"; // Đảm bảo khớp enum bên Order
+      order.status = "đã hủy"; 
       await order.save();
       return res.json({ message: "Đã hủy đơn hàng", order });
     }

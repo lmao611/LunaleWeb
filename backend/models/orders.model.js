@@ -2,7 +2,6 @@ import mongoose from "mongoose";
 
 const orderItemSchema = new mongoose.Schema({
   productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
-  // Bỏ enum và required strict để tránh lỗi khi sync từ CustomerOrder
   size: { type: String, default: "" }, 
   quantity: { type: Number, required: true, min: 1 },
   price: { type: Number, required: true, min: 0 }
@@ -23,7 +22,8 @@ const orderSchema = new mongoose.Schema(
     },
     receivedDate: Date,
     deliverDate: Date,
-    paymentMethod: { type: String, enum: ["Chuyển khoản", "COD"], default: "COD" },
+    // CẬP NHẬT ENUM TẠI ĐÂY
+    paymentMethod: { type: String, enum: ["Chuyển khoản", "COD", "Tiền mặt"], default: "COD" },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }
   },
   { timestamps: true }

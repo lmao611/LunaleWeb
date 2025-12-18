@@ -8,7 +8,7 @@ import { useUserStore } from "../stores/useUserStore";
 
 const sizes = ["S", "M", "L", "XL"];
 const statuses = ["chưa giao", "đang giao", "đã giao", "đã hủy"];
-const paymentMethods = ["COD", "Chuyển khoản"];
+const paymentMethods = ["COD", "Chuyển khoản", "Tiền mặt"];
 
 export default function OrdersManager() {
   const [orders, setOrders] = useState([]);

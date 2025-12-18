@@ -27,9 +27,14 @@ const customerOrderSchema = new mongoose.Schema(
       },
     ],
     totalAmount: { type: Number, required: true },
+    // THÊM TRƯỜNG NÀY
+    paymentMethod: { 
+        type: String, 
+        enum: ["COD", "Chuyển khoản", "Tiền mặt"],
+        default: "COD" 
+    },
     status: {
       type: String,
-      // QUAN TRỌNG: Phải có Cancelled để hủy đơn được
       enum: ["Pending", "Processed", "Cancelled"], 
       default: "Pending",
     },
