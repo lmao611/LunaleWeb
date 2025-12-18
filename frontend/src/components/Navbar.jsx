@@ -1,10 +1,10 @@
-import { ShoppingCart, UserPlus, LogIn, LogOut, Lock, Home, User, X, Clock, Package, History, Edit2, Save, XCircle } from "lucide-react";
+import { ShoppingCart, UserPlus, LogIn, LogOut, Lock, Home, User, X, Clock, Package, History, Edit2, Save, XCircle, ChevronLeft, MapPin, Phone, CreditCard } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useUserStore } from "../stores/useUserStore";
 import { useCartStore } from "../stores/useCartStore";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import axios from "../lib/axios"; // Đảm bảo import axios
+import axios from "../lib/axios";
 
 const Navbar = () => {
   const { user, logout, showUserBox, setShowUserBox } = useUserStore();
@@ -14,35 +14,40 @@ const Navbar = () => {
   const navigate = useNavigate();
   const isHome = location.pathname === "/";
   
-  // State cho profile
+  // --- STATE PROFILE ---
   const [editName, setEditName] = useState(user?.name || "");
   const [editEmail, setEditEmail] = useState(user?.email || "");
   const [editPhone, setEditPhone] = useState(user?.phoneNumber || "");
   const [editDirection, setEditDirection] = useState(user?.direction || "");
 
-  // State cho Navbar scroll & mobile
+  // --- STATE NAVBAR ---
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
   const [tokenTimeLeft, setTokenTimeLeft] = useState(null);
 
-  // State cho tính năng mới: Tab và Đơn hàng
+  // --- STATE ĐƠN HÀNG & TAB ---
   const [activeTab, setActiveTab] = useState("profile"); // 'profile' | 'orders'
-  const [orders, setOrders] = useState([]);
+  const [orders, setOrders] = useState([]); // Khởi tạo rỗng để tránh dữ liệu ảo
   const [loadingOrders, setLoadingOrders] = useState(false);
-  const [editingOrderId, setEditingOrderId] = useState(null); // ID đơn hàng đang sửa
+  
+  // State chỉnh sửa địa chỉ nhanh
+  const [editingOrderId, setEditingOrderId] = useState(null);
   const [editOrderAddress, setEditOrderAddress] = useState("");
+  
+  // State xem chi tiết đơn hàng
+  const [selectedOrder, setSelectedOrder] = useState(null);
 
   const setUser = useUserStore((state) => state.setUser);
 
-  // --- EXISTING EFFECTS ---
+  // --- EFFECTS ---
   useEffect(() => {
     if (showUserBox && user) {
       setEditName(user.name || "");
       setEditEmail(user.email || "");
       setEditPhone(user.phoneNumber || "");
       setEditDirection(user.direction || "");
-      // Reset tab về profile khi mở lại
       setActiveTab("profile"); 
+      setSelectedOrder(null); 
     }
   }, [showUserBox, user]);
 
@@ -73,9 +78,8 @@ const Navbar = () => {
       const updateTimer = () => {
         const now = Math.floor(Date.now() / 1000);
         const timeLeft = payload.exp - now;
-        if (timeLeft <= 0) {
-          setTokenTimeLeft("Expired");
-        } else {
+        if (timeLeft <= 0) setTokenTimeLeft("Expired");
+        else {
           const m = Math.floor(timeLeft / 60);
           const s = timeLeft % 60;
           setTokenTimeLeft(`${m}:${s < 10 ? "0" : ""}${s}`);
@@ -84,51 +88,43 @@ const Navbar = () => {
       updateTimer();
       const interval = setInterval(updateTimer, 1000);
       return () => clearInterval(interval);
-    } catch (error) {
-      console.error(error);
-    }
+    } catch (error) { console.error(error); }
   }, [isAdmin]);
 
-  // --- NEW LOGIC: FETCH ORDERS ---
+  // --- API CALLS ---
   const fetchMyOrders = async () => {
     setLoadingOrders(true);
     try {
-      const res = await axios.get("/orders"); // Giả định API endpoint là /orders để lấy đơn của user hiện tại
-      // Nếu API trả về { orders: [...] } hoặc mảng trực tiếp, hãy điều chỉnh dòng dưới
+      // Đảm bảo endpoint này trả về đơn hàng CỦA USER (thường backend sẽ lọc theo req.user._id)
+      const res = await axios.get("/orders");
+      console.log("Orders data:", res.data); // Debug xem dữ liệu trả về là gì
       setOrders(Array.isArray(res.data) ? res.data : res.data.orders || []);
     } catch (error) {
       console.error("Lỗi tải đơn hàng:", error);
-      alert("Không thể tải lịch sử đơn hàng.");
     } finally {
       setLoadingOrders(false);
     }
   };
 
-  // Khi chuyển tab sang 'orders', gọi API
   useEffect(() => {
     if (showUserBox && activeTab === "orders") {
       fetchMyOrders();
+      setSelectedOrder(null);
     }
   }, [showUserBox, activeTab]);
 
-  // --- ACTIONS ---
+  // --- HANDLERS ---
   const handleLogoClick = () => {
-    if (isHome) {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } else {
+    if (isHome) window.scrollTo({ top: 0, behavior: "smooth" });
+    else {
       navigate("/");
-      setTimeout(() => {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }, 300);
+      setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 300);
     }
   };
 
   const handleGoBack = () => {
-    if (window.history.length > 2) {
-      navigate(-1);
-    } else {
-      navigate("/");
-    }
+    if (window.history.length > 2) navigate(-1);
+    else navigate("/");
   };
 
   const handleUpdateProfile = async () => {
@@ -139,38 +135,32 @@ const Navbar = () => {
         phoneNumber: editPhone,
         direction: editDirection,
       });
-
       if (res.status === 200) {
         setUser(res.data);
         alert("Thông tin đã được cập nhật");
       }
     } catch (err) {
-      console.error(err);
       alert(err.response?.data?.message || "Lỗi cập nhật");
     }
   };
 
-  // Hủy đơn hàng
   const handleCancelOrder = async (orderId) => {
     if (!window.confirm("Bạn có chắc chắn muốn hủy đơn hàng này không?")) return;
     try {
-      // Giả định API endpoint hủy đơn
       await axios.put(`/orders/${orderId}/cancel`); 
       alert("Đã hủy đơn hàng thành công.");
-      fetchMyOrders(); // Refresh list
+      fetchMyOrders(); 
+      if (selectedOrder) setSelectedOrder(null);
     } catch (error) {
-      console.error(error);
-      alert("Không thể hủy đơn hàng (có thể đơn đã được giao).");
+      alert("Không thể hủy đơn hàng.");
     }
   };
 
-  // Bắt đầu sửa địa chỉ đơn hàng
   const startEditOrder = (order) => {
     setEditingOrderId(order._id);
     setEditOrderAddress(order.address || order.direction || "");
   };
 
-  // Lưu địa chỉ đơn hàng mới
   const saveOrderAddress = async (orderId) => {
     try {
       await axios.put(`/orders/${orderId}/address`, { address: editOrderAddress });
@@ -178,17 +168,15 @@ const Navbar = () => {
       setEditingOrderId(null);
       fetchMyOrders();
     } catch (error) {
-      console.error(error);
       alert("Lỗi cập nhật địa chỉ đơn hàng.");
     }
   };
 
-  // Format tiền tệ
+  // --- HELPERS ---
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
   };
 
-  // Dịch trạng thái sang tiếng Việt và gán màu
   const getStatusBadge = (status) => {
     const s = status?.toLowerCase() || "";
     if (s.includes("pending") || s === "chờ xử lý") return <span className="text-yellow-600 bg-yellow-100 px-2 py-1 rounded text-xs font-bold">Đang xử lý</span>;
@@ -198,7 +186,6 @@ const Navbar = () => {
     return <span className="text-gray-600 bg-gray-100 px-2 py-1 rounded text-xs">{status}</span>;
   };
 
-  // Kiểm tra xem đơn hàng có được phép sửa/hủy không (chỉ Pending hoặc Processing)
   const isEditable = (status) => {
     const s = status?.toLowerCase() || "";
     return s.includes("pending") || s === "chờ xử lý" || s === "processing";
@@ -214,15 +201,10 @@ const Navbar = () => {
           }`}
           title="Quay lại"
         >
-          <img
-            src="/goback.png"
-            alt="Go Back"
-            className={`${isMobile ? "w-8 h-8" : "w-9 h-9"} object-contain`}
-          />
+          <img src="/goback.png" alt="Go Back" className={`${isMobile ? "w-8 h-8" : "w-9 h-9"} object-contain`} />
         </button>
       )}
 
-      {/* --- LOGO ANIMATION (Giữ nguyên) --- */}
       {isHome ? (
         <motion.div
           className="fixed z-[100] cursor-pointer"
@@ -263,7 +245,6 @@ const Navbar = () => {
         </div>
       )}
 
-      {/* --- NAVBAR HEADER (Giữ nguyên) --- */}
       <motion.header
         initial={{ y: 0 }}
         animate={{ y: 0 }}
@@ -274,122 +255,50 @@ const Navbar = () => {
             : "bg-transparent"
         } ${isMobile ? "min-h-[55px] pt-[env(safe-area-inset-top)]" : ""}`}
       >
-        <div
-          className={`container mx-auto px-4 transition-all duration-500 ${
-            isMobile
-              ? isScrolled
-                ? "pt-[55px] pb-2"
-                : "pt-2 pb-2"
-              : isScrolled
-              ? "py-4"
-              : "py-8"
-          }`}
-        >
-          <div
-            className={`flex flex-col sm:flex-row items-center pb-2 ${
-              isMobile ? "gap-1 justify-center" : "justify-end"
-            }`}
-          >
-            <nav
-              className={`flex flex-wrap items-center gap-4 mt-1 sm:mt-0 transition-colors duration-500 ${
-                !isScrolled && isHome ? "text-white" : "text-gray-800"
-              }`}
-            >
-              <Link
-                to="/"
-                className={`flex items-end pb-[2px] transition ${
-                  isHome && !isScrolled
-                    ? "text-white"
-                    : "text-black hover:text-blue-700"
-                }`}
-                title="Trang Chủ"
-              >
+        <div className={`container mx-auto px-4 transition-all duration-500 ${isMobile ? (isScrolled ? "pt-[55px] pb-2" : "pt-2 pb-2") : (isScrolled ? "py-4" : "py-8")}`}>
+          <div className={`flex flex-col sm:flex-row items-center pb-2 ${isMobile ? "gap-1 justify-center" : "justify-end"}`}>
+            <nav className={`flex flex-wrap items-center gap-4 mt-1 sm:mt-0 transition-colors duration-500 ${!isScrolled && isHome ? "text-white" : "text-gray-800"}`}>
+              <Link to="/" className={`flex items-end pb-[2px] transition ${isHome && !isScrolled ? "text-white" : "text-black hover:text-blue-700"}`}>
                 <Home size={22} strokeWidth={2.2} />
               </Link>
-
               {user && (
                 <div className="relative">
-                  <button
-                    onClick={() => setShowUserBox(true)}
-                    className={`transition flex items-end mb-0.5 ${
-                      isHome && !isScrolled
-                        ? "text-white hover:text-gray-200"
-                        : "text-black hover:text-blue-700"
-                    }`}
-                    title="Thông Tin Cá Nhân"
-                  >
+                  <button onClick={() => setShowUserBox(true)} className={`transition flex items-end mb-0.5 ${isHome && !isScrolled ? "text-white hover:text-gray-200" : "text-black hover:text-blue-700"}`}>
                     <User size={20} />
                   </button>
-                  {(!user.phoneNumber || !user.direction) && (
-                    <span className="absolute -top-1 -left-1 w-2.5 h-2.5 bg-red-600 rounded-full border border-white" />
-                  )}
+                  {(!user.phoneNumber || !user.direction) && <span className="absolute -top-1 -left-1 w-2.5 h-2.5 bg-red-600 rounded-full border border-white" />}
                 </div>
               )}
-
               {user && (
-                <Link
-                  to="/cart"
-                  className={`relative group transition flex items-end mb-1.5 ${
-                    isHome && !isScrolled
-                      ? "text-white hover:text-gray-200"
-                      : "text-black hover:text-blue-700"
-                  }`}
-                >
+                <Link to="/cart" className={`relative group transition flex items-end mb-1.5 ${isHome && !isScrolled ? "text-white hover:text-gray-200" : "text-black hover:text-blue-700"}`}>
                   <ShoppingCart size={18} className="mr-1" />
                   <span className="hidden sm:inline pt-1">Giỏ Hàng</span>
-                  {cart.length > 0 && (
-                    <span className="absolute -top-2 -left-3 bg-blue-600 text-white rounded-full px-2 py-0.5 text-xs">
-                      {cart.length}
-                    </span>
-                  )}
+                  {cart.length > 0 && <span className="absolute -top-2 -left-3 bg-blue-600 text-white rounded-full px-2 py-0.5 text-xs">{cart.length}</span>}
                 </Link>
               )}
-
               {isAdmin && (
                 <div className="flex items-center gap-2">
-                  <Link
-                    to="/secret-dashboard"
-                    className="bg-blue-700 hover:bg-blue-600 text-white px-3 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-md flex items-center transition"
-                  >
-                    <Lock className="inline-block mr-1" size={16} />
-                    <span className="hidden sm:inline">Dashboard</span>
+                  <Link to="/secret-dashboard" className="bg-blue-700 hover:bg-blue-600 text-white px-3 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-md flex items-center transition">
+                    <Lock className="inline-block mr-1" size={16} /> <span className="hidden sm:inline">Dashboard</span>
                   </Link>
                   {tokenTimeLeft && (
-                    <div className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-mono border ${
-                      isHome && !isScrolled 
-                        ? "bg-black/30 text-white border-white/20" 
-                        : "bg-red-50 text-red-600 border-red-100"
-                    }`}>
-                      <Clock size={12} />
-                      <span>{tokenTimeLeft}</span>
+                    <div className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-mono border ${isHome && !isScrolled ? "bg-black/30 text-white border-white/20" : "bg-red-50 text-red-600 border-red-100"}`}>
+                      <Clock size={12} /> <span>{tokenTimeLeft}</span>
                     </div>
                   )}
                 </div>
               )}
-
               {user ? (
-                <button
-                  onClick={logout}
-                  className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-md flex items-center transition"
-                >
-                  <LogOut size={16} />
-                  <span className="hidden sm:inline ml-2">Đăng Xuất</span>
+                <button onClick={logout} className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-md flex items-center transition">
+                  <LogOut size={16} /> <span className="hidden sm:inline ml-2">Đăng Xuất</span>
                 </button>
               ) : (
                 <>
-                  <Link
-                    to="/signup"
-                    className="bg-gray-200 hover:bg-gray-300 text-black px-3 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-md flex items-center transition"
-                  >
-                    <UserPlus className="mr-2" size={16} />
-                    Đăng Ký
+                  <Link to="/signup" className="bg-gray-200 hover:bg-gray-300 text-black px-3 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-md flex items-center transition">
+                    <UserPlus className="mr-2" size={16} /> Đăng Ký
                   </Link>
-                  <Link
-                    to="/login"
-                    className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-md flex items-center transition"
-                  >
-                    <LogIn className="mr-2" size={16} />
-                    Đăng Nhập
+                  <Link to="/login" className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-md flex items-center transition">
+                    <LogIn className="mr-2" size={16} /> Đăng Nhập
                   </Link>
                 </>
               )}
@@ -398,7 +307,7 @@ const Navbar = () => {
         </div>
       </motion.header>
 
-      {/* --- USER BOX MODAL (Đã nâng cấp) --- */}
+      {/* --- USER BOX MODAL --- */}
       <AnimatePresence>
         {showUserBox && user && (
           <div className="fixed inset-0 z-[999] bg-black/50 flex items-center justify-center p-4">
@@ -406,186 +315,232 @@ const Navbar = () => {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col relative"
+              className="bg-white rounded-xl shadow-2xl w-full max-w-4xl h-[85vh] max-h-[800px] flex flex-col relative overflow-hidden"
             >
-              {/* Close Button */}
-              <button
-                onClick={() => setShowUserBox(false)}
-                className="absolute top-4 right-4 text-gray-400 hover:text-black z-10 transition"
-              >
+              <button onClick={() => setShowUserBox(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black z-10 transition">
                 <X size={24} />
               </button>
 
               {/* Header / Tabs */}
-              <div className="flex border-b">
+              <div className="flex border-b shrink-0">
                 <button
-                  onClick={() => setActiveTab("profile")}
-                  className={`flex-1 py-4 font-semibold text-lg flex items-center justify-center gap-2 transition ${
-                    activeTab === "profile" 
-                    ? "text-blue-700 border-b-2 border-blue-700 bg-blue-50" 
-                    : "text-gray-500 hover:bg-gray-50"
-                  }`}
+                  onClick={() => {setActiveTab("profile"); setSelectedOrder(null);}}
+                  className={`flex-1 py-4 font-semibold text-lg flex items-center justify-center gap-2 transition ${activeTab === "profile" ? "text-blue-700 border-b-2 border-blue-700 bg-blue-50" : "text-gray-500 hover:bg-gray-50"}`}
                 >
-                  <User size={20} />
-                  Thông tin cá nhân
+                  <User size={20} /> Thông tin cá nhân
                 </button>
                 <button
                   onClick={() => setActiveTab("orders")}
-                  className={`flex-1 py-4 font-semibold text-lg flex items-center justify-center gap-2 transition ${
-                    activeTab === "orders" 
-                    ? "text-blue-700 border-b-2 border-blue-700 bg-blue-50" 
-                    : "text-gray-500 hover:bg-gray-50"
-                  }`}
+                  className={`flex-1 py-4 font-semibold text-lg flex items-center justify-center gap-2 transition ${activeTab === "orders" ? "text-blue-700 border-b-2 border-blue-700 bg-blue-50" : "text-gray-500 hover:bg-gray-50"}`}
                 >
-                  <History size={20} />
-                  Đơn hàng đã đặt
+                  <History size={20} /> Đơn hàng đã đặt
                 </button>
               </div>
 
               {/* Content Area */}
-              <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-gray-50">
                 {activeTab === "profile" ? (
-                  /* --- PROFILE FORM --- */
                   <div className="max-w-md mx-auto bg-white p-6 rounded-lg shadow-sm">
                     <div className="space-y-4">
                       <label className="block">
                         <span className="text-sm font-semibold text-gray-700">Họ Tên</span>
-                        <input
-                          type="text"
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          className="w-full mt-1 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
-                        />
+                        <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full mt-1 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" />
                       </label>
                       <label className="block">
                         <span className="text-sm font-semibold text-gray-700">Email</span>
-                        <input
-                          type="email"
-                          value={editEmail}
-                          disabled // Thường email không cho đổi tùy tiện
-                          className="w-full mt-1 border border-gray-300 px-3 py-2 rounded bg-gray-100 text-gray-500 cursor-not-allowed"
-                        />
+                        <input type="email" value={editEmail} disabled className="w-full mt-1 border border-gray-300 px-3 py-2 rounded bg-gray-100 text-gray-500 cursor-not-allowed" />
                       </label>
                       <label className="block">
                         <span className="text-sm font-semibold text-gray-700">Số Điện Thoại</span>
-                        <input
-                          type="text"
-                          value={editPhone}
-                          onChange={(e) => setEditPhone(e.target.value)}
-                          className="w-full mt-1 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
-                        />
+                        <input type="text" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} className="w-full mt-1 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" />
                       </label>
                       <label className="block">
                         <span className="text-sm font-semibold text-gray-700">Địa Chỉ</span>
-                        <textarea
-                          value={editDirection}
-                          onChange={(e) => setEditDirection(e.target.value)}
-                          rows="3"
-                          className="w-full mt-1 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-500 outline-none resize-none"
-                        />
+                        <textarea value={editDirection} onChange={(e) => setEditDirection(e.target.value)} rows="3" className="w-full mt-1 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-500 outline-none resize-none" />
                       </label>
                     </div>
-                    <button
-                      onClick={handleUpdateProfile}
-                      className="w-full mt-6 bg-blue-700 hover:bg-blue-800 text-white font-medium py-2 rounded transition shadow-md"
-                    >
+                    <button onClick={handleUpdateProfile} className="w-full mt-6 bg-blue-700 hover:bg-blue-800 text-white font-medium py-2 rounded transition shadow-md">
                       Lưu Thay Đổi
                     </button>
                   </div>
                 ) : (
-                  /* --- ORDER HISTORY --- */
-                  <div className="space-y-4">
-                    {loadingOrders ? (
-                      <div className="text-center py-10 text-gray-500">Đang tải lịch sử đơn hàng...</div>
-                    ) : orders.length === 0 ? (
-                      <div className="text-center py-10 flex flex-col items-center text-gray-500">
-                        <Package size={48} className="mb-2 text-gray-300" />
-                        <p>Bạn chưa có đơn hàng nào.</p>
-                        <button onClick={() => {setShowUserBox(false); navigate('/')}} className="mt-4 text-blue-600 hover:underline">
-                          Mua sắm ngay
-                        </button>
-                      </div>
-                    ) : (
-                      orders.map((order) => (
-                        <div key={order._id || order.id} className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200">
-                          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b pb-4 mb-4">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-bold text-lg text-gray-800">#{ (order._id || order.id).slice(-6).toUpperCase() }</span>
-                                {getStatusBadge(order.status)}
-                              </div>
-                              <p className="text-sm text-gray-500 mt-1">
-                                Ngày đặt: {new Date(order.createdAt).toLocaleDateString("vi-VN")}
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <span className="block text-sm text-gray-500">Tổng tiền</span>
-                              <span className="font-bold text-xl text-blue-700">{formatCurrency(order.totalAmount || order.total)}</span>
-                            </div>
-                          </div>
-
-                          {/* Order Details Preview */}
-                          <div className="space-y-2 mb-4">
-                             {order.products && order.products.slice(0, 2).map((item, idx) => (
-                               <div key={idx} className="flex justify-between text-sm text-gray-600">
-                                  <span>{item.quantity}x {item.product?.name || item.name || "Sản phẩm"} (Size: {item.size})</span>
-                                  <span>{formatCurrency((item.price || 0) * item.quantity)}</span>
-                               </div>
-                             ))}
-                             {order.products && order.products.length > 2 && (
-                               <p className="text-xs text-gray-400 italic">+ {order.products.length - 2} sản phẩm khác...</p>
-                             )}
-                          </div>
-                          
-                          {/* Address & Actions */}
-                          <div className="bg-gray-50 p-3 rounded text-sm space-y-2">
-                             <div className="flex items-start justify-between">
-                                <div className="flex-1 mr-2">
-                                   <span className="font-semibold text-gray-700 block mb-1">Địa chỉ nhận hàng:</span>
-                                   {editingOrderId === order._id ? (
-                                     <div className="flex gap-2">
-                                       <input 
-                                         type="text" 
-                                         value={editOrderAddress}
-                                         onChange={(e) => setEditOrderAddress(e.target.value)}
-                                         className="flex-1 border px-2 py-1 rounded text-sm"
-                                       />
-                                       <button onClick={() => saveOrderAddress(order._id)} className="text-green-600 hover:bg-green-100 p-1 rounded"><Save size={16}/></button>
-                                       <button onClick={() => setEditingOrderId(null)} className="text-red-500 hover:bg-red-100 p-1 rounded"><XCircle size={16}/></button>
-                                     </div>
-                                   ) : (
-                                     <span className="text-gray-600">{order.address || order.direction || "Chưa có địa chỉ"}</span>
-                                   )}
-                                </div>
-                                {isEditable(order.status) && editingOrderId !== order._id && (
-                                   <button 
-                                    onClick={() => startEditOrder(order)}
-                                    className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-xs"
-                                   >
-                                     <Edit2 size={12} /> Sửa
-                                   </button>
-                                )}
-                             </div>
-                             
-                             {/* Footer Actions */}
-                             <div className="pt-2 flex justify-end gap-3 mt-2 border-t border-gray-200">
-                                {isEditable(order.status) && (
-                                  <button 
-                                    onClick={() => handleCancelOrder(order._id)}
-                                    className="px-3 py-1.5 border border-red-200 text-red-600 rounded hover:bg-red-50 text-xs font-medium transition"
-                                  >
-                                    Hủy đơn
-                                  </button>
-                                )}
-                                <button className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs font-medium transition">
-                                  Xem chi tiết
-                                </button>
-                             </div>
-                          </div>
+                  // --- ORDER HISTORY TAB ---
+                  <>
+                    {selectedOrder ? (
+                      // VIEW 1: CHI TIẾT ĐƠN HÀNG
+                      <motion.div 
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden h-full flex flex-col"
+                      >
+                        {/* Header Chi tiết */}
+                        <div className="p-4 border-b flex items-center justify-between bg-gray-50">
+                            <button 
+                                onClick={() => setSelectedOrder(null)}
+                                className="flex items-center text-gray-600 hover:text-blue-700 transition"
+                            >
+                                <ChevronLeft size={20} /> Quay lại
+                            </button>
+                            <span className="font-bold text-gray-800">#{ (selectedOrder._id || selectedOrder.id).slice(-6).toUpperCase() }</span>
                         </div>
-                      ))
+
+                        {/* Body Chi tiết */}
+                        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                            {/* Trạng thái */}
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm text-gray-500">Ngày đặt: {new Date(selectedOrder.createdAt).toLocaleString("vi-VN")}</span>
+                                {getStatusBadge(selectedOrder.status)}
+                            </div>
+
+                            {/* Thông tin nhận hàng */}
+                            <div className="grid sm:grid-cols-2 gap-4 text-sm">
+                                <div className="p-3 bg-gray-50 rounded border">
+                                    <h4 className="font-semibold text-gray-700 flex items-center gap-2 mb-2"><MapPin size={16}/> Địa chỉ nhận hàng</h4>
+                                    <p className="text-gray-600">{selectedOrder.address || selectedOrder.direction || "Chưa có địa chỉ"}</p>
+                                </div>
+                                <div className="p-3 bg-gray-50 rounded border">
+                                    <h4 className="font-semibold text-gray-700 flex items-center gap-2 mb-2"><CreditCard size={16}/> Phương thức thanh toán</h4>
+                                    <p className="text-gray-600">{selectedOrder.paymentMethod === "COD" ? "Thanh toán khi nhận hàng" : selectedOrder.paymentMethod || "COD"}</p>
+                                </div>
+                            </div>
+
+                            {/* Danh sách sản phẩm chi tiết */}
+                            <div>
+                                <h4 className="font-semibold text-gray-700 mb-3 flex items-center gap-2"><Package size={16}/> Sản phẩm</h4>
+                                <div className="space-y-3">
+                                    {selectedOrder.products?.map((item, idx) => (
+                                        <div key={idx} className="flex gap-3 items-center border-b pb-3 last:border-0">
+                                            <div className="w-16 h-16 bg-gray-100 rounded overflow-hidden flex-shrink-0">
+                                                <img src={item.product?.image || item.image || "/placeholder.png"} alt="Product" className="w-full h-full object-cover" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="font-medium text-gray-800 text-sm line-clamp-1">{item.product?.name || item.name || "Sản phẩm"}</p>
+                                                <p className="text-xs text-gray-500">Size: {item.size} | SL: {item.quantity}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="font-medium text-blue-700 text-sm">{formatCurrency((item.price || 0) * item.quantity)}</p>
+                                                <p className="text-xs text-gray-400">{formatCurrency(item.price)}/sp</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer Tổng tiền */}
+                        <div className="p-4 bg-gray-50 border-t space-y-2">
+                            <div className="flex justify-between text-sm">
+                                <span className="text-gray-600">Tạm tính:</span>
+                                <span>{formatCurrency(selectedOrder.totalAmount || selectedOrder.total)}</span>
+                            </div>
+                            <div className="flex justify-between font-bold text-lg text-blue-700 pt-2 border-t">
+                                <span>Tổng cộng:</span>
+                                <span>{formatCurrency(selectedOrder.totalAmount || selectedOrder.total)}</span>
+                            </div>
+                            {/* Nút hủy trong chi tiết */}
+                            {isEditable(selectedOrder.status) && (
+                                <button 
+                                    onClick={() => handleCancelOrder(selectedOrder._id)}
+                                    className="w-full mt-2 py-2 border border-red-500 text-red-600 rounded hover:bg-red-50 font-medium transition"
+                                >
+                                    Hủy đơn hàng này
+                                </button>
+                            )}
+                        </div>
+                      </motion.div>
+                    ) : (
+                      // VIEW 2: DANH SÁCH ĐƠN HÀNG
+                      <div className="space-y-4">
+                        {loadingOrders ? (
+                          <div className="text-center py-10 text-gray-500">Đang tải lịch sử đơn hàng...</div>
+                        ) : orders.length === 0 ? (
+                          <div className="text-center py-10 flex flex-col items-center text-gray-500">
+                            <Package size={48} className="mb-2 text-gray-300" />
+                            <p>Bạn chưa có đơn hàng nào.</p>
+                            <button onClick={() => {setShowUserBox(false); navigate('/')}} className="mt-4 text-blue-600 hover:underline">
+                              Mua sắm ngay
+                            </button>
+                          </div>
+                        ) : (
+                          orders.map((order) => (
+                            <div key={order._id || order.id} className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 transition hover:shadow-md">
+                              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b pb-4 mb-4">
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-bold text-lg text-gray-800">#{ (order._id || order.id).slice(-6).toUpperCase() }</span>
+                                    {getStatusBadge(order.status)}
+                                  </div>
+                                  <p className="text-sm text-gray-500 mt-1">
+                                    Ngày đặt: {new Date(order.createdAt).toLocaleDateString("vi-VN")}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <span className="block text-sm text-gray-500">Tổng tiền</span>
+                                  <span className="font-bold text-xl text-blue-700">{formatCurrency(order.totalAmount || order.total)}</span>
+                                </div>
+                              </div>
+
+                              <div className="space-y-2 mb-4">
+                                 {order.products && order.products.slice(0, 2).map((item, idx) => (
+                                   <div key={idx} className="flex justify-between text-sm text-gray-600">
+                                      <span>{item.quantity}x {item.product?.name || item.name || "Sản phẩm"} (Size: {item.size})</span>
+                                      <span>{formatCurrency((item.price || 0) * item.quantity)}</span>
+                                   </div>
+                                 ))}
+                                 {order.products && order.products.length > 2 && (
+                                   <p className="text-xs text-gray-400 italic">+ {order.products.length - 2} sản phẩm khác...</p>
+                                 )}
+                              </div>
+                              
+                              <div className="bg-gray-50 p-3 rounded text-sm space-y-2">
+                                 <div className="flex items-start justify-between">
+                                    <div className="flex-1 mr-2">
+                                       <span className="font-semibold text-gray-700 block mb-1">Địa chỉ nhận hàng:</span>
+                                       {editingOrderId === order._id ? (
+                                         <div className="flex gap-2">
+                                           <input 
+                                             type="text" 
+                                             value={editOrderAddress}
+                                             onChange={(e) => setEditOrderAddress(e.target.value)}
+                                             className="flex-1 border px-2 py-1 rounded text-sm outline-none focus:border-blue-500"
+                                           />
+                                           <button onClick={() => saveOrderAddress(order._id)} className="text-green-600 hover:bg-green-100 p-1 rounded"><Save size={16}/></button>
+                                           <button onClick={() => setEditingOrderId(null)} className="text-red-500 hover:bg-red-100 p-1 rounded"><XCircle size={16}/></button>
+                                         </div>
+                                       ) : (
+                                         <span className="text-gray-600 line-clamp-2">{order.address || order.direction || "Chưa có địa chỉ"}</span>
+                                       )}
+                                    </div>
+                                    {isEditable(order.status) && editingOrderId !== order._id && (
+                                       <button onClick={() => startEditOrder(order)} className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-xs shrink-0">
+                                         <Edit2 size={12} /> Sửa
+                                       </button>
+                                    )}
+                                 </div>
+                                 
+                                 <div className="pt-2 flex justify-end gap-3 mt-2 border-t border-gray-200">
+                                    {isEditable(order.status) && (
+                                      <button 
+                                        onClick={() => handleCancelOrder(order._id)}
+                                        className="px-3 py-1.5 border border-red-200 text-red-600 rounded hover:bg-red-50 text-xs font-medium transition"
+                                      >
+                                        Hủy đơn
+                                      </button>
+                                    )}
+                                    <button 
+                                      onClick={() => setSelectedOrder(order)} // CẬP NHẬT: Gắn hàm vào nút này
+                                      className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs font-medium transition"
+                                    >
+                                      Xem chi tiết
+                                    </button>
+                                 </div>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
                     )}
-                  </div>
+                  </>
                 )}
               </div>
             </motion.div>
