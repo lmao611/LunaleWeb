@@ -2,7 +2,7 @@ import CustomerOrder from "../models/customerOrder.model.js";
 import Order from "../models/orders.model.js"; 
 import User from "../models/user.model.js";
 
-// 1. TẠO ĐƠN HÀNG (Có logic gộp đơn)
+// 1. TẠO ĐƠN HÀNG (Có logic gộp đơn nếu còn đơn Pending)
 export const createOrder = async (req, res) => {
   try {
     const { products, totalAmount, note } = req.body;
@@ -40,7 +40,7 @@ export const createOrder = async (req, res) => {
         phone: user.phoneNumber,
         address: user.direction,
       };
-      existingOrder.createdAt = Date.now();
+      existingOrder.createdAt = Date.now(); // Đẩy lên đầu danh sách
 
       await existingOrder.save();
 
@@ -77,19 +77,19 @@ export const createOrder = async (req, res) => {
   }
 };
 
-// 2. LẤY ĐƠN CỦA TÔI
+// 2. LẤY ĐƠN CỦA TÔI (Ẩn đơn đã xác nhận để tránh trùng lặp)
 export const getMyOrders = async (req, res) => {
   try {
     const userId = req.user._id;
 
-    // A. Lấy đơn khách tự đặt
-    // QUAN TRỌNG: Loại bỏ đơn "Processed" để khách không thấy đơn trùng (vì đã có đơn Admin thay thế)
+    // A. Lấy đơn khách tự đặt (TRỪ những đơn đã xác nhận - Processed)
+    // Vì đơn Processed đã được chuyển sang bảng Order (Admin) rồi
     const myCustomerOrders = await CustomerOrder.find({ 
       user: userId,
       status: { $ne: "Processed" } 
     }).lean();
 
-    // B. Lấy đơn do Admin tạo (hoặc đơn Processed đã chuyển sang đây)
+    // B. Lấy đơn do Admin tạo (bao gồm cả đơn Processed vừa chuyển sang)
     const myAdminOrders = await Order.find({ customerId: userId })
       .populate("items.productId", "name image price") 
       .lean();
@@ -134,10 +134,11 @@ export const updateOrderStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
     
-    // Lấy trạng thái cũ trước khi update
+    // Lấy đơn hàng cũ để so sánh trạng thái
     const oldOrder = await CustomerOrder.findById(id);
     if (!oldOrder) return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
 
+    // Cập nhật trạng thái mới
     const customerOrder = await CustomerOrder.findByIdAndUpdate(
       id, 
       { status }, 
@@ -166,29 +167,32 @@ export const updateOrderStatus = async (req, res) => {
             receivedDate: null,
             deliverDate: null,
             paymentMethod: "COD",
-            createdBy: req.user._id
+            // Kiểm tra req.user có tồn tại không trước khi lấy _id
+            createdBy: req.user ? req.user._id : null 
         });
     }
 
     // TH2: Hoàn tác (Processed -> Pending) => XÓA ĐƠN ADMIN TƯƠNG ỨNG
     else if (status === "Pending" && oldOrder.status === "Processed") {
-        // Tìm đơn Admin tương ứng để xóa (Tìm đơn mới nhất của khách này có trạng thái 'chưa giao' và cùng số tiền)
-        // Đây là cách tìm tương đối chính xác nhất vì không có ID liên kết trực tiếp
-        await Order.findOneAndDelete({
-            customerId: customerOrder.user,
-            total: customerOrder.totalAmount,
-            status: "chưa giao" 
-        }).sort({ createdAt: -1 }); // Xóa đơn mới nhất khớp điều kiện
+        // Tìm và xóa đơn Admin tương ứng (đơn mới nhất của khách này có trạng thái 'chưa giao')
+        await Order.findOneAndDelete(
+            {
+                customerId: customerOrder.user,
+                total: customerOrder.totalAmount,
+                status: "chưa giao" 
+            }, 
+            { sort: { createdAt: -1 } } // Xóa đơn mới nhất khớp điều kiện
+        );
     }
 
     res.json(customerOrder);
   } catch (error) {
     console.error("Lỗi update status:", error);
-    res.status(500).json({ message: "Lỗi cập nhật đơn hàng" });
+    res.status(500).json({ message: "Lỗi cập nhật đơn hàng", error: error.message });
   }
 };
 
-// 4. HỦY ĐƠN HÀNG (Fix lỗi 500)
+// 4. HỦY ĐƠN HÀNG (Đã fix lỗi validate)
 export const cancelMyOrder = async (req, res) => {
   try {
     const { id } = req.params;
@@ -221,11 +225,11 @@ export const cancelMyOrder = async (req, res) => {
     return res.status(404).json({ message: "Không tìm thấy đơn hàng để hủy" });
   } catch (error) {
     console.error("Cancel order error:", error);
-    // Trả về lỗi rõ ràng hơn để debug
     res.status(500).json({ message: "Lỗi server khi hủy đơn", error: error.message });
   }
 };
 
+// 5. CẬP NHẬT ĐỊA CHỈ
 export const updateOrderAddress = async (req, res) => {
   try {
     const { id } = req.params;
