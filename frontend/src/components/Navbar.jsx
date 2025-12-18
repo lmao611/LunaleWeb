@@ -1,9 +1,10 @@
-import { ShoppingCart, UserPlus, LogIn, LogOut, Lock, Home, User, X, Clock } from "lucide-react";
+import { ShoppingCart, UserPlus, LogIn, LogOut, Lock, Home, User, X, Clock, Package, History, Edit2, Save, XCircle } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useUserStore } from "../stores/useUserStore";
 import { useCartStore } from "../stores/useCartStore";
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import axios from "../lib/axios"; // Đảm bảo import axios
 
 const Navbar = () => {
   const { user, logout, showUserBox, setShowUserBox } = useUserStore();
@@ -12,22 +13,36 @@ const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const isHome = location.pathname === "/";
+  
+  // State cho profile
   const [editName, setEditName] = useState(user?.name || "");
   const [editEmail, setEditEmail] = useState(user?.email || "");
   const [editPhone, setEditPhone] = useState(user?.phoneNumber || "");
   const [editDirection, setEditDirection] = useState(user?.direction || "");
+
+  // State cho Navbar scroll & mobile
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
   const [tokenTimeLeft, setTokenTimeLeft] = useState(null);
 
+  // State cho tính năng mới: Tab và Đơn hàng
+  const [activeTab, setActiveTab] = useState("profile"); // 'profile' | 'orders'
+  const [orders, setOrders] = useState([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
+  const [editingOrderId, setEditingOrderId] = useState(null); // ID đơn hàng đang sửa
+  const [editOrderAddress, setEditOrderAddress] = useState("");
+
   const setUser = useUserStore((state) => state.setUser);
 
+  // --- EXISTING EFFECTS ---
   useEffect(() => {
     if (showUserBox && user) {
       setEditName(user.name || "");
       setEditEmail(user.email || "");
       setEditPhone(user.phoneNumber || "");
       setEditDirection(user.direction || "");
+      // Reset tab về profile khi mở lại
+      setActiveTab("profile"); 
     }
   }, [showUserBox, user]);
 
@@ -50,18 +65,14 @@ const Navbar = () => {
 
   useEffect(() => {
     if (!isAdmin) return;
-
     const token = localStorage.getItem("accessToken");
     if (!token) return;
-
     try {
       const payload = JSON.parse(atob(token.split(".")[1]));
       if (!payload.exp) return;
-
       const updateTimer = () => {
         const now = Math.floor(Date.now() / 1000);
         const timeLeft = payload.exp - now;
-
         if (timeLeft <= 0) {
           setTokenTimeLeft("Expired");
         } else {
@@ -70,7 +81,6 @@ const Navbar = () => {
           setTokenTimeLeft(`${m}:${s < 10 ? "0" : ""}${s}`);
         }
       };
-
       updateTimer();
       const interval = setInterval(updateTimer, 1000);
       return () => clearInterval(interval);
@@ -79,6 +89,29 @@ const Navbar = () => {
     }
   }, [isAdmin]);
 
+  // --- NEW LOGIC: FETCH ORDERS ---
+  const fetchMyOrders = async () => {
+    setLoadingOrders(true);
+    try {
+      const res = await axios.get("/orders"); // Giả định API endpoint là /orders để lấy đơn của user hiện tại
+      // Nếu API trả về { orders: [...] } hoặc mảng trực tiếp, hãy điều chỉnh dòng dưới
+      setOrders(Array.isArray(res.data) ? res.data : res.data.orders || []);
+    } catch (error) {
+      console.error("Lỗi tải đơn hàng:", error);
+      alert("Không thể tải lịch sử đơn hàng.");
+    } finally {
+      setLoadingOrders(false);
+    }
+  };
+
+  // Khi chuyển tab sang 'orders', gọi API
+  useEffect(() => {
+    if (showUserBox && activeTab === "orders") {
+      fetchMyOrders();
+    }
+  }, [showUserBox, activeTab]);
+
+  // --- ACTIONS ---
   const handleLogoClick = () => {
     if (isHome) {
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -100,32 +133,75 @@ const Navbar = () => {
 
   const handleUpdateProfile = async () => {
     try {
-      const res = await fetch("/api/auth/profile", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          name: editName,
-          email: editEmail,
-          phoneNumber: editPhone,
-          direction: editDirection,
-        }),
+      const res = await axios.put("/auth/profile", {
+        name: editName,
+        email: editEmail,
+        phoneNumber: editPhone,
+        direction: editDirection,
       });
 
-      const data = await res.json();
-      if (res.ok) {
-        setUser(data);
-        setShowUserBox(false);
+      if (res.status === 200) {
+        setUser(res.data);
         alert("Thông tin đã được cập nhật");
-      } else {
-        alert(data.message || "Lỗi cập nhật");
       }
     } catch (err) {
       console.error(err);
-      alert("Lỗi máy chủ");
+      alert(err.response?.data?.message || "Lỗi cập nhật");
     }
+  };
+
+  // Hủy đơn hàng
+  const handleCancelOrder = async (orderId) => {
+    if (!window.confirm("Bạn có chắc chắn muốn hủy đơn hàng này không?")) return;
+    try {
+      // Giả định API endpoint hủy đơn
+      await axios.put(`/orders/${orderId}/cancel`); 
+      alert("Đã hủy đơn hàng thành công.");
+      fetchMyOrders(); // Refresh list
+    } catch (error) {
+      console.error(error);
+      alert("Không thể hủy đơn hàng (có thể đơn đã được giao).");
+    }
+  };
+
+  // Bắt đầu sửa địa chỉ đơn hàng
+  const startEditOrder = (order) => {
+    setEditingOrderId(order._id);
+    setEditOrderAddress(order.address || order.direction || "");
+  };
+
+  // Lưu địa chỉ đơn hàng mới
+  const saveOrderAddress = async (orderId) => {
+    try {
+      await axios.put(`/orders/${orderId}/address`, { address: editOrderAddress });
+      alert("Cập nhật địa chỉ nhận hàng thành công.");
+      setEditingOrderId(null);
+      fetchMyOrders();
+    } catch (error) {
+      console.error(error);
+      alert("Lỗi cập nhật địa chỉ đơn hàng.");
+    }
+  };
+
+  // Format tiền tệ
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
+  };
+
+  // Dịch trạng thái sang tiếng Việt và gán màu
+  const getStatusBadge = (status) => {
+    const s = status?.toLowerCase() || "";
+    if (s.includes("pending") || s === "chờ xử lý") return <span className="text-yellow-600 bg-yellow-100 px-2 py-1 rounded text-xs font-bold">Đang xử lý</span>;
+    if (s.includes("shipping") || s === "đang giao") return <span className="text-blue-600 bg-blue-100 px-2 py-1 rounded text-xs font-bold">Đang giao</span>;
+    if (s.includes("delivered") || s === "đã giao") return <span className="text-green-600 bg-green-100 px-2 py-1 rounded text-xs font-bold">Hoàn thành</span>;
+    if (s.includes("cancelled") || s === "đã hủy") return <span className="text-red-600 bg-red-100 px-2 py-1 rounded text-xs font-bold">Đã hủy</span>;
+    return <span className="text-gray-600 bg-gray-100 px-2 py-1 rounded text-xs">{status}</span>;
+  };
+
+  // Kiểm tra xem đơn hàng có được phép sửa/hủy không (chỉ Pending hoặc Processing)
+  const isEditable = (status) => {
+    const s = status?.toLowerCase() || "";
+    return s.includes("pending") || s === "chờ xử lý" || s === "processing";
   };
 
   return (
@@ -146,6 +222,7 @@ const Navbar = () => {
         </button>
       )}
 
+      {/* --- LOGO ANIMATION (Giữ nguyên) --- */}
       {isHome ? (
         <motion.div
           className="fixed z-[100] cursor-pointer"
@@ -186,6 +263,7 @@ const Navbar = () => {
         </div>
       )}
 
+      {/* --- NAVBAR HEADER (Giữ nguyên) --- */}
       <motion.header
         initial={{ y: 0 }}
         animate={{ y: 0 }}
@@ -320,62 +398,200 @@ const Navbar = () => {
         </div>
       </motion.header>
 
-      {showUserBox && user && (
-        <div className="fixed inset-0 z-[999] bg-white flex flex-col items-center justify-center text-center px-6">
-          <button
-            onClick={() => setShowUserBox(false)}
-            className="absolute top-4 right-4 text-gray-600 hover:text-black"
-          >
-            <X size={28} />
-          </button>
-          <h2 className="text-2xl font-bold mb-6">Thông Tin Cá Nhân</h2>
-          <div className="text-lg space-y-4">
-            <div className="text-left space-y-4 w-full max-w-md">
-              <label className="block">
-                <span className="text-sm font-semibold">Họ Tên:</span>
-                <input
-                  type="text"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className="w-full mt-1 border px-3 py-2 rounded"
-                />
-              </label>
-              <label className="block">
-                <span className="text-sm font-semibold">Email:</span>
-                <input
-                  type="email"
-                  value={editEmail}
-                  onChange={(e) => setEditEmail(e.target.value)}
-                  className="w-full mt-1 border px-3 py-2 rounded"
-                />
-              </label>
-              <label className="block">
-                <span className="text-sm font-semibold">Số Điện Thoại:</span>
-                <input
-                  type="text"
-                  value={editPhone}
-                  onChange={(e) => setEditPhone(e.target.value)}
-                  className="w-full mt-1 border px-3 py-2 rounded"
-                />
-              </label>
-              <label className="block">
-                <span className="text-sm font-semibold">Địa Chỉ:</span>
-                <textarea
-                  value={editDirection}
-                  onChange={(e) => setEditDirection(e.target.value)}
-                  className="w-full mt-1 border px-3 py-2 rounded"
-                />
-              </label>
-            </div>
-            <button
-              onClick={handleUpdateProfile}
-              className="mt-6 bg-blue-600 text-white px-4 py-2 rounded"
+      {/* --- USER BOX MODAL (Đã nâng cấp) --- */}
+      <AnimatePresence>
+        {showUserBox && user && (
+          <div className="fixed inset-0 z-[999] bg-black/50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col relative"
             >
-              Cập Nhật Thông Tin
-            </button>
+              {/* Close Button */}
+              <button
+                onClick={() => setShowUserBox(false)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-black z-10 transition"
+              >
+                <X size={24} />
+              </button>
+
+              {/* Header / Tabs */}
+              <div className="flex border-b">
+                <button
+                  onClick={() => setActiveTab("profile")}
+                  className={`flex-1 py-4 font-semibold text-lg flex items-center justify-center gap-2 transition ${
+                    activeTab === "profile" 
+                    ? "text-blue-700 border-b-2 border-blue-700 bg-blue-50" 
+                    : "text-gray-500 hover:bg-gray-50"
+                  }`}
+                >
+                  <User size={20} />
+                  Thông tin cá nhân
+                </button>
+                <button
+                  onClick={() => setActiveTab("orders")}
+                  className={`flex-1 py-4 font-semibold text-lg flex items-center justify-center gap-2 transition ${
+                    activeTab === "orders" 
+                    ? "text-blue-700 border-b-2 border-blue-700 bg-blue-50" 
+                    : "text-gray-500 hover:bg-gray-50"
+                  }`}
+                >
+                  <History size={20} />
+                  Đơn hàng đã đặt
+                </button>
+              </div>
+
+              {/* Content Area */}
+              <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+                {activeTab === "profile" ? (
+                  /* --- PROFILE FORM --- */
+                  <div className="max-w-md mx-auto bg-white p-6 rounded-lg shadow-sm">
+                    <div className="space-y-4">
+                      <label className="block">
+                        <span className="text-sm font-semibold text-gray-700">Họ Tên</span>
+                        <input
+                          type="text"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          className="w-full mt-1 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="text-sm font-semibold text-gray-700">Email</span>
+                        <input
+                          type="email"
+                          value={editEmail}
+                          disabled // Thường email không cho đổi tùy tiện
+                          className="w-full mt-1 border border-gray-300 px-3 py-2 rounded bg-gray-100 text-gray-500 cursor-not-allowed"
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="text-sm font-semibold text-gray-700">Số Điện Thoại</span>
+                        <input
+                          type="text"
+                          value={editPhone}
+                          onChange={(e) => setEditPhone(e.target.value)}
+                          className="w-full mt-1 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="text-sm font-semibold text-gray-700">Địa Chỉ</span>
+                        <textarea
+                          value={editDirection}
+                          onChange={(e) => setEditDirection(e.target.value)}
+                          rows="3"
+                          className="w-full mt-1 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                        />
+                      </label>
+                    </div>
+                    <button
+                      onClick={handleUpdateProfile}
+                      className="w-full mt-6 bg-blue-700 hover:bg-blue-800 text-white font-medium py-2 rounded transition shadow-md"
+                    >
+                      Lưu Thay Đổi
+                    </button>
+                  </div>
+                ) : (
+                  /* --- ORDER HISTORY --- */
+                  <div className="space-y-4">
+                    {loadingOrders ? (
+                      <div className="text-center py-10 text-gray-500">Đang tải lịch sử đơn hàng...</div>
+                    ) : orders.length === 0 ? (
+                      <div className="text-center py-10 flex flex-col items-center text-gray-500">
+                        <Package size={48} className="mb-2 text-gray-300" />
+                        <p>Bạn chưa có đơn hàng nào.</p>
+                        <button onClick={() => {setShowUserBox(false); navigate('/')}} className="mt-4 text-blue-600 hover:underline">
+                          Mua sắm ngay
+                        </button>
+                      </div>
+                    ) : (
+                      orders.map((order) => (
+                        <div key={order._id || order.id} className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200">
+                          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b pb-4 mb-4">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-lg text-gray-800">#{ (order._id || order.id).slice(-6).toUpperCase() }</span>
+                                {getStatusBadge(order.status)}
+                              </div>
+                              <p className="text-sm text-gray-500 mt-1">
+                                Ngày đặt: {new Date(order.createdAt).toLocaleDateString("vi-VN")}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <span className="block text-sm text-gray-500">Tổng tiền</span>
+                              <span className="font-bold text-xl text-blue-700">{formatCurrency(order.totalAmount || order.total)}</span>
+                            </div>
+                          </div>
+
+                          {/* Order Details Preview */}
+                          <div className="space-y-2 mb-4">
+                             {order.products && order.products.slice(0, 2).map((item, idx) => (
+                               <div key={idx} className="flex justify-between text-sm text-gray-600">
+                                  <span>{item.quantity}x {item.product?.name || item.name || "Sản phẩm"} (Size: {item.size})</span>
+                                  <span>{formatCurrency((item.price || 0) * item.quantity)}</span>
+                               </div>
+                             ))}
+                             {order.products && order.products.length > 2 && (
+                               <p className="text-xs text-gray-400 italic">+ {order.products.length - 2} sản phẩm khác...</p>
+                             )}
+                          </div>
+                          
+                          {/* Address & Actions */}
+                          <div className="bg-gray-50 p-3 rounded text-sm space-y-2">
+                             <div className="flex items-start justify-between">
+                                <div className="flex-1 mr-2">
+                                   <span className="font-semibold text-gray-700 block mb-1">Địa chỉ nhận hàng:</span>
+                                   {editingOrderId === order._id ? (
+                                     <div className="flex gap-2">
+                                       <input 
+                                         type="text" 
+                                         value={editOrderAddress}
+                                         onChange={(e) => setEditOrderAddress(e.target.value)}
+                                         className="flex-1 border px-2 py-1 rounded text-sm"
+                                       />
+                                       <button onClick={() => saveOrderAddress(order._id)} className="text-green-600 hover:bg-green-100 p-1 rounded"><Save size={16}/></button>
+                                       <button onClick={() => setEditingOrderId(null)} className="text-red-500 hover:bg-red-100 p-1 rounded"><XCircle size={16}/></button>
+                                     </div>
+                                   ) : (
+                                     <span className="text-gray-600">{order.address || order.direction || "Chưa có địa chỉ"}</span>
+                                   )}
+                                </div>
+                                {isEditable(order.status) && editingOrderId !== order._id && (
+                                   <button 
+                                    onClick={() => startEditOrder(order)}
+                                    className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-xs"
+                                   >
+                                     <Edit2 size={12} /> Sửa
+                                   </button>
+                                )}
+                             </div>
+                             
+                             {/* Footer Actions */}
+                             <div className="pt-2 flex justify-end gap-3 mt-2 border-t border-gray-200">
+                                {isEditable(order.status) && (
+                                  <button 
+                                    onClick={() => handleCancelOrder(order._id)}
+                                    className="px-3 py-1.5 border border-red-200 text-red-600 rounded hover:bg-red-50 text-xs font-medium transition"
+                                  >
+                                    Hủy đơn
+                                  </button>
+                                )}
+                                <button className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs font-medium transition">
+                                  Xem chi tiết
+                                </button>
+                             </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </>
   );
 };
