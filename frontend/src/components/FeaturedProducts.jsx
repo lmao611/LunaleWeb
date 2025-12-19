@@ -169,7 +169,7 @@ const Card = ({ product, isMobile, preorderStatus }) => {
               onClick={handleAddToCartClick} // ✅ GỌI HÀM MỚI
             >
               <ShoppingCart size={14} className="mr-1" />
-              Add
+              Thêm vào giỏ hàng
             </button>
           </div>
         </Link>
