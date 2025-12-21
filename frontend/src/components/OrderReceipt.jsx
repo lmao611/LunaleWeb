@@ -115,6 +115,16 @@ const OrderReceipt = () => {
     });
   };
 
+  // Hàm hỗ trợ chuyển DataURL thành File object để chia sẻ
+  const dataURLtoFile = (dataurl, filename) => {
+    let arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+        bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+    while(n--){
+        u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], filename, {type:mime});
+  }
+
   const handleExportImage = async () => {
     if (!printRef.current) return;
 
@@ -168,9 +178,31 @@ const OrderReceipt = () => {
         logoImg.src = originalSrc;
       }
 
+      const fileName = `phieu_dat_hang_${Date.now()}.png`;
+
+      // --- LOGIC MỚI CHO MOBILE (SHARE SHEET) ---
+      // Kiểm tra nếu trình duyệt hỗ trợ chia sẻ file (thường là mobile Safari/Chrome)
+      if (navigator.share && navigator.canShare) {
+        const file = dataURLtoFile(dataUrl, fileName);
+        if (navigator.canShare({ files: [file] })) {
+            try {
+                await navigator.share({
+                    files: [file],
+                    title: 'Phiếu đặt hàng',
+                    text: 'Chi tiết đơn hàng từ Lunale'
+                });
+                return; // Nếu chia sẻ thành công thì dừng, không tải file nữa
+            } catch (shareError) {
+                console.log("User closed share sheet or error", shareError);
+                // Nếu lỗi (ví dụ người dùng tắt share sheet), vẫn tiếp tục tải file như fallback
+            }
+        }
+      }
+
+      // --- LOGIC CŨ (DESKTOP / FALLBACK) ---
       const link = document.createElement("a");
       link.href = dataUrl;
-      link.download = `phieu_dat_hang_${Date.now()}.png`;
+      link.download = fileName;
       link.click();
 
     } catch (err) {
