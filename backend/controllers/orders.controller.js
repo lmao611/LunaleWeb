@@ -4,7 +4,8 @@ import User from "../models/user.model.js";
 
 export const createOrder = async (req, res) => {
   try {
-    const { customerId, items, status, receivedDate, deliverDate, paymentMethod } = req.body;
+    // Nhận thêm total từ body
+    const { customerId, items, status, receivedDate, deliverDate, paymentMethod, total: reqTotal } = req.body;
 
     if (!customerId) return res.status(400).json({ message: "customerId is required" });
     if (!items || !items.length) return res.status(400).json({ message: "items required" });
@@ -12,22 +13,29 @@ export const createOrder = async (req, res) => {
     const customer = await User.findById(customerId);
     if (!customer) return res.status(404).json({ message: "Customer not found" });
 
-    let total = 0;
+    let calculatedTotal = 0;
     const populatedItems = [];
 
     for (const it of items) {
       const prod = await Product.findById(it.productId);
       if (!prod) return res.status(404).json({ message: `Product ${it.productId} not found` });
-      const price = prod.price ?? 0;
+      
+      // 🔥 UPDATE: Ưu tiên lấy giá từ Frontend gửi lên (đã trừ Sale), nếu không có mới lấy giá gốc
+      const price = it.price !== undefined ? Number(it.price) : (prod.price ?? 0);
       const quantity = Number(it.quantity) || 1;
-      total += price * quantity;
+      
+      calculatedTotal += price * quantity;
+      
       populatedItems.push({
         productId: prod._id,
         size: it.size,
         quantity,
-        price
+        price // Lưu giá thực tế của đơn hàng này
       });
     }
+
+    // 🔥 UPDATE: Nếu Frontend gửi tổng tiền (đã + ship - sale tổng) thì dùng, không thì dùng số tự tính
+    const finalTotal = reqTotal !== undefined ? reqTotal : calculatedTotal;
 
     const order = await Order.create({
       customerId: customer._id,
@@ -35,7 +43,7 @@ export const createOrder = async (req, res) => {
       address: customer.direction,
       phone: customer.phoneNumber,
       items: populatedItems,
-      total,
+      total: finalTotal, 
       status: status || "chưa giao",
       receivedDate: receivedDate ? new Date(receivedDate) : null,
       deliverDate: deliverDate ? new Date(deliverDate) : null,
@@ -78,13 +86,19 @@ export const updateOrder = async (req, res) => {
       for (const it of body.items) {
         const prod = await Product.findById(it.productId);
         if (!prod) return res.status(404).json({ message: `Product ${it.productId} not found` });
-        const price = prod.price ?? 0;
+        
+        // Logic tương tự create: ưu tiên giá sửa đổi
+        const price = it.price !== undefined ? Number(it.price) : (prod.price ?? 0);
         const quantity = Number(it.quantity) || 1;
+        
         total += price * quantity;
         populated.push({ productId: prod._id, size: it.size, quantity, price });
       }
       body.items = populated;
-      body.total = total;
+      // Chỉ cập nhật total tự động nếu frontend KHÔNG gửi total đè lên
+      if (body.total === undefined) {
+          body.total = total;
+      }
     }
 
     if (body.receivedDate) body.receivedDate = new Date(body.receivedDate);
