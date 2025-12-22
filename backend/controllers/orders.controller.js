@@ -2,10 +2,6 @@ import Order from "../models/orders.model.js";
 import Product from "../models/product.model.js";
 import User from "../models/user.model.js";
 
-import Order from "../models/orders.model.js";
-import Product from "../models/product.model.js";
-import User from "../models/user.model.js";
-
 export const createOrder = async (req, res) => {
   try {
     // 1. Thêm customerName, address, phone vào danh sách lấy từ req.body
