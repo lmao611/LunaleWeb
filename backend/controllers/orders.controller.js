@@ -4,46 +4,49 @@ import User from "../models/user.model.js";
 
 export const createOrder = async (req, res) => {
   try {
-    // Nhận thêm total từ body
-    const { customerId, items, status, receivedDate, deliverDate, paymentMethod, total: reqTotal } = req.body;
+    // Thêm shipFee vào destructuring
+    const { customerId, items, status, receivedDate, deliverDate, paymentMethod, shipFee } = req.body;
 
-    if (!customerId) return res.status(400).json({ message: "customerId is required" });
-    if (!items || !items.length) return res.status(400).json({ message: "items required" });
+    if (!customerId) return res.status(400).json({ message: "Vui lòng chọn khách hàng để lưu đơn" });
+    if (!items || !items.length) return res.status(400).json({ message: "Chưa có sản phẩm nào" });
 
     const customer = await User.findById(customerId);
-    if (!customer) return res.status(404).json({ message: "Customer not found" });
+    if (!customer) return res.status(404).json({ message: "Không tìm thấy khách hàng" });
 
-    let calculatedTotal = 0;
+    let total = 0;
     const populatedItems = [];
 
     for (const it of items) {
       const prod = await Product.findById(it.productId);
-      if (!prod) return res.status(404).json({ message: `Product ${it.productId} not found` });
+      if (!prod) return res.status(404).json({ message: `Sản phẩm ${it.productId} không tồn tại` });
       
-      // 🔥 UPDATE: Ưu tiên lấy giá từ Frontend gửi lên (đã trừ Sale), nếu không có mới lấy giá gốc
+      // LOGIC MỚI: Ưu tiên lấy giá từ Frontend gửi lên (để khớp với giá Sale trên phiếu)
+      // Nếu không gửi giá thì mới lấy giá gốc từ Product
       const price = it.price !== undefined ? Number(it.price) : (prod.price ?? 0);
       const quantity = Number(it.quantity) || 1;
       
-      calculatedTotal += price * quantity;
+      total += price * quantity;
       
       populatedItems.push({
         productId: prod._id,
         size: it.size,
         quantity,
-        price // Lưu giá thực tế của đơn hàng này
+        price // Lưu giá thực tế bán (đã sale)
       });
     }
 
-    // 🔥 UPDATE: Nếu Frontend gửi tổng tiền (đã + ship - sale tổng) thì dùng, không thì dùng số tự tính
-    const finalTotal = reqTotal !== undefined ? reqTotal : calculatedTotal;
+    // Cộng thêm phí ship vào tổng tiền
+    if (shipFee) {
+        total += Number(shipFee);
+    }
 
     const order = await Order.create({
       customerId: customer._id,
       customerName: customer.name,
-      address: customer.direction,
+      address: customer.direction, // Hoặc lấy req.body.address nếu muốn cho phép sửa địa chỉ
       phone: customer.phoneNumber,
       items: populatedItems,
-      total: finalTotal, 
+      total, // Tổng tiền đã bao gồm ship và giảm giá
       status: status || "chưa giao",
       receivedDate: receivedDate ? new Date(receivedDate) : null,
       deliverDate: deliverDate ? new Date(deliverDate) : null,
@@ -86,19 +89,13 @@ export const updateOrder = async (req, res) => {
       for (const it of body.items) {
         const prod = await Product.findById(it.productId);
         if (!prod) return res.status(404).json({ message: `Product ${it.productId} not found` });
-        
-        // Logic tương tự create: ưu tiên giá sửa đổi
-        const price = it.price !== undefined ? Number(it.price) : (prod.price ?? 0);
+        const price = prod.price ?? 0;
         const quantity = Number(it.quantity) || 1;
-        
         total += price * quantity;
         populated.push({ productId: prod._id, size: it.size, quantity, price });
       }
       body.items = populated;
-      // Chỉ cập nhật total tự động nếu frontend KHÔNG gửi total đè lên
-      if (body.total === undefined) {
-          body.total = total;
-      }
+      body.total = total;
     }
 
     if (body.receivedDate) body.receivedDate = new Date(body.receivedDate);
