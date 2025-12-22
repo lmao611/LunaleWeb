@@ -2,12 +2,20 @@ import Order from "../models/orders.model.js";
 import Product from "../models/product.model.js";
 import User from "../models/user.model.js";
 
+import Order from "../models/orders.model.js";
+import Product from "../models/product.model.js";
+import User from "../models/user.model.js";
+
 export const createOrder = async (req, res) => {
   try {
-    // Thêm shipFee vào destructuring
-    const { customerId, items, status, receivedDate, deliverDate, paymentMethod, shipFee } = req.body;
+    // 1. Thêm customerName, address, phone vào danh sách lấy từ req.body
+    const { 
+        customerId, items, status, receivedDate, deliverDate, 
+        paymentMethod, shipFee, 
+        address, phone, customerName // <-- Lấy thêm thông tin này
+    } = req.body;
 
-    if (!customerId) return res.status(400).json({ message: "Vui lòng chọn khách hàng để lưu đơn" });
+    if (!customerId) return res.status(400).json({ message: "Vui lòng chọn khách hàng" });
     if (!items || !items.length) return res.status(400).json({ message: "Chưa có sản phẩm nào" });
 
     const customer = await User.findById(customerId);
@@ -20,8 +28,6 @@ export const createOrder = async (req, res) => {
       const prod = await Product.findById(it.productId);
       if (!prod) return res.status(404).json({ message: `Sản phẩm ${it.productId} không tồn tại` });
       
-      // LOGIC MỚI: Ưu tiên lấy giá từ Frontend gửi lên (để khớp với giá Sale trên phiếu)
-      // Nếu không gửi giá thì mới lấy giá gốc từ Product
       const price = it.price !== undefined ? Number(it.price) : (prod.price ?? 0);
       const quantity = Number(it.quantity) || 1;
       
@@ -31,22 +37,22 @@ export const createOrder = async (req, res) => {
         productId: prod._id,
         size: it.size,
         quantity,
-        price // Lưu giá thực tế bán (đã sale)
+        price 
       });
     }
 
-    // Cộng thêm phí ship vào tổng tiền
-    if (shipFee) {
-        total += Number(shipFee);
-    }
+    if (shipFee) total += Number(shipFee);
 
     const order = await Order.create({
       customerId: customer._id,
-      customerName: customer.name,
-      address: customer.direction, // Hoặc lấy req.body.address nếu muốn cho phép sửa địa chỉ
-      phone: customer.phoneNumber,
+      // 2. ƯU TIÊN LẤY DỮ LIỆU TỪ FORM GỬI LÊN (req.body)
+      // Nếu form trống thì mới lấy từ database (customer.*)
+      customerName: customerName || customer.name, 
+      address: address || customer.direction || "", 
+      phone: phone || customer.phoneNumber || "",
+      
       items: populatedItems,
-      total, // Tổng tiền đã bao gồm ship và giảm giá
+      total, 
       status: status || "chưa giao",
       receivedDate: receivedDate ? new Date(receivedDate) : null,
       deliverDate: deliverDate ? new Date(deliverDate) : null,
@@ -64,7 +70,6 @@ export const createOrder = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
-
 export const getAllOrders = async (req, res) => {
   try {
     const orders = await Order.find()

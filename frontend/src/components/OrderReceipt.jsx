@@ -99,37 +99,38 @@ const OrderReceipt = () => {
 
   // --- HÀM LƯU ĐƠN HÀNG VÀO DB ---
   const saveOrderToSystem = async () => {
-    // Nếu không có Customer ID (khách vãng lai nhập tay tên), không thể lưu vào Manager
     if (!form.customerId) {
        toast.error("Vui lòng chọn khách hàng từ danh sách để lưu đơn!");
        return false;
     }
 
     try {
-      // Chuẩn bị dữ liệu items kèm giá đã SALE
       const dbItems = form.items.map(item => {
         const product = products.find(p => String(p._id || p.id) === String(item.productId));
         const basePrice = product ? product.price : 0;
-        // Tính giá đơn vị sau khi giảm (để Backend lưu đúng số tiền)
         const unitPriceAfterSale = basePrice * (1 - (item.sale || 0) / 100);
         
         return {
            productId: item.productId,
            quantity: item.quantity,
            size: item.size,
-           price: unitPriceAfterSale // Gửi giá đã giảm
+           price: unitPriceAfterSale 
         };
       });
 
       const payload = {
         customerId: form.customerId,
-        // Backend sẽ lấy tên/sdt từ ID, nhưng ta gửi address/date nếu cần
+        // --- THÊM CÁC DÒNG NÀY ---
+        customerName: form.customerName, // Gửi tên khách (nếu có sửa)
+        address: form.address,           // Gửi địa chỉ trên form
+        phone: form.phone,               // Gửi SĐT trên form
+        // --------------------------
         items: dbItems,
-        status: "chưa giao", // Mặc định
+        status: "chưa giao", 
         receivedDate: form.receivedDate || null,
         deliverDate: form.deliverDate || null,
-        paymentMethod: "COD", // Hoặc thêm field chọn phương thức
-        shipFee: form.shipFee // Gửi phí ship để backend cộng vào tổng
+        paymentMethod: "COD", 
+        shipFee: form.shipFee 
       };
 
       await axios.post("/orders", payload);
