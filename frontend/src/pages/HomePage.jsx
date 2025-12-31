@@ -13,7 +13,7 @@ import { optimizeUrl, optimizeVideoUrl } from "../lib/cloudinary";
 const categories = [
   { href: "/dress", name: "Đầm nữ", imageUrl: "/dress.jpg" },
   { href: "/shirt", name: "Áo nữ", imageUrl: "/shirt.jpg" },
-  { href: "/set", name: "Set", imageUrl: "/set.jpg" },
+  { href: "/set", name: "Set-Áo dài", imageUrl: "/set.jpg" },
   { href: "/feedback", name: "Feedback", imageUrl: "/feedback.jpg" },
 ];
 
