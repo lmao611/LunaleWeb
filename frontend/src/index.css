@@ -14,10 +14,10 @@ html, body {
 
 @layer base {
   h1, h2, h3, h4, h5, h6 {
-    @apply tracking-[0.1em];
+    @apply tracking-[0em];
     font-family: "Fjalla One", sans-serif;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0em;
 
     /* Mobile mặc định */
     font-size: 1.5rem;
