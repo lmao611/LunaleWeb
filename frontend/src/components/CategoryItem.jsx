@@ -12,9 +12,15 @@ const CategoryItem = ({ category }) => {
             className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
             loading="lazy"
           />
-          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 p-4 z-20 text-center w-full mb-6">
-            <h3 className="text-white text-2xl font-bold mb-2">{category.name}</h3>
-            <p className="text-gray-200 text-sm">Khám phá {category.name}</p>
+          
+          {/* Cập nhật phần căn chỉnh và cỡ chữ */}
+          <div className="absolute bottom-0 left-0 right-0 p-4 z-20 flex flex-col items-center justify-center text-center mb-4 md:mb-6">
+            <h3 className="text-white text-lg md:text-2xl font-bold mb-1 md:mb-2">
+              {category.name}
+            </h3>
+            <p className="text-gray-200 text-xs md:text-sm">
+              Khám phá {category.name}
+            </p>
           </div>
         </div>
       </Link>
