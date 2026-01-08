@@ -15,7 +15,7 @@ const CategoryItem = ({ category }) => {
           
           {/* Cập nhật phần căn chỉnh và cỡ chữ */}
           <div className="absolute bottom-0 left-0 right-0 p-4 z-20 flex flex-col items-center justify-center text-center mb-4 md:mb-6">
-            <h3 className="text-white text-lg md:text-2xl font-bold mb-1 md:mb-2">
+            <h3 className="text-white text-sm md:text-2xl font-bold mb-1 md:mb-2">
               {category.name}
             </h3>
             <p className="text-gray-200 text-xs md:text-sm">
