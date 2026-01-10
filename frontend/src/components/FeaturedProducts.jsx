@@ -57,7 +57,7 @@ const FeaturedProducts = () => {
     <div className="py-12 bg-transparent relative overflow-hidden">
       <div className="container mx-auto px-4">
         <h2 className="text-center sm:text-3xl font-bold text-blue-990 mb-6">
-          Sản phẩm được ưa thích
+          Featured Products
         </h2>
 
         <div className="relative z-0">
@@ -159,7 +159,7 @@ const Card = ({ product, isMobile, preorderStatus }) => {
           </div>
 
           <div className={`absolute bottom-0 left-0 right-0 z-30 p-2 bg-gradient-to-t from-gray-900/80 to-gray-600/40 transition-transform duration-500 ease-in-out ${isMobile ? "translate-y-0" : "translate-y-full group-hover:translate-y-0"}`}>
-            <h5 className="font-semibold text-white truncate text-sm sm:text-base">{product.name}</h5>
+            <h5 className="font-semibold text-white truncate text-xs sm:text-base">{product.name}</h5>
             <div className="flex items-center justify-between mt-1">
               <span className="text-white font-bold text-sm">{Number(product.price).toLocaleString("vi-VN")}đ</span>
             </div>
