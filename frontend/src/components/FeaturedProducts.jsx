@@ -3,9 +3,9 @@ import { ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react";
 import { useProductStore } from "../stores/useProductStore";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { useUserStore } from "../stores/useUserStore"; // ✅ Import UserStore
-import toast from "react-hot-toast"; // ✅ Import Toast
-import AddToCartModal from "./AddToCartModal"; // ✅ Import Modal
+import { useUserStore } from "../stores/useUserStore";
+import toast from "react-hot-toast";
+import AddToCartModal from "./AddToCartModal";
 
 const FeaturedProducts = () => {
   const { products, fetchFeaturedProducts } = useProductStore();
@@ -61,7 +61,7 @@ const FeaturedProducts = () => {
         </h2>
 
         <div className="relative z-0">
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 justify-items-center">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6 justify-items-center">
             {visibleProducts.map((product) => (
               <Card
                 key={product._id}
@@ -73,10 +73,10 @@ const FeaturedProducts = () => {
           </div>
 
           <div className="z-50">
-            <button onClick={prevPage} disabled={page === 0} className={`absolute top-1/2 -left-4 transform -translate-y-1/2 flex items-center justify-center rounded-full transition-colors duration-300 shadow-md ${page === 0 ? "bg-gray-400 cursor-not-allowed" : "bg-gray-900 hover:bg-gray-700"} ${isMobile ? "w-8 h-8 p-1" : "w-10 h-10 p-2"} z-50`}>
+            <button onClick={prevPage} disabled={page === 0} className={`absolute top-1/2 -left-3 sm:-left-4 transform -translate-y-1/2 flex items-center justify-center rounded-full transition-colors duration-300 shadow-md ${page === 0 ? "bg-gray-400 cursor-not-allowed" : "bg-gray-900 hover:bg-gray-700"} ${isMobile ? "w-8 h-8 p-1" : "w-10 h-10 p-2"} z-50`}>
               <ChevronLeft className={`${isMobile ? "w-4 h-4" : "w-6 h-6"} text-white`} />
             </button>
-            <button onClick={nextPage} disabled={page >= totalPages - 1} className={`absolute top-1/2 -right-4 transform -translate-y-1/2 flex items-center justify-center rounded-full transition-colors duration-300 shadow-md ${page >= totalPages - 1 ? "bg-gray-400 cursor-not-allowed" : "bg-gray-900 hover:bg-gray-700"} ${isMobile ? "w-8 h-8 p-1" : "w-10 h-10 p-2"} z-50`}>
+            <button onClick={nextPage} disabled={page >= totalPages - 1} className={`absolute top-1/2 -right-3 sm:-right-4 transform -translate-y-1/2 flex items-center justify-center rounded-full transition-colors duration-300 shadow-md ${page >= totalPages - 1 ? "bg-gray-400 cursor-not-allowed" : "bg-gray-900 hover:bg-gray-700"} ${isMobile ? "w-8 h-8 p-1" : "w-10 h-10 p-2"} z-50`}>
               <ChevronRight className={`${isMobile ? "w-4 h-4" : "w-6 h-6"} text-white`} />
             </button>
           </div>
@@ -86,22 +86,20 @@ const FeaturedProducts = () => {
   );
 };
 
-// === CARD Component ===
 const Card = ({ product, isMobile, preorderStatus }) => {
   const cardRef = useRef(null);
   const glareRef = useRef(null);
-  const { user } = useUserStore(); // ✅ Lấy user info
-  const [showModal, setShowModal] = useState(false); // ✅ State Popup
+  const { user } = useUserStore();
+  const [showModal, setShowModal] = useState(false);
 
-  // Hàm xử lý khi bấm nút Add
   const handleAddToCartClick = (e) => {
     e.preventDefault(); 
-    e.stopPropagation(); // Ngăn chặn nhảy link
+    e.stopPropagation(); 
     if (!user) {
       toast.error("Vui lòng đăng nhập để thêm vào giỏ hàng", { id: "login" });
       return;
     }
-    setShowModal(true); // ✅ Mở Modal
+    setShowModal(true);
   };
 
   const handleMouseMove = (e) => {
@@ -133,13 +131,13 @@ const Card = ({ product, isMobile, preorderStatus }) => {
 
   return (
     <>
-      <motion.div whileHover={!isMobile ? { scale: 1.04 } : {}} transition={{ duration: 0.3 }} className="z-10">
+      <motion.div whileHover={!isMobile ? { scale: 1.04 } : {}} transition={{ duration: 0.3 }} className="z-10 w-full">
         <Link
           to={`/product/${product._id}`}
           ref={cardRef}
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
-          className="group relative block overflow-hidden rounded-xl shadow-md hover:shadow-1xl hover:ring-2 hover:ring-gray-900/40 transition-transform duration-200 ease-out bg-white/80 backdrop-blur-sm w-40 sm:w-52 md:w-54 md:h-72 lg:w-64 lg:h-77"
+          className="group relative block overflow-hidden rounded-xl shadow-md hover:shadow-1xl hover:ring-2 hover:ring-gray-900/40 transition-transform duration-200 ease-out bg-white/80 backdrop-blur-sm w-full sm:w-52 md:w-54 lg:w-64"
         >
           <div ref={glareRef} className="pointer-events-none absolute inset-0 rounded-xl z-20 transition-all duration-300" />
 
@@ -149,7 +147,7 @@ const Card = ({ product, isMobile, preorderStatus }) => {
             </span>
           )}
 
-          <div className="h-60 sm:h-72 md:h-80 lg:h-96 w-full overflow-hidden">
+          <div className="h-52 sm:h-72 md:h-80 lg:h-96 w-full overflow-hidden">
             <img
               src={product.image}
               alt={product.name}
@@ -166,16 +164,15 @@ const Card = ({ product, isMobile, preorderStatus }) => {
 
             <button
               className="mt-2 flex items-center justify-center w-full rounded-md bg-gray-200 text-black hover:bg-gray-700 hover:text-white active:scale-95 px-3 py-1.5 text-xs"
-              onClick={handleAddToCartClick} // ✅ GỌI HÀM MỚI
+              onClick={handleAddToCartClick}
             >
               <ShoppingCart size={14} className="mr-1" />
-              Thêm vào giỏ hàng
+              Thêm
             </button>
           </div>
         </Link>
       </motion.div>
 
-      {/* ✅ MODAL POPUP */}
       {showModal && <AddToCartModal product={product} onClose={() => setShowModal(false)} />}
     </>
   );
