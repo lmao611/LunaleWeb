@@ -157,7 +157,7 @@ const Card = ({ product, isMobile, preorderStatus }) => {
           </div>
 
           <div className={`absolute bottom-0 left-0 right-0 z-30 p-2 bg-gradient-to-t from-gray-900/80 to-gray-600/40 transition-transform duration-500 ease-in-out ${isMobile ? "translate-y-0" : "translate-y-full group-hover:translate-y-0"}`}>
-            <h5 className="font-semibold text-white truncate text-xs sm:text-base">{product.name}</h5>
+            <h5 className="font-semibold text-white truncate text-[9px] sm:text-base">{product.name}</h5>
             <div className="flex items-center justify-between mt-1">
               <span className="text-white font-bold text-sm">{Number(product.price).toLocaleString("vi-VN")}đ</span>
             </div>
