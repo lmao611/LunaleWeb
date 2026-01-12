@@ -118,7 +118,7 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
 
       {!isFeedback && (
         <div className={`absolute bottom-0 left-0 right-0 lg:translate-y-full lg:group-hover:translate-y-0 transition-transform duration-500 ease-in-out bg-gradient-to-t from-gray-900/95 via-gray-900/80 to-transparent z-30 ${size.infoPadding}`}>
-          <h5 className="font-semibold text-white truncate text-[10.5px] mb-1">{product.name}</h5>
+          <h5 className="font-semibold text-white truncate text-[10.5px] sm:text-base mt-2">{product.name}</h5>
           
           <div className="mb-2 min-h-[1.5rem] flex items-end">
             {isSale ? (
