@@ -29,7 +29,6 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
   const originalDisplay = originalPrice.toLocaleString("vi-VN", { maximumFractionDigits: 0 }) + "đ";
   const discountedDisplay = discountedPrice.toLocaleString("vi-VN", { maximumFractionDigits: 0 }) + "đ";
 
-  // --- 🔥 LOGIC MỚI: Xử lý hiển thị trạng thái (Totem) ---
   const getStatusBadge = (status) => {
     switch (status) {
       case "preorder": 
@@ -39,7 +38,7 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
       case "low": 
         return { label: "Số lượng còn ít", color: "bg-yellow-400 text-gray-900" };
       default: 
-        return null; // None hoặc khác thì không hiện
+        return null; 
     }
   };
   
@@ -92,16 +91,14 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
     >
       <div ref={glareRef} className="pointer-events-none absolute inset-0 rounded-xl z-20 transition-opacity duration-300" />
 
-      {/* --- PHẦN TOTEM (Góc trên phải) --- */}
+
       <div className="absolute top-2 right-2 z-40 flex flex-col items-end gap-1 pointer-events-none">
-         {/* Giữ nguyên phần Sale */}
          {isSale && (
             <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-md">
                -{percent}%
             </span>
          )}
          
-         {/* Cập nhật phần Trạng thái (Pre-order / Out / Low) */}
          {statusInfo && (
             <span className={`${statusInfo.color} text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-md opacity-90`}>
               {statusInfo.label}
@@ -121,7 +118,7 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
 
       {!isFeedback && (
         <div className={`absolute bottom-0 left-0 right-0 lg:translate-y-full lg:group-hover:translate-y-0 transition-transform duration-500 ease-in-out bg-gradient-to-t from-gray-900/95 via-gray-900/80 to-transparent z-30 ${size.infoPadding}`}>
-          <h5 className="font-semibold text-white truncate text-sm mb-1">{product.name}</h5>
+          <h5 className="font-semibold text-white truncate text-[10.5px] mb-1">{product.name}</h5>
           
           <div className="mb-2 min-h-[1.5rem] flex items-end">
             {isSale ? (
