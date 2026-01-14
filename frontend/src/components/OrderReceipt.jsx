@@ -100,21 +100,14 @@ const OrderReceipt = () => {
   // Hàm chuyển đổi từ "15/01/2026" sang "2026-01-15" để gửi cho Server
   const convertToISO = (dateString) => {
     if (!dateString) return null;
-    
-    // Tách chuỗi dựa trên dấu / hoặc dấu - hoặc dấu .
     const parts = dateString.split(/[\/\-\.]/); 
-    
     if (parts.length === 3) {
       let [d, m, y] = parts;
-      
-      // Thêm số 0 vào trước nếu nhập thiếu (ví dụ: 1/1/2026 -> 01/01/2026)
       d = d.padStart(2, "0");
       m = m.padStart(2, "0");
-      
-      // Trả về định dạng Năm-Tháng-Ngày (Server cần cái này)
       return `${y}-${m}-${d}`;
     }
-    return null; // Trả về null nếu nhập sai định dạng
+    return null;
   };
 
   const saveOrderToSystem = async () => {
@@ -123,16 +116,13 @@ const OrderReceipt = () => {
        return false;
     }
 
-    // --- XỬ LÝ NGÀY THÁNG TẠI ĐÂY ---
     const isoDeliverDate = convertToISO(form.deliverDate);
     const isoReceivedDate = convertToISO(form.receivedDate);
 
-    // Kiểm tra nếu nhập sai (có nhập mà convert ra null)
     if ((form.deliverDate && !isoDeliverDate) || (form.receivedDate && !isoReceivedDate)) {
         toast.error("Ngày tháng không hợp lệ! Vui lòng nhập theo dạng: Ngày/Tháng/Năm (VD: 15/01/2026)");
         return false;
     }
-    // --------------------------------
 
     try {
       const dbItems = form.items.map(item => {
@@ -155,12 +145,8 @@ const OrderReceipt = () => {
         phone: form.phone,
         items: dbItems,
         status: "chưa giao", 
-        
-        // --- SỬ DỤNG NGÀY ĐÃ CHUYỂN ĐỔI ---
         receivedDate: isoReceivedDate, 
         deliverDate: isoDeliverDate,
-        // ----------------------------------
-        
         paymentMethod: "COD", 
         shipFee: form.shipFee 
       };
@@ -171,7 +157,7 @@ const OrderReceipt = () => {
     } catch (error) {
       console.error("Save error", error);
 
-      // --- !!! PHẦN DEBUG (HÃY XÓA SAU KHI SỬA XONG LỖI) !!! ---
+      // --- DEBUG ERROR BLOCK ---
       let debugMessage = "";
       if (error.response) {
         debugMessage = `Status: ${error.response.status}\nData: ${JSON.stringify(error.response.data)}`;
@@ -181,17 +167,37 @@ const OrderReceipt = () => {
         debugMessage = error.message;
       }
       alert("DEBUG ERROR:\n" + debugMessage); 
-      // ---------------------------------------------------------
+      // -------------------------
 
       toast.error("Lỗi khi lưu đơn hàng: " + (error.response?.data?.message || error.message));
       return false;
     }
   };
 
+  // --- HÀM MỚI: BẮT BUỘC CHỜ ẢNH LOAD VÀ DECODE XONG ---
+  const waitForImages = async (element) => {
+    const images = element.querySelectorAll('img');
+    const promises = Array.from(images).map(async (img) => {
+       // 1. Chờ tải xong (Network)
+       if (!img.complete) {
+           await new Promise((resolve) => {
+               img.onload = resolve;
+               img.onerror = resolve; 
+           });
+       }
+       // 2. Chờ giải mã xong (GPU/Memory) -> Quan trọng cho Safari
+       if (img.decode) {
+           await img.decode().catch((e) => console.log("Lỗi decode ảnh (bỏ qua):", e));
+       }
+    });
+    await Promise.all(promises);
+  };
+
   const handleGenerateImage = async () => {
     if (!printRef.current) return;
     setIsGenerating(true);
 
+    // 1. Lưu đơn hàng trước
     if (form.customerId) {
         const saved = await saveOrderToSystem();
         await new Promise(r => setTimeout(r, 200));
@@ -208,23 +214,27 @@ const OrderReceipt = () => {
     const el = printRef.current;
     
     try {
+      // 2. Hiện khung in
       el.style.display = "block";
       el.style.opacity = "1";
       el.style.top = "0";
       el.style.left = "0";
       el.style.zIndex = "-10"; 
       el.style.backgroundColor = "#ffffff";
-
-      const logoImg = el.querySelector("#print-logo");
-      if (logoImg && logoBase64) {
-         if (logoImg.decode) {
-             await logoImg.decode().catch(() => {});
-         }
-      }
       
-      await document.fonts.ready;
-      await new Promise((r) => setTimeout(r, 1000)); 
+      // 3. CHỜ ĐỢI HOÀN HẢO (Hard Wait)
+      await document.fonts.ready; // Chờ Font
+      await waitForImages(el);    // Chờ Ảnh & Logo decode
+      await new Promise((r) => setTimeout(r, 500)); // Chờ Layout ổn định
 
+      // 4. CHỤP MỒI (Warm-up) - Bí kíp trị mất ảnh trên Safari
+      // Chụp 1 tấm nháp chất lượng thấp để ép trình duyệt render vào bộ nhớ
+      await toPng(el, { quality: 0.01, pixelRatio: 1, skipAutoScale: true });
+      
+      // Nghỉ 1 nhịp
+      await new Promise((r) => setTimeout(r, 100));
+
+      // 5. CHỤP THẬT (Chất lượng cao)
       const dataUrl = await toPng(el, {
         quality: 1.0,
         cacheBust: true,
@@ -248,7 +258,7 @@ const OrderReceipt = () => {
 
     } catch (err) {
       console.error(err);
-      alert("Lỗi tạo ảnh: " + err.message);
+      // alert("Lỗi tạo ảnh: " + err.message); 
     } finally {
       if (printRef.current) {
         el.style.opacity = "0";
@@ -346,7 +356,6 @@ const OrderReceipt = () => {
             <input type="text" value={form.terms} onChange={(e) => setForm((f) => ({ ...f, terms: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base focus:ring-2 focus:ring-blue-500 outline-none" />
           </div>
           
-          {/* Ô NHẬP NGÀY GIAO (TEXT) */}
           <div>
             <label className="block text-sm mb-1 font-medium text-gray-700">Ngày giao</label>
             <input 
@@ -357,7 +366,6 @@ const OrderReceipt = () => {
             />
           </div>
 
-          {/* Ô NHẬP NGÀY ĐẾN (TEXT) */}
           <div>
             <label className="block text-sm mb-1 font-medium text-gray-700">Ngày đến</label>
             <input 
@@ -498,7 +506,6 @@ const OrderReceipt = () => {
             <p><span className="font-bold text-gray-600 w-32 inline-block">Địa chỉ:</span> {form.address}</p>
           </div>
           <div className="space-y-2">
-            {/* IN RA NGUYÊN VĂN NHỮNG GÌ BẠN NHẬP (VD: 15/01/2026) */}
             <p><span className="font-bold text-gray-600 w-32 inline-block">Ngày giao:</span> {form.deliverDate}</p>
             <p><span className="font-bold text-gray-600 w-32 inline-block">Ngày đến:</span> {form.receivedDate}</p>
             <p><span className="font-bold text-gray-600 w-32 inline-block">Ghi chú:</span> {form.terms}</p>
@@ -535,12 +542,12 @@ const OrderReceipt = () => {
 
         <div className="flex justify-between items-end mt-10 pt-6 border-t-2 border-gray-300">
            <div className="pl-4">
+              {/* QUAN TRỌNG: Đã xóa crossOrigin để không lỗi Base64 trên Safari */}
               <img 
                  id="print-logo"
                  src={logoBase64 || "/lunale.png"} 
                  alt="Logo" 
                  className="w-56 block object-contain"
-                 crossOrigin="anonymous"
               />
               <p className="text-gray-400 text-sm mt-2 italic font-medium">Cảm ơn bạn đã lựa chọn Lunale!</p>
            </div>
