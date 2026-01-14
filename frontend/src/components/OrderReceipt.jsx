@@ -97,14 +97,24 @@ const OrderReceipt = () => {
 
   const totalWithShip = calcTotal() + (form.shipFee || 0);
 
-  const formatDate = (dateString) => {
-    if (!dateString) return "";
-    const parts = dateString.split("-");
+  // Hàm chuyển đổi từ "15/01/2026" sang "2026-01-15" để gửi cho Server
+  const convertToISO = (dateString) => {
+    if (!dateString) return null;
+    
+    // Tách chuỗi dựa trên dấu / hoặc dấu - hoặc dấu .
+    const parts = dateString.split(/[\/\-\.]/); 
+    
     if (parts.length === 3) {
-      const [y, m, d] = parts;
-      return `${d}/${m}/${y}`;
+      let [d, m, y] = parts;
+      
+      // Thêm số 0 vào trước nếu nhập thiếu (ví dụ: 1/1/2026 -> 01/01/2026)
+      d = d.padStart(2, "0");
+      m = m.padStart(2, "0");
+      
+      // Trả về định dạng Năm-Tháng-Ngày (Server cần cái này)
+      return `${y}-${m}-${d}`;
     }
-    return dateString;
+    return null; // Trả về null nếu nhập sai định dạng
   };
 
   const saveOrderToSystem = async () => {
@@ -112,6 +122,17 @@ const OrderReceipt = () => {
        toast.error("Vui lòng chọn khách hàng từ danh sách để lưu đơn!");
        return false;
     }
+
+    // --- XỬ LÝ NGÀY THÁNG TẠI ĐÂY ---
+    const isoDeliverDate = convertToISO(form.deliverDate);
+    const isoReceivedDate = convertToISO(form.receivedDate);
+
+    // Kiểm tra nếu nhập sai (có nhập mà convert ra null)
+    if ((form.deliverDate && !isoDeliverDate) || (form.receivedDate && !isoReceivedDate)) {
+        toast.error("Ngày tháng không hợp lệ! Vui lòng nhập theo dạng: Ngày/Tháng/Năm (VD: 15/01/2026)");
+        return false;
+    }
+    // --------------------------------
 
     try {
       const dbItems = form.items.map(item => {
@@ -134,8 +155,12 @@ const OrderReceipt = () => {
         phone: form.phone,
         items: dbItems,
         status: "chưa giao", 
-        receivedDate: form.receivedDate || null,
-        deliverDate: form.deliverDate || null,
+        
+        // --- SỬ DỤNG NGÀY ĐÃ CHUYỂN ĐỔI ---
+        receivedDate: isoReceivedDate, 
+        deliverDate: isoDeliverDate,
+        // ----------------------------------
+        
         paymentMethod: "COD", 
         shipFee: form.shipFee 
       };
@@ -146,7 +171,7 @@ const OrderReceipt = () => {
     } catch (error) {
       console.error("Save error", error);
 
-      /* --- START DEBUG: DELETE THIS BLOCK LATER --- */
+      // --- !!! PHẦN DEBUG (HÃY XÓA SAU KHI SỬA XONG LỖI) !!! ---
       let debugMessage = "";
       if (error.response) {
         debugMessage = `Status: ${error.response.status}\nData: ${JSON.stringify(error.response.data)}`;
@@ -156,7 +181,7 @@ const OrderReceipt = () => {
         debugMessage = error.message;
       }
       alert("DEBUG ERROR:\n" + debugMessage); 
-      /* --- END DEBUG --- */
+      // ---------------------------------------------------------
 
       toast.error("Lỗi khi lưu đơn hàng: " + (error.response?.data?.message || error.message));
       return false;
@@ -320,14 +345,29 @@ const OrderReceipt = () => {
             <label className="block text-sm mb-1 font-medium text-gray-700">Điều khoản</label>
             <input type="text" value={form.terms} onChange={(e) => setForm((f) => ({ ...f, terms: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base focus:ring-2 focus:ring-blue-500 outline-none" />
           </div>
+          
+          {/* Ô NHẬP NGÀY GIAO (TEXT) */}
           <div>
             <label className="block text-sm mb-1 font-medium text-gray-700">Ngày giao</label>
-            <input type="date" onChange={(e) => setForm((f) => ({ ...f, deliverDate: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base focus:ring-2 focus:ring-blue-500 outline-none" />
+            <input 
+              type="text" 
+              placeholder="VD: 15/01/2026"
+              onChange={(e) => setForm((f) => ({ ...f, deliverDate: e.target.value }))} 
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base focus:ring-2 focus:ring-blue-500 outline-none" 
+            />
           </div>
+
+          {/* Ô NHẬP NGÀY ĐẾN (TEXT) */}
           <div>
             <label className="block text-sm mb-1 font-medium text-gray-700">Ngày đến</label>
-            <input type="date" onChange={(e) => setForm((f) => ({ ...f, receivedDate: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base focus:ring-2 focus:ring-blue-500 outline-none" />
+            <input 
+              type="text" 
+              placeholder="VD: 15/01/2026"
+              onChange={(e) => setForm((f) => ({ ...f, receivedDate: e.target.value }))} 
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base focus:ring-2 focus:ring-blue-500 outline-none" 
+            />
           </div>
+
           <div>
             <label className="block text-sm mb-1 font-medium text-gray-700">Địa chỉ</label>
             <input type="text" value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base focus:ring-2 focus:ring-blue-500 outline-none" />
@@ -458,8 +498,9 @@ const OrderReceipt = () => {
             <p><span className="font-bold text-gray-600 w-32 inline-block">Địa chỉ:</span> {form.address}</p>
           </div>
           <div className="space-y-2">
-            <p><span className="font-bold text-gray-600 w-32 inline-block">Ngày giao:</span> {formatDate(form.deliverDate)}</p>
-            <p><span className="font-bold text-gray-600 w-32 inline-block">Ngày đến:</span> {formatDate(form.receivedDate)}</p>
+            {/* IN RA NGUYÊN VĂN NHỮNG GÌ BẠN NHẬP (VD: 15/01/2026) */}
+            <p><span className="font-bold text-gray-600 w-32 inline-block">Ngày giao:</span> {form.deliverDate}</p>
+            <p><span className="font-bold text-gray-600 w-32 inline-block">Ngày đến:</span> {form.receivedDate}</p>
             <p><span className="font-bold text-gray-600 w-32 inline-block">Ghi chú:</span> {form.terms}</p>
           </div>
         </div>
