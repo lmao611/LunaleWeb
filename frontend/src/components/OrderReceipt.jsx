@@ -97,7 +97,16 @@ const OrderReceipt = () => {
 
   const totalWithShip = calcTotal() + (form.shipFee || 0);
 
-  // --- HÀM LƯU ĐƠN HÀNG VÀO DB ---
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    const parts = dateString.split("-");
+    if (parts.length === 3) {
+      const [y, m, d] = parts;
+      return `${d}/${m}/${y}`;
+    }
+    return dateString;
+  };
+
   const saveOrderToSystem = async () => {
     if (!form.customerId) {
        toast.error("Vui lòng chọn khách hàng từ danh sách để lưu đơn!");
@@ -137,20 +146,17 @@ const OrderReceipt = () => {
     } catch (error) {
       console.error("Save error", error);
 
-      // --- PHẦN DEBUG: HIỆN LỖI LÊN IPHONE ---
+      /* --- START DEBUG: DELETE THIS BLOCK LATER --- */
       let debugMessage = "";
       if (error.response) {
-        // Server trả về mã lỗi (4xx, 5xx)
         debugMessage = `Status: ${error.response.status}\nData: ${JSON.stringify(error.response.data)}`;
       } else if (error.request) {
-        // Không nhận được phản hồi
-        debugMessage = "Không có phản hồi từ Server (Network Error). Kiểm tra lại kết nối hoặc link API.";
+        debugMessage = "Không có phản hồi từ Server (Network Error).";
       } else {
-        // Lỗi setup request
         debugMessage = error.message;
       }
       alert("DEBUG ERROR:\n" + debugMessage); 
-      // ----------------------------------------
+      /* --- END DEBUG --- */
 
       toast.error("Lỗi khi lưu đơn hàng: " + (error.response?.data?.message || error.message));
       return false;
@@ -163,11 +169,9 @@ const OrderReceipt = () => {
 
     if (form.customerId) {
         const saved = await saveOrderToSystem();
-        // Thêm một chút delay sau khi lưu để UI kịp phản hồi
         await new Promise(r => setTimeout(r, 200));
 
         if (!saved) {
-            // Sử dụng window.confirm để hỏi ý kiến người dùng nếu lưu lỗi
             const userContinue = window.confirm("Lưu đơn hàng thất bại. Bạn có muốn tiếp tục xuất ảnh KHÔNG lưu đơn?");
             if (!userContinue) {
                 setIsGenerating(false);
@@ -194,7 +198,6 @@ const OrderReceipt = () => {
       }
       
       await document.fonts.ready;
-      // Tăng delay lên 1 chút để Safari ổn định layout sau alert/confirm
       await new Promise((r) => setTimeout(r, 1000)); 
 
       const dataUrl = await toPng(el, {
@@ -312,18 +315,18 @@ const OrderReceipt = () => {
               className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-2 text-base focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
-          {/* Các trường input khác giữ nguyên như cũ */}
+          
           <div>
             <label className="block text-sm mb-1 font-medium text-gray-700">Điều khoản</label>
             <input type="text" value={form.terms} onChange={(e) => setForm((f) => ({ ...f, terms: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base focus:ring-2 focus:ring-blue-500 outline-none" />
           </div>
           <div>
             <label className="block text-sm mb-1 font-medium text-gray-700">Ngày giao</label>
-            <input type="text" onChange={(e) => setForm((f) => ({ ...f, deliverDate: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base focus:ring-2 focus:ring-blue-500 outline-none" />
+            <input type="date" onChange={(e) => setForm((f) => ({ ...f, deliverDate: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base focus:ring-2 focus:ring-blue-500 outline-none" />
           </div>
           <div>
             <label className="block text-sm mb-1 font-medium text-gray-700">Ngày đến</label>
-            <input type="text" onChange={(e) => setForm((f) => ({ ...f, receivedDate: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base focus:ring-2 focus:ring-blue-500 outline-none" />
+            <input type="date" onChange={(e) => setForm((f) => ({ ...f, receivedDate: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base focus:ring-2 focus:ring-blue-500 outline-none" />
           </div>
           <div>
             <label className="block text-sm mb-1 font-medium text-gray-700">Địa chỉ</label>
@@ -455,8 +458,8 @@ const OrderReceipt = () => {
             <p><span className="font-bold text-gray-600 w-32 inline-block">Địa chỉ:</span> {form.address}</p>
           </div>
           <div className="space-y-2">
-            <p><span className="font-bold text-gray-600 w-32 inline-block">Ngày giao:</span> {form.deliverDate}</p>
-            <p><span className="font-bold text-gray-600 w-32 inline-block">Ngày đến:</span> {form.receivedDate}</p>
+            <p><span className="font-bold text-gray-600 w-32 inline-block">Ngày giao:</span> {formatDate(form.deliverDate)}</p>
+            <p><span className="font-bold text-gray-600 w-32 inline-block">Ngày đến:</span> {formatDate(form.receivedDate)}</p>
             <p><span className="font-bold text-gray-600 w-32 inline-block">Ghi chú:</span> {form.terms}</p>
           </div>
         </div>
