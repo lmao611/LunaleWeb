@@ -34,6 +34,8 @@ const allowedOrigins = [
   process.env.CLIENT_URL,
   "http://localhost:5173",
   "https://localhost:5173",
+  "https://lunale.com.vn",
+  "https://www.lunale.com.vn",
 ];
 
 app.use(
