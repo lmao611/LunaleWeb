@@ -4,7 +4,7 @@ import { PlusCircle, Trash2, ImageDown, ChevronDown, X, Share2 } from "lucide-re
 import { toPng } from "html-to-image";
 import axios from "../lib/axios";
 import { useUserStore } from "../stores/useUserStore";
-import toast from "react-hot-toast"; // Thêm toast để thông báo
+import toast from "react-hot-toast";
 
 const OrderReceipt = () => {
   const [customers, setCustomers] = useState([]);
@@ -120,11 +120,9 @@ const OrderReceipt = () => {
 
       const payload = {
         customerId: form.customerId,
-        // --- THÊM CÁC DÒNG NÀY ---
-        customerName: form.customerName, // Gửi tên khách (nếu có sửa)
-        address: form.address,           // Gửi địa chỉ trên form
-        phone: form.phone,               // Gửi SĐT trên form
-        // --------------------------
+        customerName: form.customerName,
+        address: form.address,
+        phone: form.phone,
         items: dbItems,
         status: "chưa giao", 
         receivedDate: form.receivedDate || null,
@@ -138,6 +136,22 @@ const OrderReceipt = () => {
       return true;
     } catch (error) {
       console.error("Save error", error);
+
+      // --- PHẦN DEBUG: HIỆN LỖI LÊN IPHONE ---
+      let debugMessage = "";
+      if (error.response) {
+        // Server trả về mã lỗi (4xx, 5xx)
+        debugMessage = `Status: ${error.response.status}\nData: ${JSON.stringify(error.response.data)}`;
+      } else if (error.request) {
+        // Không nhận được phản hồi
+        debugMessage = "Không có phản hồi từ Server (Network Error). Kiểm tra lại kết nối hoặc link API.";
+      } else {
+        // Lỗi setup request
+        debugMessage = error.message;
+      }
+      alert("DEBUG ERROR:\n" + debugMessage); 
+      // ----------------------------------------
+
       toast.error("Lỗi khi lưu đơn hàng: " + (error.response?.data?.message || error.message));
       return false;
     }
@@ -147,13 +161,18 @@ const OrderReceipt = () => {
     if (!printRef.current) return;
     setIsGenerating(true);
 
-    // 1. GỌI HÀM LƯU ĐƠN TRƯỚC (Hoặc sau tùy ý, ở đây mình gọi song song hoặc trước khi chụp)
-    // Nếu bạn muốn bắt buộc lưu thành công mới in thì thêm await và check kết quả
     if (form.customerId) {
         const saved = await saveOrderToSystem();
-        if (!saved && !confirm("Lỗi lưu đơn hàng. Bạn có muốn tiếp tục xuất ảnh không?")) {
-            setIsGenerating(false);
-            return;
+        // Thêm một chút delay sau khi lưu để UI kịp phản hồi
+        await new Promise(r => setTimeout(r, 200));
+
+        if (!saved) {
+            // Sử dụng window.confirm để hỏi ý kiến người dùng nếu lưu lỗi
+            const userContinue = window.confirm("Lưu đơn hàng thất bại. Bạn có muốn tiếp tục xuất ảnh KHÔNG lưu đơn?");
+            if (!userContinue) {
+                setIsGenerating(false);
+                return;
+            }
         }
     }
 
@@ -175,7 +194,8 @@ const OrderReceipt = () => {
       }
       
       await document.fonts.ready;
-      await new Promise((r) => setTimeout(r, 800)); 
+      // Tăng delay lên 1 chút để Safari ổn định layout sau alert/confirm
+      await new Promise((r) => setTimeout(r, 1000)); 
 
       const dataUrl = await toPng(el, {
         quality: 1.0,
@@ -200,12 +220,14 @@ const OrderReceipt = () => {
 
     } catch (err) {
       console.error(err);
-      alert("Lỗi tạo ảnh");
+      alert("Lỗi tạo ảnh: " + err.message);
     } finally {
-      el.style.opacity = "0";
-      el.style.top = "-9999px";
-      el.style.left = "-9999px";
-      el.style.zIndex = "-1";
+      if (printRef.current) {
+        el.style.opacity = "0";
+        el.style.top = "-9999px";
+        el.style.left = "-9999px";
+        el.style.zIndex = "-1";
+      }
       setIsGenerating(false);
     }
   };
