@@ -15,7 +15,8 @@ html, body {
 @layer base {
   h1, h2, h3, h4, h5, h6 {
     @apply tracking-[0em];
-    font-family: "Fjalla One", sans-serif;
+    /* ĐÃ SỬA: Dùng font Varela Round */
+    font-family: "Varela Round", sans-serif !important;
     text-transform: uppercase;
     letter-spacing: 0em;
 

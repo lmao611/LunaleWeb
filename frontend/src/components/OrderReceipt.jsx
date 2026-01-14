@@ -221,7 +221,7 @@ const OrderReceipt = () => {
       el.style.left = "0";
       el.style.zIndex = "-10"; 
       el.style.backgroundColor = "#ffffff";
-      
+      el.style.fontFamily = '"Varela Round", sans-serif';
       // 3. CHỜ ĐỢI HOÀN HẢO (Hard Wait)
       await document.fonts.ready; // Chờ Font
       await waitForImages(el);    // Chờ Ảnh & Logo decode
