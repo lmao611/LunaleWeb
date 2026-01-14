@@ -2,10 +2,10 @@ import CustomerOrder from "../models/customerOrder.model.js";
 import Order from "../models/orders.model.js"; 
 import User from "../models/user.model.js";
 
-// 1. TẠO ĐƠN HÀNG
+
 export const createOrder = async (req, res) => {
   try {
-    const { products, totalAmount, note, paymentMethod } = req.body; // Lấy paymentMethod
+    const { products, totalAmount, note, paymentMethod } = req.body; 
     const user = req.user;
 
     if (!products || products.length === 0) {
@@ -35,7 +35,7 @@ export const createOrder = async (req, res) => {
       existingOrder.totalAmount += totalAmount;
       if (note) existingOrder.note = existingOrder.note ? `${existingOrder.note} | ${note}` : note;
       
-      // Cập nhật phương thức thanh toán mới nhất nếu khách chọn khác
+      
       if (paymentMethod) existingOrder.paymentMethod = paymentMethod;
 
       existingOrder.customerInfo = {
@@ -67,7 +67,7 @@ export const createOrder = async (req, res) => {
       products,
       totalAmount,
       note,
-      paymentMethod: paymentMethod || "COD" // Lưu phương thức thanh toán
+      paymentMethod: paymentMethod || "COD" 
     });
 
     if (req.body.isFromCart) {
@@ -82,7 +82,7 @@ export const createOrder = async (req, res) => {
   }
 };
 
-// 2. LẤY ĐƠN CỦA TÔI
+
 export const getMyOrders = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -129,7 +129,7 @@ export const getMyOrders = async (req, res) => {
   }
 };
 
-// 3. XÁC NHẬN & HOÀN TÁC
+
 export const updateOrderStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -163,7 +163,7 @@ export const updateOrderStatus = async (req, res) => {
                 status: "chưa giao",
                 receivedDate: null,
                 deliverDate: null,
-                paymentMethod: customerOrder.paymentMethod || "COD", // Đồng bộ paymentMethod
+                paymentMethod: customerOrder.paymentMethod || "COD", 
                 createdBy: req.user ? req.user._id : null
             });
         }
@@ -190,7 +190,7 @@ export const updateOrderStatus = async (req, res) => {
   }
 };
 
-// 4. HỦY ĐƠN
+
 export const cancelMyOrder = async (req, res) => {
   try {
     const { id } = req.params;
@@ -225,7 +225,7 @@ export const cancelMyOrder = async (req, res) => {
   }
 };
 
-// 5. UPDATE ADDRESS
+
 export const updateOrderAddress = async (req, res) => {
   try {
     const { id } = req.params;

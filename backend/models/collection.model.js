@@ -29,14 +29,14 @@ const collectionSchema = new mongoose.Schema(
     hideName: { type: Boolean, default: false },
     hideDescription: { type: Boolean, default: false },
 
-    // ✅ CẬP NHẬT Ở ĐÂY: Thêm các trường Sale vào mảng products
+    
     products: [
       {
         _id: String, 
         name: String,
         image: String,
         price: Number,
-        // 👇 Thêm mới:
+        
         category: String,
         isSale: { type: Boolean, default: false },
         salePercentage: { type: Number, default: 0 },

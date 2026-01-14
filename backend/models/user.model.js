@@ -11,11 +11,11 @@ const userSchema = new mongoose.Schema(
     provider: { type: String, enum: ["local", "facebook"], default: "local" },
     facebookId: { type: String, unique: false, sparse: true },
 
-    // 👇 CẬP NHẬT: Thêm trường size vào giỏ hàng
+    
     cartItems: [
       {
         quantity: { type: Number, default: 1 },
-        size: { type: String, default: "M" }, // ✅ Thêm dòng này
+        size: { type: String, default: "M" }, 
         product: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
       },
     ],

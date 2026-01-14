@@ -3,7 +3,7 @@ import User from "../models/user.model.js";
 
 const router = express.Router();
 
-// ✅ Lấy tất cả người dùng (bao gồm admin và customer)
+
 router.get("/", async (req, res) => {
   try {
     const users = await User.find().select("name phoneNumber direction role");

@@ -1,27 +1,27 @@
 import Product from "../models/product.model.js";
 
-// Lấy giỏ hàng
+
 export const getCartProducts = async (req, res) => {
   try {
-    // Lấy danh sách ID sản phẩm từ giỏ hàng
+
     const productIds = req.user.cartItems.map((item) => item.product);
     
-    // Tìm thông tin chi tiết các sản phẩm đó
+
     const products = await Product.find({ _id: { $in: productIds } });
 
-    // Ghép thông tin sản phẩm với số lượng & size trong giỏ hàng
+
     const cartItems = req.user.cartItems.map((cartItem) => {
       const product = products.find((p) => p._id.toString() === cartItem.product.toString());
       if (product) {
         return {
           ...product.toJSON(),
           quantity: cartItem.quantity,
-          size: cartItem.size || "M", // Trả về size
-          cartItemId: cartItem._id // ID riêng của item trong giỏ (để xóa chính xác nếu cần)
+          size: cartItem.size || "M",
+          cartItemId: cartItem._id
         };
       }
       return null;
-    }).filter(item => item !== null); // Lọc bỏ sản phẩm null (nếu sp bị xóa khỏi DB)
+    }).filter(item => item !== null);
 
     res.json(cartItems);
   } catch (error) {
@@ -30,15 +30,15 @@ export const getCartProducts = async (req, res) => {
   }
 };
 
-// Thêm vào giỏ hàng (Có xử lý Size)
+
 export const addToCart = async (req, res) => {
   try {
-    const { productId, size, quantity } = req.body; // Nhận thêm size và quantity
+    const { productId, size, quantity } = req.body;
     const user = req.user;
     const qtyToAdd = quantity ? Number(quantity) : 1;
     const selectedSize = size || "M";
 
-    // Tìm xem trong giỏ đã có sản phẩm này với SIZE này chưa
+
     const existingItem = user.cartItems.find(
       (item) => item.product.toString() === productId && item.size === selectedSize
     );
@@ -61,7 +61,7 @@ export const addToCart = async (req, res) => {
   }
 };
 
-// Xóa khỏi giỏ (Cần sửa để xóa đúng item theo ID và Size, tạm thời xóa theo ProductID)
+
 export const deleteAllFromCart = async (req, res) => {
   try {
     const { productId } = req.body;
@@ -70,7 +70,7 @@ export const deleteAllFromCart = async (req, res) => {
     if (!productId) {
       user.cartItems = [];
     } else {
-      // Xóa tất cả các item có productId này (bất kể size)
+
       user.cartItems = user.cartItems.filter((item) => item.product.toString() !== productId);
     }
     await user.save();
@@ -87,9 +87,7 @@ export const updateQuantity = async (req, res) => {
     const { quantity } = req.body;
     const user = req.user;
     
-    // Lưu ý: Logic này đang tìm item đầu tiên có productId. 
-    // Nếu muốn chính xác hơn cần truyền cả size hoặc cartItemId lên.
-    // Tạm thời giữ nguyên logic tìm theo ProductID để tương thích code cũ.
+
     const existingItem = user.cartItems.find((item) => item.product.toString() === productId);
 
     if (existingItem) {

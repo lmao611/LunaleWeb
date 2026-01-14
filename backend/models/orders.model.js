@@ -22,7 +22,7 @@ const orderSchema = new mongoose.Schema(
     },
     receivedDate: Date,
     deliverDate: Date,
-    // CẬP NHẬT ENUM TẠI ĐÂY
+    
     paymentMethod: { type: String, enum: ["Chuyển khoản", "COD", "Tiền mặt"], default: "COD" },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }
   },

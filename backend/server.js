@@ -14,7 +14,7 @@ import collectionRoutes from "./routes/collection.routes.js";
 import { connectDB } from "./lib/db.js";
 import ordersRoutes from "./routes/orders.routes.js";
 import userRoutes from "./routes/user.routes.js";
-// 👇 THÊM DÒNG NÀY
+
 import customerOrderRoutes from "./routes/customerOrder.routes.js"; 
 
 dotenv.config();
@@ -64,7 +64,7 @@ app.use("/api/collections", collectionRoutes);
 app.use("/api/banner", bannerRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/orders", ordersRoutes);
-// 👇 THÊM DÒNG NÀY CHO TÍNH NĂNG ĐƠN HÀNG KHÁCH
+
 app.use("/api/customer-orders", customerOrderRoutes);
 
 app.get("/", (req, res) => {

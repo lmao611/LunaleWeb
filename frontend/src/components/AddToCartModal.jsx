@@ -23,7 +23,7 @@ const AddToCartModal = ({ product, onClose }) => {
   const increase = () => setQuantity(prev => prev + 1);
   const decrease = () => setQuantity(prev => (prev > 1 ? prev - 1 : 1));
 
-  // Tính giá
+  
   const originalPrice = Number(product.price) || 0;
   const percent = Number(product.salePercentage) || 0;
   const isSale = (product.isSale === true || product.isSale === "true" || product.isSale === 1) && percent > 0;

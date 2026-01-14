@@ -4,21 +4,21 @@ import {
   getAllOrders, 
   updateOrderStatus, 
   deleteOrder,
-  getMyOrders,       // Import mới
-  cancelMyOrder,     // Import mới
-  updateOrderAddress // Import mới
+  getMyOrders,       
+  cancelMyOrder,     
+  updateOrderAddress 
 } from "../controllers/customerOrder.controller.js";
 import { protectRoute, adminRoute } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
-// --- ROUTES CHO KHÁCH HÀNG ---
-router.post("/", protectRoute, createOrder); // Tạo đơn
-router.get("/my-orders", protectRoute, getMyOrders); // Xem lịch sử đơn của mình
-router.put("/:id/cancel", protectRoute, cancelMyOrder); // Hủy đơn
-router.put("/:id/address", protectRoute, updateOrderAddress); // Sửa địa chỉ
 
-// --- ROUTES CHO ADMIN ---
+router.post("/", protectRoute, createOrder); 
+router.get("/my-orders", protectRoute, getMyOrders); 
+router.put("/:id/cancel", protectRoute, cancelMyOrder); 
+router.put("/:id/address", protectRoute, updateOrderAddress); 
+
+
 router.get("/", protectRoute, adminRoute, getAllOrders);
 router.patch("/:id", protectRoute, adminRoute, updateOrderStatus);
 router.delete("/:id", protectRoute, adminRoute, deleteOrder);

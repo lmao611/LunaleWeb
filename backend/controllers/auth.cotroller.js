@@ -13,7 +13,7 @@ const storeRefreshToken = async (userId, refreshToken) => {
     await redis.set(`refresh_token:${userId}`, refreshToken, "EX", 7 * 24 * 60 * 60);
 };
 
-// Tách options ra biến chung để dùng cho cả set và clear
+
 const getCookieOptions = () => {
     const isProduction = process.env.NODE_ENV === "production";
     return {
@@ -29,12 +29,12 @@ const setCookies = (res, accessToken, refreshToken) => {
 
     res.cookie("accessToken", accessToken, {
         ...options,
-        maxAge: 60 * 60 * 1000, // 1 hour
+        maxAge: 60 * 60 * 1000,
     });
 
     res.cookie("refreshToken", refreshToken, {
         ...options,
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 };
 
@@ -155,7 +155,6 @@ export const logout = async (req, res) => {
             }
         }
 
-        // SỬA LỖI: Truyền options vào clearCookie để xóa sạch cookie cứng đầu
         const options = getCookieOptions();
         res.clearCookie("accessToken", options);
         res.clearCookie("refreshToken", options);
@@ -185,7 +184,6 @@ export const refreshToken = async (req, res) => {
             { expiresIn: "15m" }
         );
 
-        // Set lại cookie mới
         const options = getCookieOptions();
         res.cookie("accessToken", accessToken, {
             ...options,

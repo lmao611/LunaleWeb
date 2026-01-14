@@ -4,11 +4,11 @@ import User from "../models/user.model.js";
 
 export const createOrder = async (req, res) => {
   try {
-    // 1. Thêm customerName, address, phone vào danh sách lấy từ req.body
+    
     const { 
         customerId, items, status, receivedDate, deliverDate, 
         paymentMethod, shipFee, 
-        address, phone, customerName // <-- Lấy thêm thông tin này
+        address, phone, customerName 
     } = req.body;
 
     if (!customerId) return res.status(400).json({ message: "Vui lòng chọn khách hàng" });
@@ -41,8 +41,8 @@ export const createOrder = async (req, res) => {
 
     const order = await Order.create({
       customerId: customer._id,
-      // 2. ƯU TIÊN LẤY DỮ LIỆU TỪ FORM GỬI LÊN (req.body)
-      // Nếu form trống thì mới lấy từ database (customer.*)
+      
+      
       customerName: customerName || customer.name, 
       address: address || customer.direction || "", 
       phone: phone || customer.phoneNumber || "",

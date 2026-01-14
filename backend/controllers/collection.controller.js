@@ -1,7 +1,7 @@
 import Collection from "../models/collection.model.js";
 import cloudinary from "../lib/cloudinary.js"; 
 
-// 1. Lấy tất cả collection
+
 export const getAllCollections = async (req, res) => {
   try {
     const collections = await Collection.find()
@@ -15,7 +15,7 @@ export const getAllCollections = async (req, res) => {
   }
 };
 
-// 2. Lấy chi tiết collection
+
 export const getCollectionById = async (req, res) => {
   try {
     const collection = await Collection.findById(req.params.id)
@@ -32,10 +32,10 @@ export const getCollectionById = async (req, res) => {
   }
 };
 
-// 3. Tạo collection mới (Đã bổ sung Special Fields)
+
 export const createCollection = async (req, res) => {
   try {
-    // 👇 LẤY THÊM CÁC TRƯỜNG SPECIAL TỪ REQ.BODY
+    
     const { 
         name, description, coverMedia, gradientFrom, gradientTo,
         isSpecial, specialPosition, 
@@ -46,7 +46,7 @@ export const createCollection = async (req, res) => {
     let mediaUrl = "";
     let mediaType = "image"; 
 
-    // Logic upload Cloudinary
+    
     if (coverMedia && coverMedia.url) {
         if (coverMedia.url.startsWith("data:")) {
             try {
@@ -76,7 +76,7 @@ export const createCollection = async (req, res) => {
       gradientFrom: gradientFrom || "#3b82f6",
       gradientTo: gradientTo || "#06b6d4",
       products: [],
-      // 👇 LƯU CÁC TRƯỜNG SPECIAL VÀO DB
+      
       isSpecial: isSpecial || false,
       specialPosition: specialPosition || "below_featured",
       mobileWidth: mobileWidth || 100,
@@ -95,7 +95,7 @@ export const createCollection = async (req, res) => {
   }
 };
 
-// 4. Cập nhật Collection (Đã bổ sung Special Fields)
+
 export const updateCollection = async (req, res) => {
   try {
     const { 
@@ -111,13 +111,13 @@ export const updateCollection = async (req, res) => {
       return res.status(404).json({ message: "Collection not found" });
     }
 
-    // Cập nhật thông tin cơ bản
+    
     collection.name = name || collection.name;
     collection.description = description || collection.description;
     collection.gradientFrom = gradientFrom || collection.gradientFrom;
     collection.gradientTo = gradientTo || collection.gradientTo;
 
-    // 👇 CẬP NHẬT CÁC TRƯỜNG SPECIAL (Kiểm tra undefined để cho phép set false/0)
+    
     if (isSpecial !== undefined) collection.isSpecial = isSpecial;
     if (specialPosition !== undefined) collection.specialPosition = specialPosition;
     if (mobileWidth !== undefined) collection.mobileWidth = mobileWidth;
@@ -128,7 +128,7 @@ export const updateCollection = async (req, res) => {
     if (hideName !== undefined) collection.hideName = hideName;
     if (hideDescription !== undefined) collection.hideDescription = hideDescription;
 
-    // Logic upload Cloudinary cho Update
+    
     if (coverMedia && coverMedia.url) {
       if (coverMedia.url.startsWith("data:")) {
         try {
@@ -157,7 +157,7 @@ export const updateCollection = async (req, res) => {
   }
 };
 
-// 5. Xóa Collection
+
 export const deleteCollection = async (req, res) => {
   try {
     const collection = await Collection.findById(req.params.id);
@@ -181,7 +181,7 @@ export const deleteCollection = async (req, res) => {
   }
 };
 
-// 6. Thêm sản phẩm
+
 export const addProductToCollection = async (req, res) => {
   try {
     const { id } = req.params;
@@ -206,7 +206,7 @@ export const addProductToCollection = async (req, res) => {
   }
 };
 
-// 7. Xóa sản phẩm
+
 export const removeProductFromCollection = async (req, res) => {
   try {
     const { id, productId } = req.params;

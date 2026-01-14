@@ -9,7 +9,7 @@ export const facebookLogin = async (req, res) => {
       return res.status(400).json({ message: "Access token is required" });
     }
 
-    // 📡 Lấy thông tin người dùng từ Facebook Graph API
+    
     const fbRes = await axios.get(
       `https://graph.facebook.com/me?fields=id,name,email,picture&access_token=${accessToken}`
     );
@@ -20,25 +20,25 @@ export const facebookLogin = async (req, res) => {
       return res.status(400).json({ message: "Facebook account has no email" });
     }
 
-    // 👤 Tìm hoặc tạo user
+    
     let user = await User.findOne({ email });
     if (!user) {
       user = await User.create({
         name,
         email,
-        password: id, // hoặc random
+        password: id, 
         avatar: picture?.data?.url || "",
       });
     }
 
-    // 🔐 Tạo JWT đồng bộ với middleware
+    
     const token = jwt.sign(
       { userId: user._id },
       process.env.ACCESS_TOKEN_SECRET,
       { expiresIn: "7d" }
     );
 
-    // 🍪 Set cookie đúng tên
+    
     res.cookie("accessToken", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
