@@ -215,7 +215,7 @@ const Navbar = () => {
           animate={
             isScrolled
               ? isMobile
-                ? { top: "-11.4px", left: "50%", x: "-50%", y: 0, scale: 0.55 }
+                ? { top: "-10.7px", left: "50%", x: "-50%", y: 0, scale: 0.55 }
                 : { top: "-15px", left: "50px", x: 0, y: 0, scale: 0.55 }
               : isMobile
               ? { top: "50%", left: "50%", x: "-50%", y: "-50%", scale: 1.8 }
@@ -242,7 +242,7 @@ const Navbar = () => {
           <img
             src="/lunale.png"
             alt="Lunale"
-            className={`${isMobile ? "w-[28vw]" : "w-[140px]"} object-contain`}
+            className={`${isMobile ? "w-[29vw]" : "w-[140px]"} object-contain`}
           />
         </div>
       )}
