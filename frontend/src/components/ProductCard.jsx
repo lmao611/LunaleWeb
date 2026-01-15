@@ -133,7 +133,7 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
             )}
           </div>
 
-          <button className={`flex items-center justify-center w-full rounded-md bg-white/90 text-gray-950 hover:bg-blue-600 hover:text-white active:scale-95 font-medium shadow-sm transition-all ${size.button}`} 
+          <button className={`flex items-center justify-center w-full rounded-md bg-white/90 text-gray-950 hover:bg-gray-950 hover:text-white active:scale-95 font-medium shadow-sm transition-all ${size.button}`} 
             onClick={handleAddToCartClick}
           >
             <ShoppingCart size={14} className="mr-1.5" /> Thêm
