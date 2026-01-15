@@ -236,7 +236,7 @@ const Navbar = () => {
           className={`fixed z-[100] cursor-pointer ${
             isMobile ? "top-2 left-1/2 -translate-x-1/2" : ""
           }`}
-          style={isMobile ? undefined : { top: "10px", left: "110px" }}
+          style={isMobile ? undefined : { top: "5px", left: "100px" }}
           onClick={handleLogoClick}
         >
           <img
