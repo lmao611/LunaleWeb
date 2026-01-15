@@ -159,7 +159,7 @@ const HomePage = () => {
         {renderSpecialCollectionsByPosition("below_banner")}
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h1 className="text-center text-3xl font-bold text-blue-990 mb-8 pt-10">SHOP NOW</h1>
+            <h1 className="text-center text-[26px] font-bold text-blue-990 mb-8 pt-10">SHOP NOW</h1>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mt-6 mb-16">
               {categories.map((category) => (
                 <CategoryItem category={category} key={category.name} />

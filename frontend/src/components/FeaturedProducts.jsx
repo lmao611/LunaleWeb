@@ -56,7 +56,7 @@ const FeaturedProducts = () => {
   return (
     <div className="py-12 bg-transparent relative overflow-hidden">
       <div className="container mx-auto px-4">
-        <h2 className="text-center text-3xl font-bold text-blue-990 mb-6">
+        <h2 className="text-center text-[26px] font-bold text-blue-990 mb-6">
           Featured Products
         </h2>
 
