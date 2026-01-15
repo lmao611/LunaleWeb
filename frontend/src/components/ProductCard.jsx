@@ -32,7 +32,7 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
   const getStatusBadge = (status) => {
     switch (status) {
       case "preorder": 
-        return { label: "Pre-Order", color: "bg-purple-500 text-white" };
+        return { label: "Pre-Order", color: "bg-gray-950 text-white" };
       case "out": 
         return { label: "Hết hàng", color: "bg-red-500 text-white" };
       case "low": 
