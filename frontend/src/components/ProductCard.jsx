@@ -71,12 +71,12 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
     glare.style.background = "transparent";
   };
 
-  // ĐÃ SỬA: Chỉnh infoPadding nhỏ hơn cho mobile (p-2 hoặc p-1.5)
+  // ĐÃ SỬA: Ép size mobile gọn hơn nữa (py-1.5 cho padding, py-1 cho button)
   const sizes = {
-    category: { width: "w-[160px] sm:w-[200px] lg:w-[260px]", height: "h-[240px] sm:h-[300px] lg:h-[380px]", infoPadding: "p-2 sm:p-3", button: "px-3 py-1.5 text-sm" },
-    featured: { width: "w-[140px] sm:w-[180px] lg:w-[220px]", height: "h-[140px] sm:h-[180px] lg:h-[220px]", infoPadding: "p-1.5 sm:p-2", button: "px-2 py-1 text-xs" },
-    default: { width: "w-[150px] sm:w-[190px] lg:w-[250px]", height: "h-[220px] sm:h-[280px] lg:h-[360px]", infoPadding: "p-2 sm:p-3", button: "px-3 py-1.5 text-xs" },
-    PeopleAlsoBought: { width: "w-[130px] sm:w-[170px] lg:w-[220px]", height: "h-[200px] sm:h-[260px] lg:h-[320px]", infoPadding: "p-1.5 sm:p-2.5", button: "px-2.5 py-1 text-xs" },
+    category: { width: "w-[160px] sm:w-[200px] lg:w-[260px]", height: "h-[240px] sm:h-[300px] lg:h-[380px]", infoPadding: "px-2 py-1.5 sm:p-3", button: "px-3 py-1 sm:py-1.5 text-sm" },
+    featured: { width: "w-[140px] sm:w-[180px] lg:w-[220px]", height: "h-[140px] sm:h-[180px] lg:h-[220px]", infoPadding: "px-1.5 py-1 sm:p-2", button: "px-2 py-1 text-xs" },
+    default: { width: "w-[150px] sm:w-[190px] lg:w-[250px]", height: "h-[220px] sm:h-[280px] lg:h-[360px]", infoPadding: "px-2 py-1.5 sm:p-3", button: "px-3 py-1 sm:py-1.5 text-xs" },
+    PeopleAlsoBought: { width: "w-[130px] sm:w-[170px] lg:w-[220px]", height: "h-[200px] sm:h-[260px] lg:h-[320px]", infoPadding: "px-1.5 py-1.5 sm:p-2.5", button: "px-2.5 py-1 text-xs" },
   };
   const size = sizes[variant] || sizes.default;
   const isFeedback = product.category === "feedback";
@@ -118,10 +118,11 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
 
       {!isFeedback && (
         <div className={`absolute bottom-0 left-0 right-0 lg:translate-y-full lg:group-hover:translate-y-0 transition-transform duration-500 ease-in-out bg-gradient-to-t from-gray-900/90 via-gray-900/50 to-transparent z-30 ${size.infoPadding}`}>
-          <h5 className="font-semibold text-white truncate text-[10.5px] sm:text-sm mb-0.5">{product.name}</h5>
+          {/* ĐÃ SỬA: mb-0 (xóa hẳn margin dưới tên) */}
+          <h5 className="font-semibold text-white truncate text-[10.5px] sm:text-sm mb-0 sm:mb-0.5 leading-tight">{product.name}</h5>
           
-          {/* ĐÃ SỬA: mb-0.5 cho mobile, mb-1 cho màn to -> Kéo sát hơn nữa trên mobile */}
-          <div className="mb-0.5 sm:mb-1 min-h-[1.5rem] flex items-end">
+          {/* ĐÃ SỬA: mb-0.5 và min-h-0 để không chiếm chỗ trống vô lý */}
+          <div className="mb-0.5 sm:mb-1 min-h-0 sm:min-h-[1.5rem] flex items-end">
             {isSale ? (
                <div className="flex items-center gap-2">
                   <span className="text-red-400 font-bold text-lg">{discountedDisplay}</span>
