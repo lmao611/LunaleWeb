@@ -95,7 +95,7 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
       <div className="absolute top-2 right-2 z-40 flex flex-col items-end gap-1 pointer-events-none">
          {isSale && (
             <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-md">
-               -{percent}%
+                -{percent}%
             </span>
          )}
          
@@ -117,9 +117,11 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
       </div>
 
       {!isFeedback && (
-        <div className={`absolute bottom-0 left-0 right-0 lg:translate-y-full lg:group-hover:translate-y-0 transition-transform duration-500 ease-in-out bg-gradient-to-t from-gray-900/95 via-gray-900/80 to-transparent z-30 ${size.infoPadding}`}>
-          <h5 className="font-semibold text-white truncate text-[10.5px] sm:text-sm">{product.name}</h5>
+        <div className={`absolute bottom-0 left-0 right-0 lg:translate-y-full lg:group-hover:translate-y-0 transition-transform duration-500 ease-in-out bg-gradient-to-t from-gray-900/90 via-gray-900/60 to-transparent z-30 ${size.infoPadding}`}>
+          {/* ĐÃ SỬA: Xóa mt-2, thêm mb-0.5 để tên sản phẩm thấp xuống và gọn hơn */}
+          <h5 className="font-semibold text-white truncate text-[10.5px] sm:text-sm mb-0.5">{product.name}</h5>
           
+          {/* ĐÃ SỬA: Giảm mb-2 xuống mb-1 để kéo sát xuống dưới */}
           <div className="mb-1 min-h-[1.5rem] flex items-end">
             {isSale ? (
                <div className="flex items-center gap-2">
@@ -139,23 +141,6 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
         </div>
       )}
     </div>
-  );
-
-  if (isFeedback) {
-     const isInternal = product.productLink && product.productLink.includes(window.location.origin);
-     if (isInternal) {
-        return <Link to={product.productLink.replace(window.location.origin, "")} className="group relative block">{CardContent}</Link>;
-     }
-     return <a href={product.productLink || "#"} target="_blank" rel="noopener noreferrer" className="group relative block">{CardContent}</a>;
-  }
-
-  if (disableLink) return <div className="group relative block">{CardContent}</div>;
-
-  return (
-    <>
-      <Link to={`/product/${product._id}`} className="group relative block">{CardContent}</Link>
-      {showModal && <AddToCartModal product={product} onClose={() => setShowModal(false)} />}
-    </>
   );
 };
 
