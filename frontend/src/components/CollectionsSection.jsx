@@ -8,7 +8,7 @@ const CollectionsSection = ({ collections }) => {
 
   return (
     <section className="mt-24 space-y-28">
-      <h2 className="text-[26px] font-bold text-center text-black mb-8">Bộ Sưu Tập</h2>
+      <h2 className="text-3xl mb:text-[26px] font-bold text-center text-black mb-8">Bộ Sưu Tập</h2>
 
       {collections.map((col, index) => (
         <motion.div
