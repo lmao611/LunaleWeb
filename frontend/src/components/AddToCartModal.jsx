@@ -105,7 +105,7 @@ const AddToCartModal = ({ product, onClose }) => {
           <button
             onClick={handleConfirm}
             disabled={isAdding}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-all active:scale-95 disabled:opacity-70 flex justify-center items-center"
+            className="w-full bg-gray-950 hover:bg-gray-500 text-white hover:text-black font-bold py-3 rounded-lg transition-all active:scale-95 disabled:opacity-70 flex justify-center items-center"
           >
             {isAdding ? "Đang xử lý..." : `Thêm vào giỏ - ${(finalPrice * quantity).toLocaleString()} ₫`}
           </button>

@@ -163,7 +163,7 @@ const Card = ({ product, isMobile, preorderStatus }) => {
             </div>
 
             <button
-              className="mt-2 flex items-center justify-center w-full rounded-md bg-gray-200 text-black hover:bg-gray-700 hover:text-white active:scale-95 px-3 py-1.5 text-xs"
+              className="mt-2 flex items-center justify-center w-full rounded-md bg-black-950 text-white hover:bg-gray-500 hover:text-black active:scale-95 px-3 py-1.5 text-xs"
               onClick={handleAddToCartClick}
             >
               <ShoppingCart size={14} className="mr-1" />
