@@ -242,7 +242,7 @@ const Navbar = () => {
           <img
             src="/lunale.png"
             alt="Lunale"
-            className={`${isMobile ? "w-[25vw]" : "w-[140px]"} object-contain`}
+            className={`${isMobile ? "w-[28vw]" : "w-[140px]"} object-contain`}
           />
         </div>
       )}
