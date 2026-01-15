@@ -140,7 +140,7 @@ const HomePage = () => {
           <img src={bannerUrl} alt="Banner" className="absolute inset-0 w-full h-full object-cover object-center" />
           <div className="absolute inset-0 bg-black/10"></div>
           <div className="relative z-10 flex flex-col items-center justify-center h-full text-center pt-130">
-            <p className="text-white text-xl sm:text-2xl mb-10">Khám phá bộ sưu tập mới</p>
+            <h5 className="text-white text-xl sm:text-2xl mb-10">Khám phá bộ sưu tập mới</h5>
             <button
               onClick={() => {
                 const nextSection = document.getElementById("homepage-content");
@@ -159,7 +159,7 @@ const HomePage = () => {
         {renderSpecialCollectionsByPosition("below_banner")}
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h1 className="text-center sm:text-3xl font-bold text-blue-990 mb-8 pt-10">SHOP NOW</h1>
+            <h1 className="text-center text-3xl font-bold text-blue-990 mb-8 pt-10">SHOP NOW</h1>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mt-6 mb-16">
               {categories.map((category) => (
                 <CategoryItem category={category} key={category.name} />
