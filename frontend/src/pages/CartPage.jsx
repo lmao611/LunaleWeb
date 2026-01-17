@@ -1,18 +1,18 @@
-import { Link, useNavigate } from "react-router-dom"; // Thêm useNavigate
+import { Link, useNavigate } from "react-router-dom"; 
 import { useCartStore } from "../stores/useCartStore";
-import { useUserStore } from "../stores/useUserStore"; // Thêm useUserStore
+import { useUserStore } from "../stores/useUserStore"; 
 import { motion } from "framer-motion";
 import { ShoppingCart } from "lucide-react";
 import CartItem from "../components/CartItem";
 import PeopleAlsoBought from "../components/PeopleAlsoBought";
 import { useEffect, useState } from "react";
-import toast from "react-hot-toast"; // Thêm toast
+import toast from "react-hot-toast"; 
 
 const CartPage = () => {
-  const { cart, getCartItems, calculateTotals, placeOrder } = useCartStore(); // Lấy thêm placeOrder
-  const { user, setShowUserBox } = useUserStore(); // Lấy user info
+  const { cart, getCartItems, calculateTotals, placeOrder } = useCartStore(); 
+  const { user, setShowUserBox } = useUserStore(); 
   const [rate, setRate] = useState(null);
-  const [isOrdering, setIsOrdering] = useState(false); // State loading khi đặt hàng
+  const [isOrdering, setIsOrdering] = useState(false); 
 
   useEffect(() => {
     fetch("https://api.exchangerate-api.com/v4/latest/USD")
@@ -39,35 +39,32 @@ const CartPage = () => {
     totalVND = Math.floor(raw / 1000) * 1000; 
   }
 
-  // 👇 HÀM XỬ LÝ ĐẶT HÀNG MỚI
   const handleCartOrder = async () => {
     if (!user) {
         toast.error("Vui lòng đăng nhập để đặt hàng!");
         return;
     }
-    // Kiểm tra thông tin bắt buộc
     if (!user.phoneNumber || !user.direction || !user.name) {
         toast.error("Vui lòng cập nhật đầy đủ thông tin giao hàng (SĐT, Địa chỉ)!");
-        setShowUserBox(true); // Mở hộp cập nhật thông tin
+        setShowUserBox(true); 
         return;
     }
 
     setIsOrdering(true);
     
-    // Chuẩn bị dữ liệu
     const orderData = {
-    products: cart.map(item => ({
-        product: item._id,
-        name: item.name,
-        image: item.image,
-        price: item.price,
-        quantity: item.quantity,
-        size: item.size || "M" // <--- SỬA LẠI: Lấy size từ item trong giỏ hàng
-    })),
-    totalAmount: totalUSD,
-    isFromCart: true,
-    note: "Đặt hàng từ Giỏ hàng"
-};  
+        products: cart.map(item => ({
+            product: item._id,
+            name: item.name,
+            image: item.image,
+            price: item.price,
+            quantity: item.quantity,
+            size: item.size || "M" 
+        })),
+        totalAmount: totalUSD,
+        isFromCart: true,
+        note: "Đặt hàng từ Giỏ hàng"
+    };  
 
     const res = await placeOrder(orderData);
     setIsOrdering(false);
@@ -80,7 +77,11 @@ const CartPage = () => {
   return (
     <div className="py-40 md:py-16 bg-white min-h-screen">
       <div className="mx-auto max-w-screen-xl px-4 2xl:px-0">
+        
+        {/* Container chính chứa 2 cột (List sản phẩm & Tóm tắt) */}
         <div className="mt-6 sm:mt-8 md:gap-6 lg:flex lg:items-start xl:gap-8 relative">
+          
+          {/* CỘT TRÁI: DANH SÁCH SẢN PHẨM */}
           <motion.div
             className="mx-auto w-full flex-none lg:max-w-2xl xl:max-w-4xl"
             initial={{ opacity: 0, x: -20 }}
@@ -101,14 +102,13 @@ const CartPage = () => {
               </div>
             )}
 
-            {cart.length > 0 && (
-              <PeopleAlsoBought excludeIds={cart.map((i) => i._id)} />
-            )}
+            {/* ĐÃ XÓA PeopleAlsoBought Ở ĐÂY */}
           </motion.div>
 
+          {/* CỘT PHẢI: TÓM TẮT GIỎ HÀNG */}
           {cart.length > 0 && (
             <motion.div
-              className="mt-40 lg:mt-40 w-full max-w-md lg:self-start"
+              className="mt-10 lg:mt-40 w-full max-w-md lg:self-start" // Đã sửa mt-40 thành mt-10 cho mobile đỡ trống
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.3 }}
@@ -133,7 +133,6 @@ const CartPage = () => {
                       </div>
                     )}
 
-                    {/* Nút Liên hệ cũ */}
                     <Link
                       to="/contact"
                       className="block w-full text-center rounded-md bg-gray-100 text-gray-800 px-4 py-2 mb-3
@@ -142,7 +141,6 @@ const CartPage = () => {
                       Liên hệ hỏi hàng
                     </Link>
 
-                    {/* 👇 Nút Đặt Hàng Mới */}
                     <button
                       onClick={handleCartOrder}
                       disabled={isOrdering}
@@ -157,6 +155,15 @@ const CartPage = () => {
             </motion.div>
           )}
         </div>
+
+        {/* 👇 DI CHUYỂN PeopleAlsoBought XUỐNG DƯỚI CÙNG 👇 */}
+        {/* Việc này giúp nó nằm dưới cả 2 cột trên Mobile */}
+        {cart.length > 0 && (
+            <div className="mt-16">
+                 <PeopleAlsoBought excludeIds={cart.map((i) => i._id)} />
+            </div>
+        )}
+
       </div>
     </div>
   );
