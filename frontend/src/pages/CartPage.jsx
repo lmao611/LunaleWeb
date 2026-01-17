@@ -56,18 +56,18 @@ const CartPage = () => {
     
     // Chuẩn bị dữ liệu
     const orderData = {
-        products: cart.map(item => ({
-            product: item._id,
-            name: item.name,
-            image: item.image,
-            price: item.price,
-            quantity: item.quantity,
-            size: "Mặc định" // Nếu sau này CartItem có chọn size thì sửa ở đây
-        })),
-        totalAmount: totalUSD, // Lưu tổng tiền (có thể là VND nếu muốn)
-        isFromCart: true,
-        note: "Đặt hàng từ Giỏ hàng"
-    };
+    products: cart.map(item => ({
+        product: item._id,
+        name: item.name,
+        image: item.image,
+        price: item.price,
+        quantity: item.quantity,
+        size: item.size || "M" // <--- SỬA LẠI: Lấy size từ item trong giỏ hàng
+    })),
+    totalAmount: totalUSD,
+    isFromCart: true,
+    note: "Đặt hàng từ Giỏ hàng"
+};  
 
     const res = await placeOrder(orderData);
     setIsOrdering(false);
