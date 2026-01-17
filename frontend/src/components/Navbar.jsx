@@ -319,54 +319,60 @@ const Navbar = () => {
               exit={{ opacity: 0, scale: 0.9 }}
               className="bg-white rounded-xl shadow-2xl w-full max-w-4xl h-[85vh] max-h-[800px] flex flex-col relative overflow-hidden"
             >
-              <button onClick={() => setShowUserBox(false)} className="absolute top-4 right-4 text-gray-400 hover:text-black z-10 transition">
-                <X size={24} />
+              {/* Nút đóng: Đã chỉnh nhỏ gọn, thêm nền nhẹ, đẩy sát góc */}
+              <button 
+                onClick={() => setShowUserBox(false)} 
+                className="absolute top-2 right-2 sm:top-4 sm:right-4 text-gray-500 hover:text-red-600 z-50 transition p-1.5 bg-white/60 rounded-full hover:bg-red-50"
+              >
+                <X size={20} className="sm:w-6 sm:h-6" />
               </button>
 
-              {/* Header / Tabs */}
+              {/* Header / Tabs: Đã chỉnh height nhỏ lại trên mobile */}
               <div className="flex border-b shrink-0">
                 <button
                   onClick={() => {setActiveTab("profile"); setSelectedOrder(null);}}
-                  className={`flex-1 py-4 font-semibold text-lg flex items-center justify-center gap-2 transition ${activeTab === "profile" ? "text-blue-700 border-b-2 border-blue-700 bg-blue-50" : "text-gray-500 hover:bg-gray-50"}`}
+                  className={`flex-1 py-3 sm:py-4 font-semibold text-sm sm:text-lg flex items-center justify-center gap-1.5 sm:gap-2 transition ${activeTab === "profile" ? "text-blue-700 border-b-2 border-blue-700 bg-blue-50" : "text-gray-500 hover:bg-gray-50"}`}
                 >
-                  <User size={20} /> Thông tin cá nhân
+                  <User size={18} className="sm:w-5 sm:h-5" /> Thông tin cá nhân
                 </button>
                 <button
                   onClick={() => setActiveTab("orders")}
-                  className={`flex-1 py-4 font-semibold text-lg flex items-center justify-center gap-2 transition ${activeTab === "orders" ? "text-blue-700 border-b-2 border-blue-700 bg-blue-50" : "text-gray-500 hover:bg-gray-50"}`}
+                  // Thêm pr-10 trên mobile để chữ không bị nút X che mất
+                  className={`flex-1 py-3 sm:py-4 font-semibold text-sm sm:text-lg flex items-center justify-center gap-1.5 sm:gap-2 transition pr-10 sm:pr-0 ${activeTab === "orders" ? "text-blue-700 border-b-2 border-blue-700 bg-blue-50" : "text-gray-500 hover:bg-gray-50"}`}
                 >
-                  <History size={20} /> Đơn hàng đã đặt
+                  <History size={18} className="sm:w-5 sm:h-5" /> Đơn hàng đã đặt
                 </button>
               </div>
 
               {/* Content Area */}
               <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-gray-50">
                 {activeTab === "profile" ? (
-                  <div className="max-w-md mx-auto bg-white p-6 rounded-lg shadow-sm">
-                    <div className="space-y-4">
+                  <div className="max-w-md mx-auto bg-white p-4 sm:p-6 rounded-lg shadow-sm">
+                    <div className="space-y-3 sm:space-y-4">
                       <label className="block">
                         <span className="text-sm font-semibold text-gray-700">Họ Tên</span>
-                        <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full mt-1 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" />
+                        <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full mt-1 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm sm:text-base" />
                       </label>
                       <label className="block">
                         <span className="text-sm font-semibold text-gray-700">Email</span>
-                        <input type="email" value={editEmail} disabled className="w-full mt-1 border border-gray-300 px-3 py-2 rounded bg-gray-100 text-gray-500 cursor-not-allowed" />
+                        <input type="email" value={editEmail} disabled className="w-full mt-1 border border-gray-300 px-3 py-2 rounded bg-gray-100 text-gray-500 cursor-not-allowed text-sm sm:text-base" />
                       </label>
                       <label className="block">
                         <span className="text-sm font-semibold text-gray-700">Số Điện Thoại</span>
-                        <input type="text" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} className="w-full mt-1 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" />
+                        <input type="text" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} className="w-full mt-1 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm sm:text-base" />
                       </label>
                       <label className="block">
                         <span className="text-sm font-semibold text-gray-700">Địa Chỉ</span>
-                        <textarea value={editDirection} onChange={(e) => setEditDirection(e.target.value)} rows="3" className="w-full mt-1 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-500 outline-none resize-none" />
+                        <textarea value={editDirection} onChange={(e) => setEditDirection(e.target.value)} rows="3" className="w-full mt-1 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-500 outline-none resize-none text-sm sm:text-base" />
                       </label>
                     </div>
-                    <button onClick={handleUpdateProfile} className="w-full mt-6 bg-blue-700 hover:bg-blue-800 text-white font-medium py-2 rounded transition shadow-md">
+                    <button onClick={handleUpdateProfile} className="w-full mt-6 bg-blue-700 hover:bg-blue-800 text-white font-medium py-2.5 rounded transition shadow-md text-sm sm:text-base">
                       Lưu Thay Đổi
                     </button>
                   </div>
                 ) : (
                   // --- ORDER HISTORY TAB ---
+                  // (Phần này giữ nguyên logic hiển thị đơn hàng)
                   <>
                     {selectedOrder ? (
                       // VIEW 1: CHI TIẾT ĐƠN HÀNG
@@ -376,33 +382,33 @@ const Navbar = () => {
                         className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden h-full flex flex-col"
                       >
                         {/* Header Chi tiết */}
-                        <div className="p-4 border-b flex items-center justify-between bg-gray-50">
+                        <div className="p-3 sm:p-4 border-b flex items-center justify-between bg-gray-50">
                             <button 
                                 onClick={() => setSelectedOrder(null)}
-                                className="flex items-center text-gray-600 hover:text-blue-700 transition"
+                                className="flex items-center text-gray-600 hover:text-blue-700 transition text-sm sm:text-base"
                             >
                                 <ChevronLeft size={20} /> Quay lại
                             </button>
-                            <span className="font-bold text-gray-800">#{ (selectedOrder._id).slice(-6).toUpperCase() }</span>
+                            <span className="font-bold text-gray-800 text-sm sm:text-base">#{ (selectedOrder._id).slice(-6).toUpperCase() }</span>
                         </div>
 
                         {/* Body Chi tiết */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                        <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 sm:space-y-6">
                             {/* Trạng thái */}
                             <div className="flex justify-between items-center">
-                                <span className="text-sm text-gray-500">Ngày đặt: {new Date(selectedOrder.createdAt).toLocaleString("vi-VN")}</span>
+                                <span className="text-xs sm:text-sm text-gray-500">Ngày đặt: {new Date(selectedOrder.createdAt).toLocaleString("vi-VN")}</span>
                                 {getStatusBadge(selectedOrder.status)}
                             </div>
 
                             {/* Thông tin nhận hàng */}
-                            <div className="grid sm:grid-cols-2 gap-4 text-sm">
+                            <div className="grid sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
                                 <div className="p-3 bg-gray-50 rounded border">
                                     <h4 className="font-semibold text-gray-700 flex items-center gap-2 mb-2"><MapPin size={16}/> Địa chỉ nhận hàng</h4>
-                                    <p className="text-gray-600">{selectedOrder.customerInfo?.address || selectedOrder.address || "Chưa có địa chỉ"}</p>
+                                    <p className="text-gray-600 text-xs sm:text-sm">{selectedOrder.customerInfo?.address || selectedOrder.address || "Chưa có địa chỉ"}</p>
                                 </div>
                                 <div className="p-3 bg-gray-50 rounded border">
                                     <h4 className="font-semibold text-gray-700 flex items-center gap-2 mb-2"><CreditCard size={16}/> Phương thức thanh toán</h4>
-                                    <p className="text-gray-600">COD (Thanh toán khi nhận hàng)</p>
+                                    <p className="text-gray-600 text-xs sm:text-sm">COD (Thanh toán khi nhận hàng)</p>
                                 </div>
                             </div>
 
@@ -412,7 +418,7 @@ const Navbar = () => {
                                 <div className="space-y-3">
                                     {selectedOrder.products?.map((item, idx) => (
                                         <div key={idx} className="flex gap-3 items-center border-b pb-3 last:border-0">
-                                            <div className="w-16 h-16 bg-gray-100 rounded overflow-hidden flex-shrink-0">
+                                            <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gray-100 rounded overflow-hidden flex-shrink-0">
                                                 <img src={item.image || "/placeholder.png"} alt="Product" className="w-full h-full object-cover" />
                                             </div>
                                             <div className="flex-1">
@@ -443,7 +449,7 @@ const Navbar = () => {
                             {isEditable(selectedOrder.status) && (
                                 <button 
                                     onClick={() => handleCancelOrder(selectedOrder._id)}
-                                    className="w-full mt-2 py-2 border border-red-500 text-red-600 rounded hover:bg-red-50 font-medium transition"
+                                    className="w-full mt-2 py-2 border border-red-500 text-red-600 rounded hover:bg-red-50 font-medium transition text-sm"
                                 >
                                     Hủy đơn hàng này
                                 </button>
@@ -465,28 +471,28 @@ const Navbar = () => {
                           </div>
                         ) : (
                           orders.map((order) => (
-                            <div key={order._id} className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 transition hover:shadow-md">
-                              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b pb-4 mb-4">
+                            <div key={order._id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 transition hover:shadow-md">
+                              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 sm:gap-4 border-b pb-3 mb-3">
                                 <div>
                                   <div className="flex items-center gap-2">
-                                    <span className="font-bold text-lg text-gray-800">#{ (order._id).slice(-6).toUpperCase() }</span>
+                                    <span className="font-bold text-base sm:text-lg text-gray-800">#{ (order._id).slice(-6).toUpperCase() }</span>
                                     {getStatusBadge(order.status)}
                                   </div>
-                                  <p className="text-sm text-gray-500 mt-1">
+                                  <p className="text-xs sm:text-sm text-gray-500 mt-1">
                                     Ngày đặt: {new Date(order.createdAt).toLocaleDateString("vi-VN")}
                                   </p>
                                 </div>
-                                <div className="text-right">
-                                  <span className="block text-sm text-gray-500">Tổng tiền</span>
-                                  <span className="font-bold text-xl text-blue-700">{formatCurrency(order.totalAmount)}</span>
+                                <div className="text-left sm:text-right">
+                                  <span className="block text-xs sm:text-sm text-gray-500">Tổng tiền</span>
+                                  <span className="font-bold text-lg sm:text-xl text-blue-700">{formatCurrency(order.totalAmount)}</span>
                                 </div>
                               </div>
 
                               <div className="space-y-2 mb-4">
                                  {order.products && order.products.slice(0, 2).map((item, idx) => (
                                    <div key={idx} className="flex justify-between text-sm text-gray-600">
-                                      <span>{item.quantity}x {item.name} (Size: {item.size})</span>
-                                      <span>{formatCurrency((item.price || 0) * item.quantity)}</span>
+                                      <span className="line-clamp-1 flex-1 pr-2">{item.quantity}x {item.name} (Size: {item.size})</span>
+                                      <span className="shrink-0">{formatCurrency((item.price || 0) * item.quantity)}</span>
                                    </div>
                                  ))}
                                  {order.products && order.products.length > 2 && (
@@ -496,8 +502,8 @@ const Navbar = () => {
                               
                               <div className="bg-gray-50 p-3 rounded text-sm space-y-2">
                                  <div className="flex items-start justify-between">
-                                    <div className="flex-1 mr-2">
-                                       <span className="font-semibold text-gray-700 block mb-1">Địa chỉ nhận hàng:</span>
+                                    <div className="flex-1 mr-2 min-w-0">
+                                       <span className="font-semibold text-gray-700 block mb-1 text-xs sm:text-sm">Địa chỉ nhận hàng:</span>
                                        {editingOrderId === order._id ? (
                                          <div className="flex gap-2">
                                            <input 
@@ -510,7 +516,7 @@ const Navbar = () => {
                                            <button onClick={() => setEditingOrderId(null)} className="text-red-500 hover:bg-red-100 p-1 rounded"><XCircle size={16}/></button>
                                          </div>
                                        ) : (
-                                         <span className="text-gray-600 line-clamp-2">{order.customerInfo?.address || order.address || "Chưa có địa chỉ"}</span>
+                                         <span className="text-gray-600 line-clamp-2 text-xs sm:text-sm">{order.customerInfo?.address || order.address || "Chưa có địa chỉ"}</span>
                                        )}
                                     </div>
                                     {isEditable(order.status) && editingOrderId !== order._id && (
@@ -520,7 +526,7 @@ const Navbar = () => {
                                     )}
                                  </div>
                                  
-                                 <div className="pt-2 flex justify-end gap-3 mt-2 border-t border-gray-200">
+                                 <div className="pt-2 flex justify-end gap-2 sm:gap-3 mt-2 border-t border-gray-200">
                                     {isEditable(order.status) && (
                                       <button 
                                         onClick={() => handleCancelOrder(order._id)}
