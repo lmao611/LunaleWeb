@@ -1,13 +1,17 @@
 import { useEffect, useState } from "react";
 import axios from "../lib/axios";
-import { CheckCircle, Trash2, Clock, MapPin, Phone, User, ShoppingBag, FileText } from "lucide-react";
+import { CheckCircle, Trash2, Clock, MapPin, Phone, User, ShoppingBag, FileText, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
+import OrderReceipt from "./OrderReceipt"; // IMPORT MỚI
 
 const CustomerOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(null);
+  
+  // STATE MỚI: Quản lý popup phiếu in
+  const [receiptData, setReceiptData] = useState(null); 
 
   const fetchOrders = async () => {
     try {
@@ -26,6 +30,15 @@ const CustomerOrders = () => {
 
   const handleToggleStatus = async (orderId, currentStatus) => {
     const newStatus = currentStatus === "Pending" ? "Processed" : "Pending";
+    
+    // Nếu chuyển sang ĐÃ XÁC NHẬN -> Tìm đơn hàng và mở popup in
+    if (newStatus === "Processed") {
+       const orderToPrint = orders.find(o => o._id === orderId);
+       if (orderToPrint) {
+           setReceiptData(orderToPrint);
+       }
+    }
+
     try {
       await axios.patch(`/customer-orders/${orderId}`, { status: newStatus });
       setOrders(orders.map(o => o._id === orderId ? { ...o, status: newStatus } : o));
@@ -74,7 +87,26 @@ const CustomerOrders = () => {
   const currentOrders = selectedDate ? groupedOrders[selectedDate] : [];
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6 relative">
+      {/* POPUP HIỆN PHIẾU IN KHI XÁC NHẬN ĐƠN */}
+      <AnimatePresence>
+        {receiptData && (
+            <div className="fixed inset-0 z-[9999] bg-black/60 flex items-center justify-center p-4 overflow-y-auto">
+                <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="w-full max-w-5xl"
+                >
+                    <OrderReceipt 
+                        inputOrder={receiptData} 
+                        onClose={() => setReceiptData(null)} 
+                    />
+                </motion.div>
+            </div>
+        )}
+      </AnimatePresence>
+
       <div className="flex justify-between items-center px-2 border-b pb-4">
         <div>
             <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
@@ -180,6 +212,14 @@ const CustomerOrders = () => {
                                 >
                                     <CheckCircle size={16} /> 
                                     {order.status === "Processed" ? "Hoàn tác" : "Xác nhận đơn"}
+                                </button>
+
+                                {/* Nút xem phiếu in thủ công nếu cần */}
+                                <button 
+                                    onClick={() => setReceiptData(order)}
+                                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium w-full justify-center bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100 transition-all"
+                                >
+                                    <FileText size={16} /> Xem phiếu
                                 </button>
 
                                 <button 
