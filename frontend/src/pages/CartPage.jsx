@@ -70,7 +70,7 @@ const CartPage = () => {
     setIsOrdering(false);
     
     if (res.success) {
-        toast.success("🎉 Đặt hàng thành công! Chúng tôi sẽ liên hệ sớm.");
+        toast.success("Đặt hàng thành công, Lunale sẽ liên hệ bạn sớm.");
     }
   };
 
