@@ -32,14 +32,18 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
   const receiptRef = useRef(null);
   const printRef = useRef(null);
 
-  // --- LOGIC MỚI: Tự động điền form nếu là Popup ---
+  // --- LOGIC TỰ ĐỘNG ĐIỀN THÔNG TIN ---
   useEffect(() => {
     if (inputOrder) {
+        // Map dữ liệu từ đơn hàng đã lưu
         const mappedItems = inputOrder.products.map(p => ({
             productId: p.product._id || p.product,
             quantity: p.quantity,
             size: p.size,
-            sale: 0 
+            sale: 0,
+            // Lưu thêm tên và giá gốc từ đơn hàng để hiển thị ngay cả khi chưa load xong list products
+            tempName: p.name, 
+            tempPrice: p.price 
         }));
 
         const today = new Date();
@@ -112,11 +116,22 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
   const addProduct = () => setForm((f) => ({ ...f, items: [...f.items, { productId: "", quantity: 1, size: "", sale: 0 }] }));
   const removeProduct = (index) => setForm((f) => ({ ...f, items: f.items.filter((_, i) => i !== index) }));
 
+  // Helper tìm thông tin sản phẩm (Ưu tiên lấy từ đơn hàng inputOrder trước, rồi mới tìm trong database)
+  const getProductInfo = (item) => {
+      // 1. Tìm trong database
+      const productInDb = products.find((p) => String(p._id || p.id) === String(item.productId));
+      
+      // 2. Nếu không thấy (hoặc db chưa load kịp), dùng thông tin tạm từ inputOrder
+      const name = productInDb?.name || item.tempName || "Sản phẩm không xác định";
+      const price = productInDb?.price || item.tempPrice || 0;
+      
+      return { name, price };
+  };
+
   const calcSubtotal = (item) => {
-    const product = products.find((p) => String(p._id || p.id) === String(item.productId));
-    if (!product) return 0;
-    const discount = ((product.price * (item.sale || 0)) / 100) * (item.quantity || 1);
-    return product.price * (item.quantity || 1) - discount;
+    const { price } = getProductInfo(item);
+    const discount = ((price * (item.sale || 0)) / 100) * (item.quantity || 1);
+    return price * (item.quantity || 1) - discount;
   };
 
   const calcTotal = () => {
@@ -155,9 +170,8 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
 
     try {
       const dbItems = form.items.map(item => {
-        const product = products.find(p => String(p._id || p.id) === String(item.productId));
-        const basePrice = product ? product.price : 0;
-        const unitPriceAfterSale = basePrice * (1 - (item.sale || 0) / 100);
+        const { price } = getProductInfo(item);
+        const unitPriceAfterSale = price * (1 - (item.sale || 0) / 100);
         
         return {
            productId: item.productId,
@@ -185,15 +199,6 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
       return true;
     } catch (error) {
       console.error("Save error", error);
-      let debugMessage = "";
-      if (error.response) {
-        debugMessage = `Status: ${error.response.status}\nData: ${JSON.stringify(error.response.data)}`;
-      } else if (error.request) {
-        debugMessage = "Không có phản hồi từ Server (Network Error).";
-      } else {
-        debugMessage = error.message;
-      }
-      alert("DEBUG ERROR:\n" + debugMessage); 
       toast.error("Lỗi khi lưu đơn hàng: " + (error.response?.data?.message || error.message));
       return false;
     }
@@ -219,11 +224,10 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
     if (!printRef.current) return;
     setIsGenerating(true);
 
-    // --- LOGIC MỚI: Chỉ lưu DB khi KHÔNG PHẢI là inputOrder (Manual mode) ---
+    // Nếu không phải Popup (InputOrder) thì mới lưu vào DB
     if (!inputOrder && form.customerId) {
         const saved = await saveOrderToSystem();
         await new Promise(r => setTimeout(r, 200));
-
         if (!saved) {
             const userContinue = window.confirm("Lưu đơn hàng thất bại. Bạn có muốn tiếp tục xuất ảnh KHÔNG lưu đơn?");
             if (!userContinue) {
@@ -232,7 +236,6 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
             }
         }
     }
-    // -----------------------------------------------------------------------
 
     const el = printRef.current;
     
@@ -262,7 +265,7 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
 
       const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
 
-      // Nếu đang ở mode Popup (inputOrder), luôn hiện ảnh để xem trước chứ không tải ngay
+      // Nếu đang xem Popup -> Không tải ngay mà hiện modal xem trước
       if (isDesktop && !inputOrder) {
         const link = document.createElement("a");
         link.href = dataUrl;
@@ -317,40 +320,39 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      // SỬA: Bỏ shadow/border nếu đang là inputOrder (Popup)
-      className={`relative bg-white ${inputOrder ? '' : 'border border-gray-200 shadow-md rounded-2xl'} p-4 sm:p-8 max-w-4xl mx-auto`}
+      // SỬA: Bỏ shadow/border nếu đang là Popup cho gọn
+      className={`relative bg-white ${inputOrder ? '' : 'border border-gray-200 shadow-md rounded-2xl'} p-4 sm:p-6 max-w-4xl mx-auto`}
     >
-      <div className="flex justify-between mb-4">
-        {/* THÊM: Nút đóng nếu là Popup */}
-        {onClose && (
-            <button onClick={onClose} className="flex items-center gap-2 text-gray-500 hover:text-red-500 px-3 py-2 rounded-lg hover:bg-red-50 transition font-medium">
-                <X size={20} /> Đóng
+      {/* HEADER STICKY: Giúp nút luôn hiện ở trên cùng khi cuộn */}
+      <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm py-2 border-b border-gray-100 mb-6 -mx-4 px-4 sm:-mx-6 sm:px-6 flex justify-between items-center shadow-sm">
+        {onClose ? (
+            <button onClick={onClose} className="flex items-center gap-2 text-gray-600 hover:text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-50 transition font-medium text-sm">
+                <X size={18} /> Thoát
             </button>
-        )}
-        
-        {/* Spacer */}
-        {!onClose && <div></div>}
+        ) : <div></div>}
 
         <button
           onClick={handleGenerateImage}
           disabled={isGenerating}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition shadow-sm font-medium disabled:opacity-50 ml-auto"
+          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition shadow-sm font-medium disabled:opacity-50 text-sm"
         >
           {isGenerating ? (
             <span className="animate-pulse">Đang xử lý...</span>
           ) : (
             <>
-              <ImageDown className="w-5 h-5" />
-              <span className="hidden sm:inline">Lưu & Xuất ảnh</span>
+              <ImageDown className="w-4 h-4" />
+              <span>{inputOrder ? "Lưu ảnh ngay" : "Lưu & Xuất ảnh"}</span>
             </>
           )}
         </button>
       </div>
 
       <div ref={receiptRef}>
-        <h2 className="text-2xl font-bold text-center mb-6 text-blue-700 uppercase tracking-wide">
-          Phiếu Đặt Hàng
+        <h2 className="text-xl sm:text-2xl font-bold text-center mb-6 text-blue-700 uppercase tracking-wide">
+          {inputOrder ? "Chi Tiết Đơn Hàng" : "Phiếu Đặt Hàng"}
         </h2>
+        
+        {/* INPUT FORM */}
         <div className="grid sm:grid-cols-2 gap-4 mb-6">
           <div className="relative">
             <label className="block text-sm mb-1 font-medium text-gray-700">Khách hàng <span className="text-red-500">*</span></label>
@@ -372,7 +374,7 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
 
             <input
               type="text"
-              placeholder="Hoặc nhập tên khách hàng (Chỉ in, không lưu)"
+              placeholder="Hoặc nhập tên khách hàng"
               value={form.customerName}
               onChange={(e) => setForm((f) => ({ ...f, customerName: e.target.value }))}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-2 text-base focus:ring-2 focus:ring-blue-500 outline-none"
@@ -380,28 +382,18 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
           </div>
           
           <div>
-            <label className="block text-sm mb-1 font-medium text-gray-700">Điều khoản</label>
+            <label className="block text-sm mb-1 font-medium text-gray-700">Điều khoản / Ghi chú</label>
             <input type="text" value={form.terms} onChange={(e) => setForm((f) => ({ ...f, terms: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base focus:ring-2 focus:ring-blue-500 outline-none" />
           </div>
           
           <div>
             <label className="block text-sm mb-1 font-medium text-gray-700">Ngày giao</label>
-            <input 
-              type="text" 
-              placeholder="VD: 15/01/2026"
-              onChange={(e) => setForm((f) => ({ ...f, deliverDate: e.target.value }))} 
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base focus:ring-2 focus:ring-blue-500 outline-none" 
-            />
+            <input type="text" value={form.deliverDate} onChange={(e) => setForm((f) => ({ ...f, deliverDate: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base focus:ring-2 focus:ring-blue-500 outline-none" />
           </div>
 
           <div>
             <label className="block text-sm mb-1 font-medium text-gray-700">Ngày đến</label>
-            <input 
-              type="text" 
-              placeholder="VD: 15/01/2026"
-              onChange={(e) => setForm((f) => ({ ...f, receivedDate: e.target.value }))} 
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base focus:ring-2 focus:ring-blue-500 outline-none" 
-            />
+            <input type="text" value={form.receivedDate} onChange={(e) => setForm((f) => ({ ...f, receivedDate: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base focus:ring-2 focus:ring-blue-500 outline-none" />
           </div>
 
           <div>
@@ -414,6 +406,7 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
           </div>
         </div>
 
+        {/* LIST SẢN PHẨM */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-lg text-blue-700">Sản phẩm</h3>
@@ -433,18 +426,29 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
           </div>
           <div className="space-y-4 sm:space-y-2">
             {form.items.map((item, i) => {
-              const product = products.find((p) => String(p._id || p.id) === String(item.productId));
-              const basePrice = product ? product.price * (item.quantity || 1) : 0;
+              // Dùng helper để lấy tên/giá chính xác (từ DB hoặc từ đơn hàng cũ)
+              const info = getProductInfo(item);
+              const basePrice = info.price * (item.quantity || 1);
               const salePrice = calcSubtotal(item);
+
               return (
                 <div key={i} className="grid grid-cols-1 sm:grid-cols-7 gap-3 border rounded-lg p-3 items-center bg-gray-50 sm:bg-white shadow-sm sm:shadow-none">
                   <div className="relative">
                     <label className="sm:hidden text-xs text-gray-500 mb-1">Sản phẩm</label>
-                    <select value={item.productId} onChange={(e) => setForm((f) => { const newItems = [...f.items]; newItems[i].productId = e.target.value; return { ...f, items: newItems }; })} className={`${selectClass} py-1 text-sm`}>
-                      <option value="">-- Chọn sản phẩm --</option>
-                      {products.map((p) => <option key={p._id || p.id} value={p._id || p.id}>{p.name}</option>)}
-                    </select>
-                    <ChevronDown className="absolute right-2 bottom-2 w-4 h-4 text-gray-500 pointer-events-none" />
+                    {/* Nếu là đơn Popup (có tên sẵn) thì hiện tên text, nếu không thì hiện Select */}
+                    {inputOrder && item.tempName ? (
+                        <div className="font-medium text-sm text-gray-800 p-2 bg-gray-100 rounded border border-gray-200 truncate" title={item.tempName}>
+                            {item.tempName}
+                        </div>
+                    ) : (
+                        <>
+                            <select value={item.productId} onChange={(e) => setForm((f) => { const newItems = [...f.items]; newItems[i].productId = e.target.value; return { ...f, items: newItems }; })} className={`${selectClass} py-1 text-sm`}>
+                            <option value="">-- Chọn sản phẩm --</option>
+                            {products.map((p) => <option key={p._id || p.id} value={p._id || p.id}>{p.name}</option>)}
+                            </select>
+                            <ChevronDown className="absolute right-2 bottom-2 w-4 h-4 text-gray-500 pointer-events-none" />
+                        </>
+                    )}
                   </div>
                   <div className="relative">
                     <label className="sm:hidden text-xs text-gray-500 mb-1">Size</label>
@@ -509,17 +513,11 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
         )}
       </AnimatePresence>
 
+      {/* VÙNG IN ẨN (Giữ nguyên cấu trúc để ảnh ra đẹp) */}
       <div
         id="print-area"
         ref={printRef}
-        style={{
-          position: "absolute",
-          top: "-9999px",
-          left: "-9999px",
-          opacity: 0,
-          pointerEvents: "none",
-          zIndex: -1,
-        }}
+        style={{ position: "absolute", top: "-9999px", left: "-9999px", opacity: 0, pointerEvents: "none", zIndex: -1 }}
         className="w-[1100px] bg-white text-gray-900 font-sans p-10"
       >
         <div className="mb-10 text-center">
@@ -554,14 +552,14 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
           </thead>
           <tbody className="text-lg">
             {form.items.map((item, i) => {
-              const p = products.find((x) => String(x._id || x.id) === String(item.productId));
+              const info = getProductInfo(item);
               return (
                 <tr key={i} className="border-b hover:bg-gray-50">
-                  <td className="p-3 border border-gray-200 font-medium">{p?.name || "-"}</td>
+                  <td className="p-3 border border-gray-200 font-medium">{info.name}</td>
                   <td className="p-3 border border-gray-200 text-center">{item.size || "-"}</td>
                   <td className="p-3 border border-gray-200 text-center">{item.quantity}</td>
                   <td className="p-3 border border-gray-200 text-center text-red-500 font-bold">{item.sale ? `${item.sale}%` : "-"}</td>
-                  <td className="p-3 border border-gray-200 text-right text-gray-600">{p ? p.price.toLocaleString() : "-"}</td>
+                  <td className="p-3 border border-gray-200 text-right text-gray-600">{info.price.toLocaleString()}</td>
                   <td className="p-3 border border-gray-200 text-right font-bold text-blue-800">{calcSubtotal(item).toLocaleString()}</td>
                 </tr>
               );
@@ -571,29 +569,14 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
 
         <div className="flex justify-between items-end mt-10 pt-6 border-t-2 border-gray-300">
            <div className="pl-4">
-              <img 
-                 id="print-logo"
-                 src={logoBase64 || "/lunale.png"} 
-                 alt="Logo" 
-                 className="w-56 block object-contain"
-              />
+              <img id="print-logo" src={logoBase64 || "/lunale.png"} alt="Logo" className="w-56 block object-contain" />
               <p className="text-gray-400 text-sm mt-2 italic font-medium">Cảm ơn bạn đã lựa chọn Lunale!</p>
            </div>
-
            <div className="w-[450px] space-y-3 text-right pr-4">
-              <div className="flex justify-between items-center text-xl text-gray-600">
-                <span>Thành tiền:</span>
-                <span className="font-semibold">{calcTotal().toLocaleString()}₫</span>
-              </div>
-              <div className="flex justify-between items-center text-xl text-gray-600">
-                <span>Phí vận chuyển:</span>
-                <span className="font-semibold">{form.shipFee.toLocaleString()}₫</span>
-              </div>
+              <div className="flex justify-between items-center text-xl text-gray-600"><span>Thành tiền:</span><span className="font-semibold">{calcTotal().toLocaleString()}₫</span></div>
+              <div className="flex justify-between items-center text-xl text-gray-600"><span>Phí vận chuyển:</span><span className="font-semibold">{form.shipFee.toLocaleString()}₫</span></div>
               <div className="h-[2px] bg-gray-200 my-2"></div>
-              <div className="flex justify-between items-center">
-                <span className="text-2xl font-bold text-blue-900">TỔNG CỘNG:</span>
-                <span className="text-4xl font-extrabold text-red-600">{totalWithShip.toLocaleString()}₫</span>
-              </div>
+              <div className="flex justify-between items-center"><span className="text-2xl font-bold text-blue-900">TỔNG CỘNG:</span><span className="text-4xl font-extrabold text-red-600">{totalWithShip.toLocaleString()}₫</span></div>
            </div>
         </div>
       </div>

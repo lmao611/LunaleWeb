@@ -3,7 +3,7 @@ import axios from "../lib/axios";
 import { CheckCircle, Trash2, Clock, MapPin, Phone, User, ShoppingBag, FileText, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import OrderReceipt from "./OrderReceipt"; // IMPORT MỚI
+import OrderReceipt from "./OrderReceipt"; // Đảm bảo đã import file này
 
 const CustomerOrders = () => {
   const [orders, setOrders] = useState([]);
@@ -88,16 +88,17 @@ const CustomerOrders = () => {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 relative">
-      {/* POPUP HIỆN PHIẾU IN KHI XÁC NHẬN ĐƠN */}
+      {/* --- PHẦN SỬA LỖI POPUP Ở ĐÂY --- */}
       <AnimatePresence>
         {receiptData && (
-            <div className="fixed inset-0 z-[9999] bg-black/60 flex items-center justify-center p-4 overflow-y-auto">
+            <div className="fixed inset-0 z-[9999] bg-black/60 flex items-start justify-center overflow-y-auto pt-10 pb-10 px-4">
                 <motion.div 
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="w-full max-w-5xl"
+                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                    className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl relative"
                 >
+                    {/* Truyền receiptData vào để OrderReceipt tự điền thông tin */}
                     <OrderReceipt 
                         inputOrder={receiptData} 
                         onClose={() => setReceiptData(null)} 
@@ -106,6 +107,7 @@ const CustomerOrders = () => {
             </div>
         )}
       </AnimatePresence>
+      {/* -------------------------------- */}
 
       <div className="flex justify-between items-center px-2 border-b pb-4">
         <div>
