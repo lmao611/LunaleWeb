@@ -3,7 +3,11 @@ import axios from "../lib/axios";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
 
-const BASE_URL = import.meta.env.MODE === "development" ? "http://localhost:5000" : "/";
+// --- SỬA DÒNG NÀY ---
+// Thay "https://ten-backend-cua-ban.onrender.com" bằng link backend thực tế của bạn
+const BASE_URL = import.meta.env.MODE === "development" 
+  ? "http://localhost:5000" 
+  : "https://ten-backend-cua-ban.onrender.com"; 
 
 export const useUserStore = create((set, get) => ({
   user: null,
@@ -76,7 +80,7 @@ export const useUserStore = create((set, get) => ({
       const response = await axios.get("/auth/profile");
       set({ user: response.data, checkingAuth: false });
 
-      // Kết nối socket khi checkAuth thành công (F5 trang)
+      // Kết nối socket khi checkAuth thành công
       get().connectSocket();
       
     } catch (error) {
@@ -84,15 +88,14 @@ export const useUserStore = create((set, get) => ({
     }
   },
 
-  // --- SOCKET CONNECTION FIX ---
   connectSocket: () => {
     const { user, socket } = get();
-    // Nếu chưa có user hoặc socket đã kết nối rồi thì return
     if (!user || (socket && socket.connected)) return;
 
+    // Sử dụng BASE_URL đã sửa ở trên
     const newSocket = io(BASE_URL, {
       query: { userId: user._id },
-      transports: ["websocket"], // Quan trọng: Bắt buộc dùng websocket để ổn định
+      transports: ["websocket"], 
       withCredentials: true,
     });
 
