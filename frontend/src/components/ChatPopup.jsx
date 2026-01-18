@@ -209,7 +209,7 @@ const ChatPopup = () => {
                     placeholder="Nhập tin nhắn..."
                     className="flex-1 border rounded-full px-4 py-2 text-sm focus:outline-none focus:border-blue-500"
                 />
-                <button type="submit" className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 transition disabled:opacity-50" disabled={!text.trim() && !imagePreview}>
+                <button type="submit" className="bg-gray-950 text-white p-2 rounded-full hover:bg-gray-6=800 transition disabled:opacity-50" disabled={!text.trim() && !imagePreview}>
                     <Send size={18} />
                 </button>
                 </form>
@@ -220,7 +220,7 @@ const ChatPopup = () => {
 
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg transition-all hover:scale-110 flex items-center justify-center relative"
+        className="bg-gray-950 hover:bg-gray-800 text-white p-4 rounded-full shadow-lg transition-all hover:scale-110 flex items-center justify-center relative"
       >
         {isOpen ? <X size={24} /> : <MessageCircle size={28} />}
         {!isOpen && unreadBubble && (
