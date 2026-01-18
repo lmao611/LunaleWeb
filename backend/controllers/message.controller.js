@@ -3,11 +3,9 @@ import Message from "../models/message.model.js";
 import cloudinary from "../lib/cloudinary.js";
 import { getReceiverSocketId, io } from "../lib/socket.js";
 
-// Lấy danh sách những người đã nhắn tin (Dành cho Sidebar của Admin)
 export const getUsersForSidebar = async (req, res) => {
   try {
     const currentUserId = req.user._id;
-    // Tìm tất cả user ngoại trừ chính mình (Admin)
     const filteredUsers = await User.find({ _id: { $ne: currentUserId } }).select("-password");
     res.status(200).json(filteredUsers);
   } catch (error) {
@@ -16,7 +14,6 @@ export const getUsersForSidebar = async (req, res) => {
   }
 };
 
-// Lấy lịch sử tin nhắn giữa 2 người
 export const getMessages = async (req, res) => {
   try {
     const { id: userToChatId } = req.params;
@@ -36,7 +33,6 @@ export const getMessages = async (req, res) => {
   }
 };
 
-// Gửi tin nhắn
 export const sendMessage = async (req, res) => {
   try {
     const { text, image } = req.body;
@@ -58,15 +54,54 @@ export const sendMessage = async (req, res) => {
 
     await newMessage.save();
 
-    // --- SOCKET IO: Gửi tin nhắn realtime ---
     const receiverSocketId = getReceiverSocketId(receiverId);
     if (receiverSocketId) {
       io.to(receiverSocketId).emit("newMessage", newMessage);
     }
 
     res.status(201).json(newMessage);
+
+    if (req.user.role === "customer") {
+        const messageCount = await Message.countDocuments({
+            $or: [
+                { senderId: senderId, receiverId: receiverId },
+                { senderId: receiverId, receiverId: senderId }
+            ]
+        });
+
+        if (messageCount === 1) {
+            const autoText = "Chào chị, cảm ơn Chị đã quan tâm đến Lunale ạ 🌸\n\n✨ Chị để lại câu hỏi về sản phẩm đang quan tâm Lunale sẽ hỗ trợ tư vấn sớm cho Chị nhé ạ.\n\nHello, Thank you for your interest in Lunale 🌸\n\n✨ Please leave your questions about the products you are interested in, Lunale will support you soon.";
+
+            setTimeout(async () => {
+                try {
+                    const autoMessage = new Message({
+                        senderId: receiverId,
+                        receiverId: senderId,
+                        text: autoText,
+                    });
+
+                    await autoMessage.save();
+
+                    const customerSocket = getReceiverSocketId(senderId);
+                    if (customerSocket) {
+                        io.to(customerSocket).emit("newMessage", autoMessage);
+                    }
+
+                    if (receiverSocketId) {
+                        io.to(receiverSocketId).emit("newMessage", autoMessage);
+                    }
+
+                } catch (err) {
+                    console.error(err);
+                }
+            }, 1500);
+        }
+    }
+
   } catch (error) {
     console.log("Error in sendMessage controller: ", error.message);
-    res.status(500).json({ error: "Internal server error" });
+    if (!res.headersSent) {
+        res.status(500).json({ error: "Internal server error" });
+    }
   }
 };

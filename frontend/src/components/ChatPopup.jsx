@@ -148,7 +148,7 @@ const ChatPopup = () => {
             <div className="bg-gray-950 p-4 flex justify-between items-center text-white shrink-0">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                <h4 className="font-bold">TƯ VẤN</h4>
+                <h4 className="font-bold">HỖ TRỢ KHÁCH HÀNG</h4>
               </div>
               <button onClick={() => setIsOpen(false)} className="hover:bg-gray-800 p-1 rounded">
                 <X size={18} />
