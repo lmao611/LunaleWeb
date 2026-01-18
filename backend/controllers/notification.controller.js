@@ -88,11 +88,26 @@ export const markAsRead = async (req, res) => {
 };
 
 export const deleteNotification = async (req, res) => {
-    try {
-        const { id } = req.params;
-        await Notification.findByIdAndDelete(id);
-        res.json({ message: "Đã xóa thông báo" });
-    } catch (error) {
-        res.status(500).json({ message: "Lỗi xóa thông báo" });
+  try {
+    const { id } = req.params;
+    const notification = await Notification.findById(id);
+    
+    if (!notification) {
+      return res.status(404).json({ message: "Không tìm thấy thông báo" });
     }
+    if (notification.image) {
+      try {
+        const publicId = notification.image.split("/").slice(-2).join("/").split(".")[0];
+        await cloudinary.uploader.destroy(publicId);
+      } catch (error) {
+        console.log("Lỗi xóa ảnh trên Cloudinary:", error);
+      }
+    }
+    await Notification.findByIdAndDelete(id);
+    
+    res.json({ message: "Đã xóa thông báo và ảnh đính kèm" });
+  } catch (error) {
+    console.error("Lỗi controller:", error);
+    res.status(500).json({ message: "Lỗi server khi xóa thông báo" });
+  }
 };
