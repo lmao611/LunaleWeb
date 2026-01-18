@@ -11,6 +11,7 @@ export const useNotificationStore = create((set, get) => ({
     set({ loading: true });
     try {
       const res = await axios.get("/notifications");
+      // Tính toán số lượng chưa đọc từ danh sách trả về
       const unread = res.data.filter((n) => !n.isRead).length;
       set({ notifications: res.data, unreadCount: unread, loading: false });
     } catch (error) {
@@ -25,6 +26,7 @@ export const useNotificationStore = create((set, get) => ({
         const updatedNotifications = state.notifications.map((n) =>
           n._id === id ? { ...n, isRead: true } : n
         );
+        // Tính toán lại unreadCount chuẩn xác
         const unread = updatedNotifications.filter((n) => !n.isRead).length;
         return { notifications: updatedNotifications, unreadCount: unread };
       });
@@ -36,10 +38,12 @@ export const useNotificationStore = create((set, get) => ({
   deleteNotification: async (id) => {
       try {
           await axios.delete(`/notifications/${id}`);
-          set((state) => ({
-              notifications: state.notifications.filter(n => n._id !== id),
-              unreadCount: state.notifications.filter(n => n._id !== id && !n.isRead).length
-          }));
+          set((state) => {
+              const updatedNotifications = state.notifications.filter(n => n._id !== id);
+              // Tính toán lại unreadCount sau khi xóa
+              const unread = updatedNotifications.filter(n => !n.isRead).length;
+              return { notifications: updatedNotifications, unreadCount: unread };
+          });
           toast.success("Đã xóa thông báo");
       } catch (error) {
           toast.error("Lỗi khi xóa");
@@ -60,11 +64,34 @@ export const useNotificationStore = create((set, get) => ({
     }
   },
 
+  // --- SỬA LOGIC Ở ĐÂY ---
   addRealtimeNotification: (newNotification) => {
-      set((state) => ({
-          notifications: [newNotification, ...state.notifications],
-          unreadCount: state.unreadCount + 1,
-      }));
-      toast("Bạn có thông báo mới!", { icon: "🔔" });
+      set((state) => {
+          // Thêm tin mới vào đầu danh sách
+          const updatedNotifications = [newNotification, ...state.notifications];
+          
+          // Tính toán lại unreadCount dựa trên danh sách mới
+          // (Đảm bảo newNotification có isRead=false từ backend gửi về)
+          const unread = updatedNotifications.filter(n => !n.isRead).length;
+
+          return { 
+              notifications: updatedNotifications,
+              unreadCount: unread, 
+          };
+      });
+
+      // Âm thanh và Toast
+      const audio = new Audio("/notification.mp3"); 
+      audio.play().catch(() => {}); 
+      
+      toast("🔔 Bạn có thông báo mới!", {
+          duration: 4000,
+          position: "top-right",
+          style: {
+            background: "#3b82f6",
+            color: "#fff",
+            fontWeight: "bold"
+          },
+      });
   }
 }));
