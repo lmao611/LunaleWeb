@@ -3,6 +3,8 @@ import axios from "../lib/axios";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
 
+const BASE_URL = import.meta.env.MODE === "development" ? "http://localhost:5000" : "/";
+
 export const useUserStore = create((set, get) => ({
   user: null,
   loading: false,
@@ -44,7 +46,7 @@ export const useUserStore = create((set, get) => ({
 
       set({ user: res.data.user, loading: false });
       
-      // Kết nối socket ngay khi login thành công
+      // Kết nối socket ngay khi login
       get().connectSocket();
       
       toast.success("Đăng nhập thành công");
@@ -59,13 +61,12 @@ export const useUserStore = create((set, get) => ({
       await axios.post("/auth/logout");
       localStorage.removeItem("accessToken");
       
-      // Ngắt kết nối socket khi logout
-      const socket = get().socket;
-      if (socket) socket.disconnect();
+      // Ngắt kết nối socket
+      get().disconnectSocket();
 
-      set({ user: null, socket: null });
+      set({ user: null });
     } catch (error) {
-      toast.error(error.response?.data?.message || "An error occurred during logout");
+      toast.error(error.response?.data?.message || "Lỗi logout");
     }
   },
 
@@ -75,7 +76,7 @@ export const useUserStore = create((set, get) => ({
       const response = await axios.get("/auth/profile");
       set({ user: response.data, checkingAuth: false });
 
-      // Kết nối socket khi checkAuth thành công (F5 lại trang)
+      // Kết nối socket khi checkAuth thành công (F5 trang)
       get().connectSocket();
       
     } catch (error) {
@@ -83,25 +84,35 @@ export const useUserStore = create((set, get) => ({
     }
   },
 
+  // --- SOCKET CONNECTION FIX ---
   connectSocket: () => {
     const { user, socket } = get();
-    // Nếu chưa có user hoặc socket đã kết nối rồi thì không làm gì
+    // Nếu chưa có user hoặc socket đã kết nối rồi thì return
     if (!user || (socket && socket.connected)) return;
-
-    // Xác định URL backend (localhost:5000 khi dev, hoặc relative path khi prod)
-    const BASE_URL = import.meta.env.MODE === "development" ? "http://localhost:5000" : "/";
 
     const newSocket = io(BASE_URL, {
       query: { userId: user._id },
+      transports: ["websocket"], // Quan trọng: Bắt buộc dùng websocket để ổn định
+      withCredentials: true,
     });
 
-    newSocket.connect();
+    newSocket.on("connect", () => {
+        console.log("🟢 Socket connected:", newSocket.id);
+    });
+
+    newSocket.on("connect_error", (err) => {
+        console.error("🔴 Socket connection error:", err);
+    });
+
     set({ socket: newSocket });
   },
 
   disconnectSocket: () => {
-    if (get().socket?.connected) get().socket.disconnect();
-    set({ socket: null });
+    const { socket } = get();
+    if (socket) {
+        if (socket.connected) socket.disconnect();
+        set({ socket: null });
+    }
   },
 
   refreshToken: async () => {
@@ -119,32 +130,27 @@ export const useUserStore = create((set, get) => ({
   },
 }));
 
-// --- Axios Interceptor cho Refresh Token ---
 let refreshPromise = null;
 
 axios.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-
     if (
       error.response?.status === 401 && 
       !originalRequest._retry && 
       !originalRequest.url.includes("/auth/login")
     ) {
       originalRequest._retry = true;
-
       try {
         if (refreshPromise) {
           await refreshPromise;
           originalRequest.headers.Authorization = `Bearer ${localStorage.getItem("accessToken")}`;
           return axios(originalRequest);
         }
-
         refreshPromise = useUserStore.getState().refreshToken();
         await refreshPromise;
         refreshPromise = null;
-        
         originalRequest.headers.Authorization = `Bearer ${localStorage.getItem("accessToken")}`;
         return axios(originalRequest);
       } catch (refreshError) {

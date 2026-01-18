@@ -8,11 +8,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import axios from "../lib/axios";
 
 const Navbar = () => {
-  // Lấy socket từ userStore để lắng nghe sự kiện
   const { user, logout, showUserBox, setShowUserBox, socket } = useUserStore();
   const { cart } = useCartStore();
-  
-  // Lấy hàm addRealtimeNotification để cập nhật state khi có tin mới
   const { notifications, unreadCount, fetchNotifications, markAsRead, deleteNotification, addRealtimeNotification } = useNotificationStore();
   
   const isAdmin = user?.role === "admin" || user?.role === "controller";
@@ -43,23 +40,38 @@ const Navbar = () => {
 
   const setUser = useUserStore((state) => state.setUser);
 
-  // --- EFFECT: LẮNG NGHE SOCKET ---
+  // --- EFFECT: LẮNG NGHE SOCKET (CÓ DEBUG LOG) ---
   useEffect(() => {
-    if (socket) {
-        // Hủy lắng nghe cũ để tránh trùng lặp sự kiện
-        socket.off("newNotification");
-        
-        // Lắng nghe sự kiện "newNotification" từ server
-        socket.on("newNotification", (data) => {
-            addRealtimeNotification(data);
-        });
+    // Nếu chưa có socket hoặc chưa kết nối, không làm gì
+    if (!socket) return;
 
-        // Cleanup khi unmount hoặc socket thay đổi
-        return () => {
-            socket.off("newNotification");
-        };
-    }
+    console.log("🎧 Navbar đang lắng nghe Socket ID:", socket.id);
+
+    // Handler nhận tin
+    const handleNewNotification = (data) => {
+        console.log("🔔 NHẬN ĐƯỢC THÔNG BÁO REALTIME:", data);
+        addRealtimeNotification(data);
+    };
+
+    // Đăng ký sự kiện
+    socket.on("newNotification", handleNewNotification);
+
+    // Cleanup: Gỡ sự kiện khi component unmount hoặc socket thay đổi
+    return () => {
+        console.log("🛑 Navbar hủy lắng nghe Socket");
+        socket.off("newNotification", handleNewNotification);
+    };
   }, [socket, addRealtimeNotification]);
+
+  // --- Fetch thông báo cũ khi vào trang ---
+  useEffect(() => {
+    if (user) {
+        fetchNotifications();
+    }
+  }, [user, fetchNotifications]);
+
+  // ... (Phần còn lại của logic Navbar giữ nguyên như file cũ) ...
+  // ... (Lưu ý: Copy phần giao diện return từ file cũ vào đây, tôi chỉ sửa phần logic Socket ở trên) ...
 
   useEffect(() => {
     if (showUserBox && user) {
@@ -71,12 +83,6 @@ const Navbar = () => {
       setSelectedOrder(null); 
     }
   }, [showUserBox, user]);
-
-  useEffect(() => {
-    if (user) {
-        fetchNotifications();
-    }
-  }, [user, fetchNotifications]);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 640);
@@ -316,7 +322,6 @@ const Navbar = () => {
                                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                     animate={{ opacity: 1, y: 0, scale: 1 }}
                                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                    // SỬA LỖI: Trên mobile dùng fixed để căn giữa (top-20), Desktop dùng absolute right-0 (ngay dưới icon)
                                     className="fixed top-20 left-4 right-4 z-50 w-auto sm:absolute sm:right-0 sm:left-auto sm:top-full sm:mt-2 sm:w-96 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden"
                                 >
                                     <div className="p-3 border-b bg-gray-50 flex justify-between items-center">
