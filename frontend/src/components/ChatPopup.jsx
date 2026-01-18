@@ -169,14 +169,17 @@ const ChatPopup = () => {
                     <div
                       className={`max-w-[80%] px-4 py-2 rounded-lg text-sm ${
                         msg.senderId === user._id
-                          ? "bg-blue-600 text-white rounded-br-none"
-                          : "bg-gray-200 text-gray-800 rounded-bl-none"
+                          ? "bg-orange-200 text-white rounded-br-none" // Màu nền chat user
+                          : "bg-gray-200 text-gray-800 rounded-bl-none" // Màu nền chat admin
                       } ${msg.isOptimistic ? "opacity-70" : "opacity-100"}`}
                     >
                       {msg.image && (
                         <img src={msg.image} alt="Attachment" className="sm:max-w-[200px] rounded-md mb-2 object-cover border border-white/20" />
                       )}
-                      {msg.text && <p>{msg.text}</p>}
+                      
+                      {/* --- THÊM CLASS whitespace-pre-wrap ĐỂ XUỐNG DÒNG --- */}
+                      {msg.text && <p className="whitespace-pre-wrap">{msg.text}</p>}
+                      
                       <span className={`text-[10px] block text-right mt-1 ${msg.senderId === user._id ? "text-blue-200" : "text-gray-500"}`}>
                         {new Date(msg.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                       </span>
@@ -209,7 +212,7 @@ const ChatPopup = () => {
                     placeholder="Nhập tin nhắn..."
                     className="flex-1 border rounded-full px-4 py-2 text-sm focus:outline-none focus:border-blue-500"
                 />
-                <button type="submit" className="bg-gray-950 text-white p-2 rounded-full hover:bg-gray-6=800 transition disabled:opacity-50" disabled={!text.trim() && !imagePreview}>
+                <button type="submit" className="bg-gray-950 text-white p-2 rounded-full hover:bg-gray-800 transition disabled:opacity-50" disabled={!text.trim() && !imagePreview}>
                     <Send size={18} />
                 </button>
                 </form>
