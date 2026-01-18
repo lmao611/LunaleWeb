@@ -174,7 +174,7 @@ const AdminChatManager = () => {
                         <User size={20} />
                     </div>
                     {unreadUsers.has(user._id) && (
-                        <div className="absolute top-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                        <div className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></div>
                     )}
                   </div>
                   
