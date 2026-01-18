@@ -5,20 +5,21 @@ import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 
+import { app, server } from "./lib/socket.js";
+import { connectDB } from "./lib/db.js";
+
 import bannerRoutes from "./routes/banner.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import productRoutes from "./routes/product.routes.js";
 import cartRoutes from "./routes/cart.routes.js";
 import collectionRoutes from "./routes/collection.routes.js";
-import { connectDB } from "./lib/db.js";
 import ordersRoutes from "./routes/orders.routes.js";
 import userRoutes from "./routes/user.routes.js";
-
-import customerOrderRoutes from "./routes/customerOrder.routes.js"; 
+import customerOrderRoutes from "./routes/customerOrder.routes.js";
 import notificationRoutes from "./routes/notification.route.js";
+
 dotenv.config();
-const app = express();
 const PORT = process.env.PORT || 5000;
 
 const __filename = fileURLToPath(import.meta.url);
@@ -71,7 +72,7 @@ app.get("/", (req, res) => {
   res.send("API Lunale is running");
 });
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   connectDB();
 });

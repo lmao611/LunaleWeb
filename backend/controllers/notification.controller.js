@@ -1,15 +1,15 @@
 import Notification from "../models/notification.model.js";
 import User from "../models/user.model.js";
-import cloudinary from "../lib/cloudinary.js"; // Giả định bạn đã có file cấu hình này như trong cấu trúc ảnh cũ
+import cloudinary from "../lib/cloudinary.js";
+import { io, getReceiverSocketId } from "../lib/socket.js";
 
 export const sendNotification = async (req, res) => {
   try {
     const { userId, message, sendToAll } = req.body;
-    const imageFile = req.file; // Lấy ảnh từ middleware upload
+    const imageFile = req.file;
 
     let imageUrl = "";
     if (imageFile) {
-      // Upload ảnh lên Cloudinary
       const uploadResponse = await cloudinary.uploader.upload(imageFile.path, {
         folder: "notifications",
       });
@@ -17,7 +17,6 @@ export const sendNotification = async (req, res) => {
     }
 
     if (sendToAll === "true" || sendToAll === true) {
-      // 1. Gửi cho TOÀN BỘ user (trừ admin/controller nếu muốn, ở đây gửi hết cho role customer)
       const customers = await User.find({ role: "customer" });
       
       const notifications = customers.map((customer) => ({
@@ -27,10 +26,18 @@ export const sendNotification = async (req, res) => {
       }));
 
       await Notification.insertMany(notifications);
-      return res.status(201).json({ message: `Đã gửi thông báo đến ${customers.length} khách hàng.` });
+      
+      io.emit("newNotification", {
+        message,
+        image: imageUrl,
+        createdAt: new Date(),
+        isRead: false,
+        broadcast: true 
+      });
+
+      return res.status(201).json({ message: `Đã gửi đến ${customers.length} khách.` });
 
     } else {
-      // 2. Gửi cho 1 người cụ thể
       if (!userId) return res.status(400).json({ message: "Vui lòng chọn khách hàng." });
 
       const notification = await Notification.create({
@@ -38,19 +45,24 @@ export const sendNotification = async (req, res) => {
         message,
         image: imageUrl,
       });
+
+      const receiverSocketId = getReceiverSocketId(userId);
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit("newNotification", notification);
+      }
+
       return res.status(201).json(notification);
     }
   } catch (error) {
     console.error("Error sending notification:", error);
-    res.status(500).json({ message: "Lỗi server khi gửi thông báo." });
+    res.status(500).json({ message: "Lỗi server" });
   }
 };
 
 export const getUserNotifications = async (req, res) => {
   try {
-    // Lấy thông báo của chính user đang đăng nhập
     const notifications = await Notification.find({ recipient: req.user._id })
-      .sort({ createdAt: -1 }); // Mới nhất lên đầu
+      .sort({ createdAt: -1 });
     res.json(notifications);
   } catch (error) {
     res.status(500).json({ message: "Lỗi lấy danh sách thông báo." });
