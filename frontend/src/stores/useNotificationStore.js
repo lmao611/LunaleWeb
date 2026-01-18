@@ -89,11 +89,11 @@ export const useNotificationStore = create((set, get) => ({
       const audio = new Audio("/notification.mp3"); 
       audio.play().catch(() => {}); 
       
-      toast("🔔 Bạn có thông báo mới!", {
+      toast("Bạn có thông báo mới.", {
           duration: 4000,
           position: "top-right",
           style: {
-            background: "#3b82f6",
+            background: "#000000",
             color: "#fff",
             fontWeight: "bold"
           },
