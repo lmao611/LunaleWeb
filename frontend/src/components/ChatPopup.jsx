@@ -145,12 +145,12 @@ const ChatPopup = () => {
             exit={{ opacity: 0, y: 20, scale: 0.9 }}
             className="bg-white w-80 sm:w-96 max-h-[80vh] h-[500px] rounded-lg shadow-2xl border border-gray-200 flex flex-col mb-4 overflow-hidden"
           >
-            <div className="bg-blue-600 p-4 flex justify-between items-center text-white shrink-0">
+            <div className="bg-gray-950 p-4 flex justify-between items-center text-white shrink-0">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                 <h4 className="font-bold">TƯ VẤN</h4>
               </div>
-              <button onClick={() => setIsOpen(false)} className="hover:bg-blue-700 p-1 rounded">
+              <button onClick={() => setIsOpen(false)} className="hover:bg-gray-800 p-1 rounded">
                 <X size={18} />
               </button>
             </div>
