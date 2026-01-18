@@ -169,7 +169,7 @@ const ChatPopup = () => {
                     <div
                       className={`max-w-[80%] px-4 py-2 rounded-lg text-sm ${
                         msg.senderId === user._id
-                          ? "bg-orange-200 text-white rounded-br-none" // Màu nền chat user
+                          ? "bg-gray-950 text-white rounded-br-none" // Màu nền chat user
                           : "bg-gray-200 text-gray-800 rounded-bl-none" // Màu nền chat admin
                       } ${msg.isOptimistic ? "opacity-70" : "opacity-100"}`}
                     >
