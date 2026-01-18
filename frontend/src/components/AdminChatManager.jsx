@@ -13,7 +13,6 @@ const AdminChatManager = () => {
   const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
 
-  // Hàm nén ảnh trước khi gửi (Tăng tốc độ)
   const compressImage = (file, callback) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -22,10 +21,9 @@ const AdminChatManager = () => {
         img.src = event.target.result;
         img.onload = () => {
             const canvas = document.createElement("canvas");
-            const MAX_WIDTH = 800; // Giới hạn chiều rộng 800px
+            const MAX_WIDTH = 800; 
             const scaleSize = MAX_WIDTH / img.width;
             
-            // Nếu ảnh nhỏ hơn 800px thì giữ nguyên, ngược lại thì scale xuống
             if (scaleSize < 1) {
                 canvas.width = MAX_WIDTH;
                 canvas.height = img.height * scaleSize;
@@ -36,8 +34,6 @@ const AdminChatManager = () => {
 
             const ctx = canvas.getContext("2d");
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            
-            // Nén chất lượng xuống 0.7 (JPEG)
             callback(canvas.toDataURL("image/jpeg", 0.7));
         };
     };
@@ -46,22 +42,30 @@ const AdminChatManager = () => {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    
-    // Gọi hàm nén ảnh
     compressImage(file, (compressedResult) => {
         setImagePreview(compressedResult);
     });
   };
 
-  // --- LẮNG NGHE TOÀN CỤC CHO ADMIN ---
+  // --- SỬA LOGIC LẮNG NGHE TOÀN CỤC CHO ADMIN ---
   useEffect(() => {
       if(!socket) return;
 
       const handleGlobalMessage = (newMessage) => {
+          // Nếu mình không phải là người gửi
           if (newMessage.senderId !== currentUser._id) {
-              if (newMessage.senderId !== selectedUser?._id) {
-                  markUserAsUnread(newMessage.senderId);
-                  const sender = users.find(u => u._id === newMessage.senderId);
+              // Tìm ID của khách hàng trong tin nhắn (có thể là sender hoặc receiver nếu admin khác gửi cho khách)
+              const partnerId = (newMessage.senderId === currentUser._id || users.some(u => u._id === newMessage.senderId)) 
+                                ? newMessage.senderId 
+                                : newMessage.receiverId;
+
+              const isPartnerCustomer = users.some(u => u._id === partnerId && u.role === 'customer');
+
+              // Nếu tin nhắn không thuộc về cuộc hội thoại đang mở
+              if (partnerId !== selectedUser?._id && isPartnerCustomer) {
+                  markUserAsUnread(partnerId);
+                  
+                  const sender = users.find(u => u._id === partnerId);
                   const senderName = sender ? sender.name : "Khách hàng";
 
                   toast.custom((t) => (
@@ -83,7 +87,7 @@ const AdminChatManager = () => {
                           </div>
                           <div className="ml-3 flex-1">
                             <p className="text-sm font-medium text-gray-900">
-                              Tin nhắn mới từ {senderName}
+                              Tin nhắn mới liên quan {senderName}
                             </p>
                             <p className="mt-1 text-sm text-gray-500 line-clamp-1">
                               {newMessage.image ? "Đã gửi một ảnh" : newMessage.text}
@@ -150,7 +154,6 @@ const AdminChatManager = () => {
   return (
     <div className="bg-white rounded-lg shadow-lg border border-gray-200 h-[80vh] md:h-[600px] flex overflow-hidden">
       
-      {/* SIDEBAR DANH SÁCH */}
       <div className={`w-full md:w-1/3 border-r border-gray-200 flex-col ${selectedUser ? "hidden md:flex" : "flex"}`}>
         <div className="p-4 border-b bg-gray-50">
            <h3 className="font-bold text-gray-700 mb-2">Đoạn chat</h3>
@@ -174,7 +177,7 @@ const AdminChatManager = () => {
                         <User size={20} />
                     </div>
                     {unreadUsers.has(user._id) && (
-                        <div className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></div>
+                        <div className="absolute top-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
                     )}
                   </div>
                   
@@ -194,13 +197,10 @@ const AdminChatManager = () => {
         </div>
       </div>
 
-      {/* MAIN CHAT AREA */}
       <div className={`flex-1 flex-col relative ${!selectedUser ? "hidden md:flex" : "flex"}`}>
         {selectedUser ? (
           <>
-            {/* Header */}
             <div className="p-3 border-b bg-white flex items-center gap-3 shadow-sm z-10">
-               {/* Nút Back trên Mobile */}
                <button 
                  onClick={() => setSelectedUser(null)}
                  className="md:hidden p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full"
@@ -217,7 +217,6 @@ const AdminChatManager = () => {
                </div>
             </div>
 
-            {/* Messages List */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
               {messages.map((msg) => (
                 <div
@@ -236,8 +235,7 @@ const AdminChatManager = () => {
                         <img src={msg.image} alt="Attachment" className="w-full rounded-md mb-2 object-cover border border-white/20" />
                       )}
                       
-                      {/* --- SỬA Ở ĐÂY: Thêm break-words --- */}
-                      {msg.text && <p className="whitespace-pre-wrap break-words">{msg.text}</p>}
+                      {msg.text && <p className="whitespace-pre-wrap break-all">{msg.text}</p>}
                       
                     </div>
                     <span className={`text-[10px] mt-1 ${msg.senderId === currentUser._id ? "text-right text-gray-400" : "text-left text-gray-400"}`}>
@@ -249,7 +247,6 @@ const AdminChatManager = () => {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input */}
             <div className="bg-white border-t">
               {imagePreview && (
                 <div className="px-4 py-2 bg-gray-50 border-b flex items-center gap-3">

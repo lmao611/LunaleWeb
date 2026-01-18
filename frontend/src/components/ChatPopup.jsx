@@ -29,11 +29,13 @@ const ChatPopup = () => {
       }
   }, [users, setSelectedUser]);
 
+  // --- SỬA LOGIC BUBBLE: Chấp nhận tin từ bất kỳ Admin nào ---
   useEffect(() => {
     if (!socket) return;
 
     const handleNewMessage = (newMessage) => {
-        if (!isOpen && newMessage.senderId === adminId) {
+        // Nếu chat đang đóng VÀ người gửi không phải là mình (tức là Admin gửi)
+        if (!isOpen && newMessage.senderId !== user._id) {
             const previewText = newMessage.image ? "Đã gửi một ảnh 📷" : newMessage.text;
             setUnreadBubble(previewText);
             const audio = new Audio("/notification.mp3");
@@ -43,7 +45,7 @@ const ChatPopup = () => {
 
     socket.on("newMessage", handleNewMessage);
     return () => socket.off("newMessage", handleNewMessage);
-  }, [socket, isOpen, adminId]);
+  }, [socket, isOpen, user]);
 
   useEffect(() => {
     if (isOpen && adminId) {
@@ -60,7 +62,6 @@ const ChatPopup = () => {
     }
   }, [messages, isOpen, imagePreview]);
 
-  // --- HÀM NÉN ẢNH ---
   const compressImage = (file, callback) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -177,8 +178,7 @@ const ChatPopup = () => {
                         <img src={msg.image} alt="Attachment" className="sm:max-w-[200px] rounded-md mb-2 object-cover border border-white/20" />
                       )}
                       
-                      {/* --- SỬA Ở ĐÂY: Thêm break-words --- */}
-                      {msg.text && <p className="whitespace-pre-wrap break-words">{msg.text}</p>}
+                      {msg.text && <p className="whitespace-pre-wrap break-all">{msg.text}</p>}
                       
                       <span className={`text-[10px] block text-right mt-1 ${msg.senderId === user._id ? "text-blue-200" : "text-gray-500"}`}>
                         {new Date(msg.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}

@@ -9,7 +9,7 @@ export const useChatStore = create((set, get) => ({
   selectedUser: null,
   isUsersLoading: false,
   isMessagesLoading: false,
-  unreadUsers: new Set(), // Lưu danh sách user có tin nhắn chưa đọc (cho Admin)
+  unreadUsers: new Set(),
 
   getUsers: async () => {
     set({ isUsersLoading: true });
@@ -39,33 +39,29 @@ export const useChatStore = create((set, get) => ({
     const { selectedUser, messages } = get();
     const { user: currentUser } = useUserStore.getState();
 
-    // --- 1. OPTIMISTIC UI: Hiển thị ngay lập tức ---
-    const tempId = Date.now().toString(); // ID tạm
+    // Optimistic UI
+    const tempId = Date.now().toString(); 
     const optimisticMessage = {
       _id: tempId,
       senderId: currentUser._id,
       receiverId: selectedUser._id,
       text: messageData.text,
-      image: messageData.image, // Ảnh base64 (preview ngay)
+      image: messageData.image,
       createdAt: new Date().toISOString(),
-      isOptimistic: true, // Cờ đánh dấu tin giả
+      isOptimistic: true,
     };
 
-    // Cập nhật state ngay lập tức
     set({ messages: [...messages, optimisticMessage] });
 
     try {
-      // Gửi thật lên server
       const res = await axios.post(`/messages/send/${selectedUser._id}`, messageData);
       
-      // Khi server trả về, thay thế tin nhắn tạm bằng tin thật (để có ID thật)
       set((state) => ({
         messages: state.messages.map((msg) => 
           msg._id === tempId ? res.data : msg
         ),
       }));
     } catch (error) {
-      // Nếu lỗi thì xóa tin tạm và báo lỗi
       set((state) => ({
         messages: state.messages.filter((msg) => msg._id !== tempId),
       }));
@@ -73,24 +69,43 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
+  // --- SỬA LOGIC LẮNG NGHE ĐỂ ĐỒNG BỘ ---
   subscribeToMessages: () => {
     const socket = useUserStore.getState().socket;
-    if (!socket) return;
+    const currentUser = useUserStore.getState().user;
+    if (!socket || !currentUser) return;
 
     socket.on("newMessage", (newMessage) => {
       const { selectedUser, messages } = get();
+      const isCustomer = currentUser.role === "customer";
       
-      // --- XỬ LÝ ÂM THANH (TING) ---
+      // Âm thanh
       const audio = new Audio("/notification.mp3"); 
       audio.play().catch(()=>{});
 
-      // Trường hợp 1: Đang mở đoạn chat với người gửi -> Thêm vào list
-      if (selectedUser && newMessage.senderId === selectedUser._id) {
-        set({ messages: [...messages, newMessage] });
+      // 1. Nếu là KHÁCH HÀNG:
+      // Nhận tin nếu mình là người nhận (Admin gửi tới) HOẶC mình là người gửi (Sync đa thiết bị)
+      if (isCustomer) {
+          if (newMessage.receiverId === currentUser._id || newMessage.senderId === currentUser._id) {
+             set({ messages: [...get().messages, newMessage] });
+          }
       } 
-      
-      // Trường hợp 2: Admin đang chat người khác hoặc ở dashboard -> Đánh dấu chưa đọc
-      // Logic này sẽ được bổ sung xử lý ở Component Admin để hiện Toast
+      // 2. Nếu là ADMIN:
+      // Chỉ thêm vào khung chat nếu tin nhắn đó thuộc về Khách Hàng đang mở (selectedUser)
+      // Bất kể ai gửi (Khách gửi, hay Admin khác gửi cho Khách đó)
+      else if (selectedUser) {
+          const isRelatedToSelectedUser = 
+            newMessage.senderId === selectedUser._id || 
+            newMessage.receiverId === selectedUser._id;
+
+          if (isRelatedToSelectedUser) {
+            // Kiểm tra trùng lặp trước khi thêm (đề phòng)
+            const isDuplicate = messages.some(m => m._id === newMessage._id);
+            if (!isDuplicate) {
+                set({ messages: [...get().messages, newMessage] });
+            }
+          }
+      }
     });
   },
 
@@ -100,18 +115,16 @@ export const useChatStore = create((set, get) => ({
   },
 
   setSelectedUser: (selectedUser) => {
-    // Khi chọn user, xóa user đó khỏi danh sách chưa đọc
     set((state) => {
         const newUnread = new Set(state.unreadUsers);
-        newUnread.delete(selectedUser?._id);
+        if (selectedUser) newUnread.delete(selectedUser._id);
         return { selectedUser, unreadUsers: newUnread };
     });
   },
 
-  // Hàm helper để thêm user vào danh sách chưa đọc
   markUserAsUnread: (userId) => {
       set((state) => {
-          if (state.selectedUser?._id === userId) return state; // Đang xem thì không tính là chưa đọc
+          if (state.selectedUser?._id === userId) return state; 
           const newUnread = new Set(state.unreadUsers);
           newUnread.add(userId);
           return { unreadUsers: newUnread };
