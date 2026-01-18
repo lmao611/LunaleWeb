@@ -6,6 +6,7 @@ import {
   FileText,
   ClipboardList,
   Bell,
+  MessageSquare, // Icon tin nhắn
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -19,6 +20,7 @@ import OrdersManager from "../components/OrdersManager";
 import CustomerOrders from "../components/CustomerOrders";
 import OrderReceipt from "../components/OrderReceipt";
 import SendNotificationForm from "../components/SendNotificationForm";
+import AdminChatManager from "../components/AdminChatManager"; // Component quản lý chat
 
 import { useProductStore } from "../stores/useProductStore";
 import { useUserStore } from "../stores/useUserStore";
@@ -32,6 +34,7 @@ const tabs = [
   { id: "orders", label: "Q.Lý Vận Chuyển", icon: FileText },
   { id: "customer_orders", label: "Đơn Khách Đặt", icon: ClipboardList },
   { id: "notifications", label: "Gửi Thông Báo", icon: Bell },
+  { id: "messages", label: "Tin nhắn khách", icon: MessageSquare }, // Tab mới
   { id: "receipt", label: "Phiếu đặt hàng", icon: FileText },
 ];
 
@@ -51,7 +54,8 @@ const AdminPage = () => {
   const visibleTabs = tabs.filter((tab) => {
     if (user?.role === "controller") return true;
     if (user?.role === "admin") {
-      return ["create", "collections", "banner", "orders", "customer_orders", "notifications", "receipt"].includes(tab.id);
+      // Thêm "messages" vào danh sách cho phép của admin
+      return ["create", "collections", "banner", "orders", "customer_orders", "notifications", "messages", "receipt"].includes(tab.id);
     }
     return false;
   });
@@ -131,6 +135,12 @@ const AdminPage = () => {
           {activeTab === "notifications" && (
             <motion.div key="notifications" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
               <SendNotificationForm />
+            </motion.div>
+          )}
+
+          {activeTab === "messages" && (
+            <motion.div key="messages" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+              <AdminChatManager />
             </motion.div>
           )}
 

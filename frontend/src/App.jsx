@@ -18,15 +18,16 @@ import PolicyPage from "./pages/PolicyPage";
 import ScrollToTop from "./components/ScrollToTop";
 import PrivacyPage from "./pages/PrivacyPage.jsx";
 
-// ✅ 1. Import thêm 2 store này để gọi hàm fetch
 import { useCollectionStore } from "./stores/useCollectionStore";
 import { useProductStore } from "./stores/useProductStore";
+
+// Import Component Chat
+import ChatPopup from "./components/ChatPopup";
 
 function App() {
   const { user, checkAuth, checkingAuth } = useUserStore();
   const { getCartItems } = useCartStore();
   
-  // ✅ 2. Lấy hàm fetch ra
   const { fetchCollections } = useCollectionStore();
   const { fetchFeaturedProducts } = useProductStore();
 
@@ -36,7 +37,6 @@ function App() {
     checkAuth();
   }, [checkAuth]);
 
-  // ✅ 3. Gọi API ngay lập tức (Chạy ngầm trong lúc màn hình đang Loading 3s)
   useEffect(() => {
     fetchCollections();
     fetchFeaturedProducts();
@@ -45,7 +45,7 @@ function App() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsForceLoadingDone(true);
-    }, 2000); // Vẫn giữ 3 giây loading như bạn muốn
+    }, 2000); 
 
     return () => clearTimeout(timer);
   }, []);
@@ -55,13 +55,16 @@ function App() {
     getCartItems();
   }, [getCartItems, user]);
 
-  // Vẫn giữ nguyên logic chặn trang cũ của bạn
   if (checkingAuth && !isForceLoadingDone) return <LoadingSpinner />;
 
   return (
-    <div className="min-h-screen bg-white text-gray-900 flex flex-col">
+    <div className="min-h-screen bg-white text-gray-900 flex flex-col relative">
       <Navbar />
       <ScrollToTop/>
+      
+      {/* Hiển thị ChatPopup ở tất cả các trang (chỉ hiện với khách hàng) */}
+      <ChatPopup />
+
       <div className="flex-1 w-full">
         <Routes>
           <Route path="/" element={<HomePage />} />

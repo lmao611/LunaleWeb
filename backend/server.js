@@ -18,7 +18,7 @@ import ordersRoutes from "./routes/orders.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import customerOrderRoutes from "./routes/customerOrder.routes.js";
 import notificationRoutes from "./routes/notification.route.js";
-
+import messageRoutes from "./routes/message.route.js";
 dotenv.config();
 const PORT = process.env.PORT || 5000;
 
@@ -66,6 +66,7 @@ app.use("/api/banner", bannerRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/orders", ordersRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/messages", messageRoutes);
 app.use("/api/customer-orders", customerOrderRoutes);
 
 app.get("/", (req, res) => {
