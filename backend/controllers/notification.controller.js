@@ -1,7 +1,7 @@
 import Notification from "../models/notification.model.js";
 import User from "../models/user.model.js";
 import cloudinary from "../lib/cloudinary.js";
-import { io, getReceiverSocketId } from "../lib/socket.js";
+import { io, getReceiverSocketId } from "../lib/socket.js"; // IMPORT QUAN TRỌNG
 
 export const sendNotification = async (req, res) => {
   try {
@@ -17,6 +17,7 @@ export const sendNotification = async (req, res) => {
     }
 
     if (sendToAll === "true" || sendToAll === true) {
+      // 1. Gửi cho tất cả khách hàng
       const customers = await User.find({ role: "customer" });
       
       const notifications = customers.map((customer) => ({
@@ -27,6 +28,7 @@ export const sendNotification = async (req, res) => {
 
       await Notification.insertMany(notifications);
       
+      // --- SOCKET: BẮN TIN CHO TẤT CẢ ---
       io.emit("newNotification", {
         message,
         image: imageUrl,
@@ -35,9 +37,10 @@ export const sendNotification = async (req, res) => {
         broadcast: true 
       });
 
-      return res.status(201).json({ message: `Đã gửi đến ${customers.length} khách.` });
+      return res.status(201).json({ message: `Đã gửi đến ${customers.length} khách hàng.` });
 
     } else {
+      // 2. Gửi riêng cho 1 người
       if (!userId) return res.status(400).json({ message: "Vui lòng chọn khách hàng." });
 
       const notification = await Notification.create({
@@ -46,6 +49,7 @@ export const sendNotification = async (req, res) => {
         image: imageUrl,
       });
 
+      // --- SOCKET: BẮN TIN RIÊNG ---
       const receiverSocketId = getReceiverSocketId(userId);
       if (receiverSocketId) {
         io.to(receiverSocketId).emit("newNotification", notification);
@@ -55,7 +59,7 @@ export const sendNotification = async (req, res) => {
     }
   } catch (error) {
     console.error("Error sending notification:", error);
-    res.status(500).json({ message: "Lỗi server" });
+    res.status(500).json({ message: "Lỗi server khi gửi thông báo." });
   }
 };
 
@@ -91,4 +95,4 @@ export const deleteNotification = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: "Lỗi xóa thông báo" });
     }
-}
+};
