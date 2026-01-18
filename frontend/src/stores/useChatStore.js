@@ -10,6 +10,9 @@ export const useChatStore = create((set, get) => ({
   isUsersLoading: false,
   isMessagesLoading: false,
   unreadUsers: new Set(),
+  
+  // --- THÊM STATE VIEWERS ---
+  viewers: {}, // { customerId: [ { adminId, adminName } ] }
 
   getUsers: async () => {
     set({ isUsersLoading: true });
@@ -39,7 +42,6 @@ export const useChatStore = create((set, get) => ({
     const { selectedUser, messages } = get();
     const { user: currentUser } = useUserStore.getState();
 
-    // Optimistic UI
     const tempId = Date.now().toString(); 
     const optimisticMessage = {
       _id: tempId,
@@ -55,11 +57,8 @@ export const useChatStore = create((set, get) => ({
 
     try {
       const res = await axios.post(`/messages/send/${selectedUser._id}`, messageData);
-      
       set((state) => ({
-        messages: state.messages.map((msg) => 
-          msg._id === tempId ? res.data : msg
-        ),
+        messages: state.messages.map((msg) => msg._id === tempId ? res.data : msg),
       }));
     } catch (error) {
       set((state) => ({
@@ -69,7 +68,6 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
-  // --- SỬA LOGIC LẮNG NGHE ĐỂ ĐỒNG BỘ ---
   subscribeToMessages: () => {
     const socket = useUserStore.getState().socket;
     const currentUser = useUserStore.getState().user;
@@ -79,27 +77,20 @@ export const useChatStore = create((set, get) => ({
       const { selectedUser, messages } = get();
       const isCustomer = currentUser.role === "customer";
       
-      // Âm thanh
       const audio = new Audio("/notification.mp3"); 
       audio.play().catch(()=>{});
 
-      // 1. Nếu là KHÁCH HÀNG:
-      // Nhận tin nếu mình là người nhận (Admin gửi tới) HOẶC mình là người gửi (Sync đa thiết bị)
       if (isCustomer) {
           if (newMessage.receiverId === currentUser._id || newMessage.senderId === currentUser._id) {
              set({ messages: [...get().messages, newMessage] });
           }
       } 
-      // 2. Nếu là ADMIN:
-      // Chỉ thêm vào khung chat nếu tin nhắn đó thuộc về Khách Hàng đang mở (selectedUser)
-      // Bất kể ai gửi (Khách gửi, hay Admin khác gửi cho Khách đó)
       else if (selectedUser) {
           const isRelatedToSelectedUser = 
             newMessage.senderId === selectedUser._id || 
             newMessage.receiverId === selectedUser._id;
 
           if (isRelatedToSelectedUser) {
-            // Kiểm tra trùng lặp trước khi thêm (đề phòng)
             const isDuplicate = messages.some(m => m._id === newMessage._id);
             if (!isDuplicate) {
                 set({ messages: [...get().messages, newMessage] });
@@ -107,11 +98,19 @@ export const useChatStore = create((set, get) => ({
           }
       }
     });
+
+    // --- LẮNG NGHE DANH SÁCH VIEWERS ---
+    socket.on("viewersUpdated", (updatedViewers) => {
+        set({ viewers: updatedViewers });
+    });
   },
 
   unsubscribeFromMessages: () => {
     const socket = useUserStore.getState().socket;
-    if (socket) socket.off("newMessage");
+    if (socket) {
+        socket.off("newMessage");
+        socket.off("viewersUpdated");
+    }
   },
 
   setSelectedUser: (selectedUser) => {
