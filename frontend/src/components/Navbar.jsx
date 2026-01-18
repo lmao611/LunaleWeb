@@ -297,7 +297,8 @@ const Navbar = () => {
                                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                     animate={{ opacity: 1, y: 0, scale: 1 }}
                                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                    className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden"
+                                    // SỬA LỖI: Trên mobile dùng fixed để căn giữa, Desktop dùng absolute right-0
+                                    className="fixed top-20 left-4 right-4 z-50 w-auto sm:absolute sm:right-0 sm:left-auto sm:top-full sm:mt-2 sm:w-96 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden"
                                 >
                                     <div className="p-3 border-b bg-gray-50 flex justify-between items-center">
                                         <h3 className="font-semibold text-gray-700">Thông báo</h3>
