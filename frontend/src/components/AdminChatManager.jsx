@@ -150,11 +150,7 @@ const AdminChatManager = () => {
   return (
     <div className="bg-white rounded-lg shadow-lg border border-gray-200 h-[80vh] md:h-[600px] flex overflow-hidden">
       
-      {/* SIDEBAR DANH SÁCH 
-         Logic hiển thị: 
-         - Màn hình to (md:flex): Luôn hiện
-         - Màn hình nhỏ: Nếu ĐANG CHỌN user (selectedUser có giá trị) thì ẨN (hidden), ngược lại thì hiện (flex)
-      */}
+      {/* SIDEBAR DANH SÁCH */}
       <div className={`w-full md:w-1/3 border-r border-gray-200 flex-col ${selectedUser ? "hidden md:flex" : "flex"}`}>
         <div className="p-4 border-b bg-gray-50">
            <h3 className="font-bold text-gray-700 mb-2">Đoạn chat</h3>
@@ -198,11 +194,7 @@ const AdminChatManager = () => {
         </div>
       </div>
 
-      {/* MAIN CHAT AREA 
-         Logic hiển thị:
-         - Màn hình to (md:flex): Luôn hiện
-         - Màn hình nhỏ: Nếu CHƯA CHỌN user (!selectedUser) thì ẨN, ngược lại thì hiện
-      */}
+      {/* MAIN CHAT AREA */}
       <div className={`flex-1 flex-col relative ${!selectedUser ? "hidden md:flex" : "flex"}`}>
         {selectedUser ? (
           <>
@@ -243,7 +235,10 @@ const AdminChatManager = () => {
                       {msg.image && (
                         <img src={msg.image} alt="Attachment" className="w-full rounded-md mb-2 object-cover border border-white/20" />
                       )}
-                      {msg.text && <p>{msg.text}</p>}
+                      
+                      {/* --- SỬA Ở ĐÂY: Thêm break-words --- */}
+                      {msg.text && <p className="whitespace-pre-wrap break-words">{msg.text}</p>}
+                      
                     </div>
                     <span className={`text-[10px] mt-1 ${msg.senderId === currentUser._id ? "text-right text-gray-400" : "text-left text-gray-400"}`}>
                         {new Date(msg.createdAt).toLocaleString([], {hour: '2-digit', minute:'2-digit', day:'numeric', month:'numeric'})}
@@ -262,7 +257,7 @@ const AdminChatManager = () => {
                     <img src={imagePreview} alt="Preview" className="w-16 h-16 object-cover rounded border border-gray-300"/>
                     <button onClick={removeImage} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 shadow-sm"><X size={14} /></button>
                   </div>
-                  <span className="text-sm text-gray-500">Đang gửi ảnh...</span>
+                  <span className="text-sm text-gray-500">Đang chọn ảnh...</span>
                 </div>
               )}
 
