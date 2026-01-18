@@ -1,7 +1,8 @@
-import { ShoppingCart, UserPlus, LogIn, LogOut, Lock, Home, User, X, Clock, Package, History, Edit2, Save, XCircle, ChevronLeft, MapPin, Phone, CreditCard } from "lucide-react";
+import { ShoppingCart, UserPlus, LogIn, LogOut, Lock, Home, User, X, Clock, Package, History, Edit2, Save, XCircle, ChevronLeft, MapPin, Phone, CreditCard, Bell, Trash2 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useUserStore } from "../stores/useUserStore";
 import { useCartStore } from "../stores/useCartStore";
+import { useNotificationStore } from "../stores/useNotificationStore";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "../lib/axios";
@@ -9,37 +10,36 @@ import axios from "../lib/axios";
 const Navbar = () => {
   const { user, logout, showUserBox, setShowUserBox } = useUserStore();
   const { cart } = useCartStore();
+  const { notifications, unreadCount, fetchNotifications, markAsRead, deleteNotification } = useNotificationStore();
+  
   const isAdmin = user?.role === "admin" || user?.role === "controller";
   const location = useLocation();
   const navigate = useNavigate();
   const isHome = location.pathname === "/";
   
-  // --- STATE PROFILE ---
   const [editName, setEditName] = useState(user?.name || "");
   const [editEmail, setEditEmail] = useState(user?.email || "");
   const [editPhone, setEditPhone] = useState(user?.phoneNumber || "");
   const [editDirection, setEditDirection] = useState(user?.direction || "");
 
-  // --- STATE NAVBAR ---
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
   const [tokenTimeLeft, setTokenTimeLeft] = useState(null);
 
-  // --- STATE ĐƠN HÀNG & TAB ---
-  const [activeTab, setActiveTab] = useState("profile"); // 'profile' | 'orders'
+  const [activeTab, setActiveTab] = useState("profile");
   const [orders, setOrders] = useState([]); 
   const [loadingOrders, setLoadingOrders] = useState(false);
   
-  // State chỉnh sửa địa chỉ nhanh
   const [editingOrderId, setEditingOrderId] = useState(null);
   const [editOrderAddress, setEditOrderAddress] = useState("");
   
-  // State xem chi tiết đơn hàng
   const [selectedOrder, setSelectedOrder] = useState(null);
+
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState(null);
 
   const setUser = useUserStore((state) => state.setUser);
 
-  // --- EFFECTS ---
   useEffect(() => {
     if (showUserBox && user) {
       setEditName(user.name || "");
@@ -50,6 +50,14 @@ const Navbar = () => {
       setSelectedOrder(null); 
     }
   }, [showUserBox, user]);
+
+  useEffect(() => {
+    if (user) {
+        fetchNotifications();
+        const interval = setInterval(fetchNotifications, 60000);
+        return () => clearInterval(interval);
+    }
+  }, [user, fetchNotifications]);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 640);
@@ -91,16 +99,13 @@ const Navbar = () => {
     } catch (error) { console.error(error); }
   }, [isAdmin]);
 
-  // --- API CALLS ---
   const fetchMyOrders = async () => {
     setLoadingOrders(true);
     try {
-      // QUAN TRỌNG: Gọi API riêng cho khách hàng để chỉ lấy đơn của mình
       const res = await axios.get("/customer-orders/my-orders");
       setOrders(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
       console.error("Lỗi tải đơn hàng:", error);
-      // Nếu lỗi 404 (chưa có backend mới), tạm thời set rỗng để không lỗi giao diện
       setOrders([]);
     } finally {
       setLoadingOrders(false);
@@ -114,7 +119,6 @@ const Navbar = () => {
     }
   }, [showUserBox, activeTab]);
 
-  // --- HANDLERS ---
   const handleLogoClick = () => {
     if (isHome) window.scrollTo({ top: 0, behavior: "smooth" });
     else {
@@ -159,7 +163,6 @@ const Navbar = () => {
 
   const startEditOrder = (order) => {
     setEditingOrderId(order._id);
-    // Ưu tiên lấy địa chỉ trong customerInfo (snapshot lúc đặt), nếu không có thì lấy address gốc
     setEditOrderAddress(order.customerInfo?.address || order.address || "");
   };
 
@@ -174,7 +177,6 @@ const Navbar = () => {
     }
   };
 
-  // --- HELPERS ---
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
   };
@@ -191,6 +193,14 @@ const Navbar = () => {
   const isEditable = (status) => {
     const s = status?.toLowerCase() || "";
     return s === "pending" || s === "chờ xử lý";
+  };
+
+  const handleNotificationClick = (notif) => {
+    setSelectedNotification(notif);
+    if (!notif.isRead) {
+        markAsRead(notif._id);
+    }
+    setShowNotifications(false);
   };
 
   return (
@@ -263,6 +273,73 @@ const Navbar = () => {
               <Link to="/" className={`flex items-end pb-[2px] transition ${isHome && !isScrolled ? "text-white" : "text-black hover:text-blue-700"}`}>
                 <Home size={22} strokeWidth={2.2} />
               </Link>
+              
+              {user && (
+                <div className="relative">
+                    <button 
+                        onClick={() => setShowNotifications(!showNotifications)}
+                        className={`transition flex items-end mb-0.5 relative ${isHome && !isScrolled ? "text-white hover:text-gray-200" : "text-black hover:text-blue-700"}`}
+                    >
+                        <Bell size={20} />
+                        {unreadCount > 0 && (
+                            <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full border border-white">
+                                {unreadCount}
+                            </span>
+                        )}
+                    </button>
+
+                    <AnimatePresence>
+                        {showNotifications && (
+                            <>
+                                <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)}></div>
+                                
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden"
+                                >
+                                    <div className="p-3 border-b bg-gray-50 flex justify-between items-center">
+                                        <h3 className="font-semibold text-gray-700">Thông báo</h3>
+                                        <span className="text-xs text-gray-500">{notifications.length} tin</span>
+                                    </div>
+                                    <div className="max-h-[60vh] overflow-y-auto">
+                                        {notifications.length === 0 ? (
+                                            <div className="p-8 text-center text-gray-500 text-sm">Chưa có thông báo nào</div>
+                                        ) : (
+                                            notifications.map((notif) => (
+                                                <div 
+                                                    key={notif._id} 
+                                                    onClick={() => handleNotificationClick(notif)}
+                                                    className={`p-3 border-b last:border-0 cursor-pointer hover:bg-gray-50 transition flex gap-3 ${!notif.isRead ? 'bg-blue-50/50' : ''}`}
+                                                >
+                                                    {notif.image ? (
+                                                        <img src={notif.image} alt="img" className="w-12 h-12 rounded object-cover flex-shrink-0 bg-gray-200" />
+                                                    ) : (
+                                                        <div className="w-12 h-12 rounded bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0">
+                                                            <Bell size={20} />
+                                                        </div>
+                                                    )}
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className={`text-sm line-clamp-2 ${!notif.isRead ? 'font-semibold text-gray-800' : 'text-gray-600'}`}>
+                                                            {notif.message}
+                                                        </p>
+                                                        <p className="text-xs text-gray-400 mt-1">
+                                                            {new Date(notif.createdAt).toLocaleDateString("vi-VN")}
+                                                        </p>
+                                                    </div>
+                                                    {!notif.isRead && <div className="w-2 h-2 bg-blue-600 rounded-full mt-2"></div>}
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </motion.div>
+                            </>
+                        )}
+                    </AnimatePresence>
+                </div>
+              )}
+
               {user && (
                 <div className="relative">
                   <button onClick={() => setShowUserBox(true)} className={`transition flex items-end mb-0.5 ${isHome && !isScrolled ? "text-white hover:text-gray-200" : "text-black hover:text-blue-700"}`}>
@@ -309,7 +386,6 @@ const Navbar = () => {
         </div>
       </motion.header>
 
-      {/* --- USER BOX MODAL --- */}
       <AnimatePresence>
         {showUserBox && user && (
           <div className="fixed inset-0 z-[999] bg-black/50 flex items-center justify-center p-4">
@@ -319,7 +395,6 @@ const Navbar = () => {
               exit={{ opacity: 0, scale: 0.9 }}
               className="bg-white rounded-xl shadow-2xl w-full max-w-4xl h-[85vh] max-h-[800px] flex flex-col relative overflow-hidden"
             >
-              {/* Nút đóng: Đã chỉnh nhỏ gọn, thêm nền nhẹ, đẩy sát góc */}
               <button 
                 onClick={() => setShowUserBox(false)} 
                 className="absolute top-2 right-2 sm:top-4 sm:right-4 text-gray-500 hover:text-red-600 z-50 transition p-1.5 bg-white/60 rounded-full hover:bg-red-50"
@@ -327,7 +402,6 @@ const Navbar = () => {
                 <X size={20} className="sm:w-6 sm:h-6" />
               </button>
 
-              {/* Header / Tabs: Đã chỉnh height nhỏ lại trên mobile */}
               <div className="flex border-b shrink-0">
                 <button
                   onClick={() => {setActiveTab("profile"); setSelectedOrder(null);}}
@@ -337,14 +411,12 @@ const Navbar = () => {
                 </button>
                 <button
                   onClick={() => setActiveTab("orders")}
-                  // Thêm pr-10 trên mobile để chữ không bị nút X che mất
                   className={`flex-1 py-3 sm:py-4 font-semibold text-sm sm:text-lg flex items-center justify-center gap-1.5 sm:gap-2 transition pr-10 sm:pr-0 ${activeTab === "orders" ? "text-blue-700 border-b-2 border-blue-700 bg-blue-50" : "text-gray-500 hover:bg-gray-50"}`}
                 >
                   <History size={18} className="sm:w-5 sm:h-5" /> Đơn hàng đã đặt
                 </button>
               </div>
 
-              {/* Content Area */}
               <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-gray-50">
                 {activeTab === "profile" ? (
                   <div className="max-w-md mx-auto bg-white p-4 sm:p-6 rounded-lg shadow-sm">
@@ -371,17 +443,13 @@ const Navbar = () => {
                     </button>
                   </div>
                 ) : (
-                  // --- ORDER HISTORY TAB ---
-                  // (Phần này giữ nguyên logic hiển thị đơn hàng)
                   <>
                     {selectedOrder ? (
-                      // VIEW 1: CHI TIẾT ĐƠN HÀNG
                       <motion.div 
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden h-full flex flex-col"
                       >
-                        {/* Header Chi tiết */}
                         <div className="p-3 sm:p-4 border-b flex items-center justify-between bg-gray-50">
                             <button 
                                 onClick={() => setSelectedOrder(null)}
@@ -392,15 +460,12 @@ const Navbar = () => {
                             <span className="font-bold text-gray-800 text-sm sm:text-base">#{ (selectedOrder._id).slice(-6).toUpperCase() }</span>
                         </div>
 
-                        {/* Body Chi tiết */}
                         <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 sm:space-y-6">
-                            {/* Trạng thái */}
                             <div className="flex justify-between items-center">
                                 <span className="text-xs sm:text-sm text-gray-500">Ngày đặt: {new Date(selectedOrder.createdAt).toLocaleString("vi-VN")}</span>
                                 {getStatusBadge(selectedOrder.status)}
                             </div>
 
-                            {/* Thông tin nhận hàng */}
                             <div className="grid sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
                                 <div className="p-3 bg-gray-50 rounded border">
                                     <h4 className="font-semibold text-gray-700 flex items-center gap-2 mb-2"><MapPin size={16}/> Địa chỉ nhận hàng</h4>
@@ -412,7 +477,6 @@ const Navbar = () => {
                                 </div>
                             </div>
 
-                            {/* Danh sách sản phẩm chi tiết */}
                             <div>
                                 <h4 className="font-semibold text-gray-700 mb-3 flex items-center gap-2"><Package size={16}/> Sản phẩm</h4>
                                 <div className="space-y-3">
@@ -435,7 +499,6 @@ const Navbar = () => {
                             </div>
                         </div>
 
-                        {/* Footer Tổng tiền */}
                         <div className="p-4 bg-gray-50 border-t space-y-2">
                             <div className="flex justify-between text-sm">
                                 <span className="text-gray-600">Tạm tính:</span>
@@ -445,7 +508,6 @@ const Navbar = () => {
                                 <span>Tổng cộng:</span>
                                 <span>{formatCurrency(selectedOrder.totalAmount)}</span>
                             </div>
-                            {/* Nút hủy trong chi tiết */}
                             {isEditable(selectedOrder.status) && (
                                 <button 
                                     onClick={() => handleCancelOrder(selectedOrder._id)}
@@ -457,7 +519,6 @@ const Navbar = () => {
                         </div>
                       </motion.div>
                     ) : (
-                      // VIEW 2: DANH SÁCH ĐƠN HÀNG
                       <div className="space-y-4">
                         {loadingOrders ? (
                           <div className="text-center py-10 text-gray-500">Đang tải lịch sử đơn hàng...</div>
@@ -553,6 +614,58 @@ const Navbar = () => {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {selectedNotification && (
+            <div className="fixed inset-0 z-[1000] bg-black/60 flex items-center justify-center p-4">
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden relative"
+                >
+                    <button 
+                        onClick={() => setSelectedNotification(null)}
+                        className="absolute top-3 right-3 text-gray-500 hover:text-red-500 bg-white/80 rounded-full p-1"
+                    >
+                        <X size={24} />
+                    </button>
+
+                    <div className="p-6">
+                        <h3 className="text-xl font-bold text-gray-800 mb-2 border-b pb-2">Chi tiết thông báo</h3>
+                        <div className="text-sm text-gray-500 mb-4 flex justify-between">
+                            <span>{new Date(selectedNotification.createdAt).toLocaleString("vi-VN")}</span>
+                            <button 
+                                onClick={() => { deleteNotification(selectedNotification._id); setSelectedNotification(null); }}
+                                className="text-red-500 hover:text-red-700 flex items-center gap-1 text-xs"
+                            >
+                                <Trash2 size={14}/> Xóa tin này
+                            </button>
+                        </div>
+                        
+                        <p className="text-gray-700 whitespace-pre-line mb-4 text-base leading-relaxed">
+                            {selectedNotification.message}
+                        </p>
+
+                        {selectedNotification.image && (
+                            <div className="rounded-lg overflow-hidden border border-gray-100">
+                                <img src={selectedNotification.image} alt="Notification Detail" className="w-full h-auto object-contain max-h-[400px]" />
+                            </div>
+                        )}
+                    </div>
+                    
+                    <div className="bg-gray-50 p-4 flex justify-end">
+                        <button 
+                            onClick={() => setSelectedNotification(null)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition"
+                        >
+                            Đóng
+                        </button>
+                    </div>
+                </motion.div>
+            </div>
         )}
       </AnimatePresence>
     </>

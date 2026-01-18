@@ -4,22 +4,22 @@ import {
   Images,
   UploadCloud,
   FileText,
-  ClipboardList, // Import thêm icon cho đẹp
+  ClipboardList,
+  Bell,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Import Components
 import CreateProductForm from "../components/CreateProductForm";
 import ProductsList from "../components/ProductsList";
 import CreateCollectionForm from "../components/CreateCollectionForm";
 import CollectionsList from "../components/CollectionsList";
 import BannerUploadForm from "../components/BannerUploadForm";
-import OrdersManager from "../components/OrdersManager"; // ✅ GIỮ LẠI CÁI CŨ
-import CustomerOrders from "../components/CustomerOrders"; // ✅ THÊM CÁI MỚI
+import OrdersManager from "../components/OrdersManager";
+import CustomerOrders from "../components/CustomerOrders";
 import OrderReceipt from "../components/OrderReceipt";
+import SendNotificationForm from "../components/SendNotificationForm";
 
-// Import Stores
 import { useProductStore } from "../stores/useProductStore";
 import { useUserStore } from "../stores/useUserStore";
 
@@ -29,13 +29,9 @@ const tabs = [
   { id: "collections", label: "Tạo bộ sưu tầm", icon: Images },
   { id: "collectionsList", label: "Danh sách bộ sưu tầm", icon: Images },
   { id: "banner", label: "Tải ảnh banner", icon: UploadCloud },
-  
-  // Tab cũ (Vận chuyển)
-  { id: "orders", label: "Q.Lý Vận Chuyển", icon: FileText }, 
-  
-  // 👇 Tab MỚI (Đơn khách đặt từ web)
-  { id: "customer_orders", label: "Đơn Khách Đặt", icon: ClipboardList }, 
-  
+  { id: "orders", label: "Q.Lý Vận Chuyển", icon: FileText },
+  { id: "customer_orders", label: "Đơn Khách Đặt", icon: ClipboardList },
+  { id: "notifications", label: "Gửi Thông Báo", icon: Bell },
   { id: "receipt", label: "Phiếu đặt hàng", icon: FileText },
 ];
 
@@ -52,12 +48,10 @@ const AdminPage = () => {
     setActiveTab("collectionsList");
   };
 
-  // Logic lọc Tabs theo Role
   const visibleTabs = tabs.filter((tab) => {
-    if (user?.role === "controller") return true; 
+    if (user?.role === "controller") return true;
     if (user?.role === "admin") {
-      // Admin thấy được tab vận chuyển cũ VÀ tab đơn hàng mới
-      return ["create", "collections", "banner", "orders", "customer_orders", "receipt"].includes(tab.id);
+      return ["create", "collections", "banner", "orders", "customer_orders", "notifications", "receipt"].includes(tab.id);
     }
     return false;
   });
@@ -73,7 +67,6 @@ const AdminPage = () => {
           Trang Quản Lý ({user?.role === "controller" ? "Controller" : "Admin"})
         </motion.h1>
 
-        {/* --- MENU TABS --- */}
         <div className="flex justify-center mb-8 flex-wrap gap-3">
           {visibleTabs.map((tab) => (
             <button
@@ -92,7 +85,6 @@ const AdminPage = () => {
           ))}
         </div>
 
-        {/* --- CONTENT AREA --- */}
         <AnimatePresence mode="wait">
           {activeTab === "create" && (
             <motion.div key="create" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
@@ -124,17 +116,21 @@ const AdminPage = () => {
             </motion.div>
           )}
 
-          {/* Tab Cũ: Quản lý vận chuyển */}
           {activeTab === "orders" && (
             <motion.div key="orders" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
               <OrdersManager />
             </motion.div>
           )}
 
-          {/* 👇 Tab MỚI: Đơn khách đặt */}
           {activeTab === "customer_orders" && (
             <motion.div key="customer_orders" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
               <CustomerOrders />
+            </motion.div>
+          )}
+
+          {activeTab === "notifications" && (
+            <motion.div key="notifications" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+              <SendNotificationForm />
             </motion.div>
           )}
 
