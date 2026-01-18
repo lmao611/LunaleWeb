@@ -11,7 +11,8 @@ const AdminChatManager = () => {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
   const fileInputRef = useRef(null);
-  const messagesEndRef = useRef(null);
+  
+  const chatContainerRef = useRef(null);
 
   const compressImage = (file, callback) => {
     const reader = new FileReader();
@@ -47,21 +48,17 @@ const AdminChatManager = () => {
     });
   };
 
-  // --- SỬA LOGIC LẮNG NGHE TOÀN CỤC CHO ADMIN ---
   useEffect(() => {
       if(!socket) return;
 
       const handleGlobalMessage = (newMessage) => {
-          // Nếu mình không phải là người gửi
           if (newMessage.senderId !== currentUser._id) {
-              // Tìm ID của khách hàng trong tin nhắn (có thể là sender hoặc receiver nếu admin khác gửi cho khách)
               const partnerId = (newMessage.senderId === currentUser._id || users.some(u => u._id === newMessage.senderId)) 
                                 ? newMessage.senderId 
                                 : newMessage.receiverId;
 
               const isPartnerCustomer = users.some(u => u._id === partnerId && u.role === 'customer');
 
-              // Nếu tin nhắn không thuộc về cuộc hội thoại đang mở
               if (partnerId !== selectedUser?._id && isPartnerCustomer) {
                   markUserAsUnread(partnerId);
                   
@@ -116,10 +113,10 @@ const AdminChatManager = () => {
       return () => socket.off("newMessage", handleGlobalMessage);
   }, [socket, selectedUser, users, markUserAsUnread, currentUser]);
 
-
   useEffect(() => {
     getUsers();
-  }, [getUsers]);
+    setSelectedUser(null);
+  }, [getUsers, setSelectedUser]);
 
   useEffect(() => {
     if (selectedUser) {
@@ -130,8 +127,8 @@ const AdminChatManager = () => {
   }, [selectedUser, getMessages, subscribeToMessages, unsubscribeFromMessages]);
 
   useEffect(() => {
-    if (messagesEndRef.current) {
-        messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    if (chatContainerRef.current) {
+        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages, imagePreview]);
 
@@ -154,6 +151,7 @@ const AdminChatManager = () => {
   return (
     <div className="bg-white rounded-lg shadow-lg border border-gray-200 h-[80vh] md:h-[600px] flex overflow-hidden">
       
+      {/* SIDEBAR DANH SÁCH */}
       <div className={`w-full md:w-1/3 border-r border-gray-200 flex-col ${selectedUser ? "hidden md:flex" : "flex"}`}>
         <div className="p-4 border-b bg-gray-50">
            <h3 className="font-bold text-gray-700 mb-2">Đoạn chat</h3>
@@ -197,6 +195,7 @@ const AdminChatManager = () => {
         </div>
       </div>
 
+      {/* MAIN CHAT AREA */}
       <div className={`flex-1 flex-col relative ${!selectedUser ? "hidden md:flex" : "flex"}`}>
         {selectedUser ? (
           <>
@@ -217,34 +216,43 @@ const AdminChatManager = () => {
                </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-              {messages.map((msg) => (
-                <div
-                  key={msg._id}
-                  className={`flex ${msg.senderId === currentUser._id ? "justify-end" : "justify-start"}`}
-                >
-                  <div className={`flex flex-col max-w-[75%]`}>
-                    <div
-                      className={`px-4 py-2 rounded-xl text-sm ${
-                        msg.senderId === currentUser._id
-                          ? "bg-blue-600 text-white rounded-br-none"
-                          : "bg-white border text-gray-800 rounded-bl-none shadow-sm"
-                      } ${msg.isOptimistic ? "opacity-70" : ""}`}
-                    >
-                      {msg.image && (
-                        <img src={msg.image} alt="Attachment" className="w-full rounded-md mb-2 object-cover border border-white/20" />
-                      )}
-                      
-                      {msg.text && <p className="whitespace-pre-wrap break-all">{msg.text}</p>}
-                      
+            <div 
+                ref={chatContainerRef}
+                className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 scroll-smooth"
+            >
+              {messages.map((msg) => {
+                // LOGIC HIỂN THỊ MỚI: 
+                // Nếu người gửi KHÔNG PHẢI LÀ KHÁCH ĐANG CHỌN (tức là Admin nào đó) -> Bên phải
+                // Nếu người gửi LÀ KHÁCH ĐANG CHỌN -> Bên trái
+                const isAdminSide = msg.senderId !== selectedUser._id;
+
+                return (
+                  <div
+                    key={msg._id}
+                    className={`flex ${isAdminSide ? "justify-end" : "justify-start"}`}
+                  >
+                    <div className={`flex flex-col max-w-[75%]`}>
+                      <div
+                        className={`px-4 py-2 rounded-xl text-sm ${
+                          isAdminSide
+                            ? "bg-blue-600 text-white rounded-br-none"
+                            : "bg-white border text-gray-800 rounded-bl-none shadow-sm"
+                        } ${msg.isOptimistic ? "opacity-70" : ""}`}
+                      >
+                        {msg.image && (
+                          <img src={msg.image} alt="Attachment" className="w-full rounded-md mb-2 object-cover border border-white/20" />
+                        )}
+                        
+                        {msg.text && <p className="whitespace-pre-wrap break-all">{msg.text}</p>}
+                        
+                      </div>
+                      <span className={`text-[10px] mt-1 ${isAdminSide ? "text-right text-gray-400" : "text-left text-gray-400"}`}>
+                          {new Date(msg.createdAt).toLocaleString([], {hour: '2-digit', minute:'2-digit', day:'numeric', month:'numeric'})}
+                      </span>
                     </div>
-                    <span className={`text-[10px] mt-1 ${msg.senderId === currentUser._id ? "text-right text-gray-400" : "text-left text-gray-400"}`}>
-                        {new Date(msg.createdAt).toLocaleString([], {hour: '2-digit', minute:'2-digit', day:'numeric', month:'numeric'})}
-                    </span>
                   </div>
-                </div>
-              ))}
-              <div ref={messagesEndRef} />
+                );
+              })}
             </div>
 
             <div className="bg-white border-t">
