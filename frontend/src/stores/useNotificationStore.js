@@ -11,7 +11,7 @@ export const useNotificationStore = create((set, get) => ({
     set({ loading: true });
     try {
       const res = await axios.get("/notifications");
-      // Tính toán số lượng chưa đọc từ danh sách DB
+      // Tính toán số lượng chưa đọc từ danh sách trả về
       const unread = res.data.filter((n) => !n.isRead).length;
       set({ notifications: res.data, unreadCount: unread, loading: false });
     } catch (error) {
@@ -26,7 +26,7 @@ export const useNotificationStore = create((set, get) => ({
         const updatedNotifications = state.notifications.map((n) =>
           n._id === id ? { ...n, isRead: true } : n
         );
-        // Tính lại sau khi đọc
+        // Tính toán lại unreadCount chuẩn xác
         const unread = updatedNotifications.filter((n) => !n.isRead).length;
         return { notifications: updatedNotifications, unreadCount: unread };
       });
@@ -40,6 +40,7 @@ export const useNotificationStore = create((set, get) => ({
           await axios.delete(`/notifications/${id}`);
           set((state) => {
               const updatedNotifications = state.notifications.filter(n => n._id !== id);
+              // Tính toán lại unreadCount sau khi xóa
               const unread = updatedNotifications.filter(n => !n.isRead).length;
               return { notifications: updatedNotifications, unreadCount: unread };
           });
@@ -63,25 +64,19 @@ export const useNotificationStore = create((set, get) => ({
     }
   },
 
-  // --- LOGIC CẬP NHẬT REALTIME (Đã sửa đổi) ---
+  // --- SỬA LOGIC Ở ĐÂY ---
   addRealtimeNotification: (newNotification) => {
       set((state) => {
-          // 1. Kiểm tra trùng lặp (nếu tin có ID và đã tồn tại thì bỏ qua)
-          if (newNotification._id && state.notifications.some(n => n._id === newNotification._id)) {
-              return state;
-          }
+          // Thêm tin mới vào đầu danh sách
+          const updatedNotifications = [newNotification, ...state.notifications];
+          
+          // Tính toán lại unreadCount dựa trên danh sách mới
+          // (Đảm bảo newNotification có isRead=false từ backend gửi về)
+          const unread = updatedNotifications.filter(n => !n.isRead).length;
 
-          // 2. Gán ID tạm nếu thiếu (quan trọng cho tin Broadcast để tránh lỗi React key)
-          const notificationWithId = {
-              ...newNotification,
-              _id: newNotification._id || `temp-${Date.now()}`, 
-              isRead: false // Mặc định là chưa đọc
-          };
-
-          // 3. Cập nhật State: Thêm vào đầu list và tăng biến đếm lên 1
-          return {
-              notifications: [notificationWithId, ...state.notifications],
-              unreadCount: state.unreadCount + 1, // Cộng trực tiếp cho chắc chắn
+          return { 
+              notifications: updatedNotifications,
+              unreadCount: unread, 
           };
       });
 
