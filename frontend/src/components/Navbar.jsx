@@ -8,9 +8,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import axios from "../lib/axios";
 
 const Navbar = () => {
-  const { user, logout, showUserBox, setShowUserBox } = useUserStore();
+  // Lấy socket từ userStore để lắng nghe sự kiện
+  const { user, logout, showUserBox, setShowUserBox, socket } = useUserStore();
   const { cart } = useCartStore();
-  const { notifications, unreadCount, fetchNotifications, markAsRead, deleteNotification } = useNotificationStore();
+  
+  // Lấy hàm addRealtimeNotification để cập nhật state khi có tin mới
+  const { notifications, unreadCount, fetchNotifications, markAsRead, deleteNotification, addRealtimeNotification } = useNotificationStore();
   
   const isAdmin = user?.role === "admin" || user?.role === "controller";
   const location = useLocation();
@@ -40,6 +43,24 @@ const Navbar = () => {
 
   const setUser = useUserStore((state) => state.setUser);
 
+  // --- EFFECT: LẮNG NGHE SOCKET ---
+  useEffect(() => {
+    if (socket) {
+        // Hủy lắng nghe cũ để tránh trùng lặp sự kiện
+        socket.off("newNotification");
+        
+        // Lắng nghe sự kiện "newNotification" từ server
+        socket.on("newNotification", (data) => {
+            addRealtimeNotification(data);
+        });
+
+        // Cleanup khi unmount hoặc socket thay đổi
+        return () => {
+            socket.off("newNotification");
+        };
+    }
+  }, [socket, addRealtimeNotification]);
+
   useEffect(() => {
     if (showUserBox && user) {
       setEditName(user.name || "");
@@ -54,8 +75,6 @@ const Navbar = () => {
   useEffect(() => {
     if (user) {
         fetchNotifications();
-        const interval = setInterval(fetchNotifications, 60000);
-        return () => clearInterval(interval);
     }
   }, [user, fetchNotifications]);
 
@@ -297,7 +316,7 @@ const Navbar = () => {
                                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                     animate={{ opacity: 1, y: 0, scale: 1 }}
                                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                    // SỬA LỖI: Trên mobile dùng fixed để căn giữa, Desktop dùng absolute right-0
+                                    // SỬA LỖI: Trên mobile dùng fixed để căn giữa (top-20), Desktop dùng absolute right-0 (ngay dưới icon)
                                     className="fixed top-20 left-4 right-4 z-50 w-auto sm:absolute sm:right-0 sm:left-auto sm:top-full sm:mt-2 sm:w-96 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden"
                                 >
                                     <div className="p-3 border-b bg-gray-50 flex justify-between items-center">

@@ -59,4 +59,12 @@ export const useNotificationStore = create((set, get) => ({
       toast.error(error.response?.data?.message || "Gửi thất bại");
     }
   },
+
+  addRealtimeNotification: (newNotification) => {
+      set((state) => ({
+          notifications: [newNotification, ...state.notifications],
+          unreadCount: state.unreadCount + 1,
+      }));
+      toast("Bạn có thông báo mới!", { icon: "🔔" });
+  }
 }));
