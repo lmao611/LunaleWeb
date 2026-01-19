@@ -52,13 +52,13 @@ const AdminChatManager = () => {
     });
   };
 
-  // --- LẮNG NGHE TOÀN CỤC (Để hiện Toast khi đang ở Dashboard) ---
+  // --- LẮNG NGHE TOÀN CỤC (Để hiện Toast khi đang ở Dashboard nhưng chưa chọn khách này) ---
   useEffect(() => {
       if(!socket) return;
 
       const handleGlobalMessage = (newMessage) => {
           if (newMessage.senderId !== currentUser._id) {
-              // Xác định ai là khách hàng trong tin nhắn này
+              // Xác định ID khách hàng liên quan
               const partnerId = (newMessage.senderId === currentUser._id || users.some(u => u._id === newMessage.senderId)) 
                                 ? newMessage.senderId 
                                 : newMessage.receiverId;
@@ -122,12 +122,11 @@ const AdminChatManager = () => {
 
   // --- INIT DATA & RESET STATE ---
   useEffect(() => {
-    getUsers();
+    getUsers(); // Lấy danh sách user (đã bao gồm trạng thái hasUnread từ backend)
     
-    // Quan trọng: Reset selectedUser về null khi component mount để luôn hiện danh sách trước
+    // Reset selectedUser về null để luôn hiện danh sách trước
     setSelectedUser(null);
 
-    // Cleanup khi thoát component
     return () => {
         setSelectedUser(null);
     };
@@ -140,7 +139,7 @@ const AdminChatManager = () => {
         if(socket) socket.emit("admin_leave_chat", { customerId: prevSelectedUserRef.current._id, adminId: currentUser._id });
     }
 
-    // 2. Nếu có người mới -> Gửi Enter Chat
+    // 2. Nếu có người mới -> Gửi Enter Chat & Lấy tin nhắn
     if (selectedUser) {
         if(socket) socket.emit("admin_enter_chat", { customerId: selectedUser._id, adminId: currentUser._id, adminName: currentUser.name });
         
@@ -183,7 +182,7 @@ const AdminChatManager = () => {
 
   const customerUsers = users.filter(u => u.role === 'customer');
 
-  // Helper lấy text người xem
+  // Helper hiển thị ai đang xem
   const getViewerText = (customerId) => {
       if (!viewers[customerId]) return null;
       const otherViewers = viewers[customerId].filter(v => v.adminId !== currentUser._id);
@@ -225,8 +224,10 @@ const AdminChatManager = () => {
                         <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
                             <User size={20} />
                         </div>
+                        
+                        {/* --- ĐÃ SỬA: Chấm đỏ khi có tin nhắn chưa đọc --- */}
                         {unreadUsers.has(user._id) && (
-                            <div className="absolute top-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                            <div className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></div>
                         )}
                     </div>
                     
@@ -236,7 +237,7 @@ const AdminChatManager = () => {
                                 {user.name}
                             </p>
                             
-                            {/* --- HIỂN THỊ DÒNG CHỮ ĐỎ (TRACKING) --- */}
+                            {/* Hiển thị Tracking (Mắt đỏ) */}
                             {viewerText && (
                                 <div className="flex items-center gap-1 text-[10px] text-red-500 font-medium animate-pulse ml-2 shrink-0">
                                     <Eye size={12} />
@@ -245,7 +246,6 @@ const AdminChatManager = () => {
                             )}
                         </div>
                         
-                        {/* Nếu có người xem thì hiện text ở dòng dưới cho mobile dễ nhìn */}
                         {viewerText ? (
                             <p className="text-[10px] text-red-500 truncate sm:hidden mt-0.5">
                                 {viewerText}
@@ -268,7 +268,7 @@ const AdminChatManager = () => {
         {selectedUser ? (
           <>
             <div className="p-3 border-b bg-white flex items-center gap-3 shadow-sm z-10">
-               {/* Nút Back trên Mobile */}
+               {/* Nút Back cho Mobile */}
                <button 
                  onClick={() => setSelectedUser(null)}
                  className="md:hidden p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full"
@@ -283,7 +283,6 @@ const AdminChatManager = () => {
                  <h3 className="font-bold text-gray-800 text-sm md:text-base">{selectedUser.name}</h3>
                  <div className="flex items-center gap-2">
                     <p className="text-xs text-gray-500">Khách hàng</p>
-                    {/* Hiển thị tracking ở Header Chat */}
                     {getViewerText(selectedUser._id) && (
                         <span className="text-[10px] text-red-500 flex items-center gap-1 bg-red-50 px-2 py-0.5 rounded-full">
                             <Eye size={10} /> {getViewerText(selectedUser._id)}
@@ -293,7 +292,7 @@ const AdminChatManager = () => {
                </div>
             </div>
 
-            {/* --- KHUNG CHAT (Có ref để scroll) --- */}
+            {/* --- KHUNG CHAT --- */}
             <div 
                 ref={chatContainerRef}
                 className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 scroll-smooth"
@@ -318,7 +317,7 @@ const AdminChatManager = () => {
                         {msg.image && (
                           <img src={msg.image} alt="Attachment" className="w-full rounded-md mb-2 object-cover border border-white/20" />
                         )}
-                        {/* --- TEXT WRAPPING --- */}
+                        {/* Xử lý xuống dòng */}
                         {msg.text && <p className="whitespace-pre-wrap break-all">{msg.text}</p>}
                       </div>
                       <span className={`text-[10px] mt-1 ${isAdminSide ? "text-right text-gray-400" : "text-left text-gray-400"}`}>
@@ -359,7 +358,6 @@ const AdminChatManager = () => {
             </div>
           </>
         ) : (
-          // --- MÀN HÌNH CHỜ (Khi chưa chọn khách) ---
           <div className="flex-1 flex flex-col items-center justify-center text-gray-400 p-4 text-center">
             <div className="w-16 h-16 md:w-20 md:h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                 <User size={32} className="text-gray-300 md:w-10 md:h-10"/>

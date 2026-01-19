@@ -1,26 +1,46 @@
 import User from "../models/user.model.js";
 import Message from "../models/message.model.js";
-import Notification from "../models/notification.model.js"; // Import Notification
+import Notification from "../models/notification.model.js"; // Import
 import cloudinary from "../lib/cloudinary.js";
 import { getReceiverSocketId, io } from "../lib/socket.js";
 
+// --- CẬP NHẬT: Lấy user kèm trạng thái chưa đọc ---
 export const getUsersForSidebar = async (req, res) => {
   try {
     const currentUserId = req.user._id;
     const filteredUsers = await User.find({ _id: { $ne: currentUserId } }).select("-password");
-    res.status(200).json(filteredUsers);
+
+    // Lấy danh sách ID của những người gửi tin nhắn mà Admin CHƯA ĐỌC
+    // (Dựa vào bảng Notification loại 'message')
+    const unreadSenderIds = await Notification.find({
+        recipient: currentUserId,
+        isRead: false,
+        type: "message"
+    }).distinct("relatedId");
+
+    // Convert Set để tra cứu cho nhanh
+    const unreadSet = new Set(unreadSenderIds.map(id => id.toString()));
+
+    // Map thêm trường hasUnread vào kết quả
+    const usersWithStatus = filteredUsers.map(user => ({
+        ...user.toObject(),
+        hasUnread: unreadSet.has(user._id.toString())
+    }));
+
+    res.status(200).json(usersWithStatus);
   } catch (error) {
     console.error("Error in getUsersForSidebar: ", error.message);
     res.status(500).json({ error: "Internal server error" });
   }
 };
 
+// --- CẬP NHẬT: Lấy tin nhắn & Đánh dấu đã đọc ---
 export const getMessages = async (req, res) => {
   try {
     const { id: chatPartnerId } = req.params;
     const myId = req.user._id;
 
-    // Logic lấy tin nhắn (giữ nguyên logic đã sửa ở các bước trước cho Customer/Admin)
+    // 1. Lấy tin nhắn (Logic cũ)
     if (req.user.role === "customer") {
         const messages = await Message.find({
             $or: [{ senderId: myId }, { receiverId: myId }]
@@ -31,6 +51,18 @@ export const getMessages = async (req, res) => {
     const messages = await Message.find({
       $or: [{ senderId: chatPartnerId }, { receiverId: chatPartnerId }],
     }).sort({ createdAt: 1 });
+
+    // 2. LOGIC MỚI: Đánh dấu tất cả thông báo từ người này là ĐÃ ĐỌC
+    // Khi Admin vào xem tin nhắn của Khách A, thì các notif từ Khách A gửi cho Admin sẽ được set isRead=true
+    await Notification.updateMany(
+        { 
+            recipient: myId, 
+            type: "message", 
+            relatedId: chatPartnerId,
+            isRead: false 
+        },
+        { isRead: true }
+    );
 
     res.status(200).json(messages);
   } catch (error) {
@@ -60,13 +92,11 @@ export const sendMessage = async (req, res) => {
 
     await newMessage.save();
 
-    // 1. Bắn Socket tin nhắn (Logic Chat cũ)
     const receiverSocketId = getReceiverSocketId(receiverId);
     if (receiverSocketId) {
       io.to(receiverSocketId).emit("newMessage", newMessage);
     }
 
-    // 2. Logic đồng bộ tin nhắn cho Admin (Logic cũ)
     const admins = await User.find({ role: { $in: ["admin", "controller"] } });
     admins.forEach(admin => {
         if (admin._id.toString() !== senderId.toString() && admin._id.toString() !== receiverId.toString()) {
@@ -75,37 +105,28 @@ export const sendMessage = async (req, res) => {
         }
     });
 
-    // ============================================================
-    // 3. TẠO THÔNG BÁO (NOTIFICATION) VÀO DATABASE & SOCKET CHUÔNG
-    // ============================================================
+    // Tạo Notification
     try {
         const sender = await User.findById(senderId).select("name");
         const notifMsg = `Tin nhắn mới từ ${sender.name}: ${text ? text.substring(0, 30) + (text.length > 30 ? "..." : "") : "Đã gửi một ảnh"}`;
 
-        // Tạo Notification trong DB
         const newNotif = await Notification.create({
             recipient: receiverId,
             message: notifMsg,
             type: "message",
-            relatedId: senderId, // Lưu ID người gửi để lúc click vào biết mở chat với ai
+            relatedId: senderId, 
             isRead: false
         });
 
-        // Bắn Socket thông báo (cái chuông)
         if (receiverSocketId) {
             io.to(receiverSocketId).emit("newNotification", newNotif);
         }
-        
-        // Nếu người nhận là Admin, có thể bắn cho các Admin khác (tùy nhu cầu, ở đây tôi chỉ bắn cho người nhận chính)
-
     } catch (notifError) {
         console.error("Lỗi tạo thông báo:", notifError);
     }
-    // ============================================================
 
     res.status(201).json(newMessage);
 
-    // Auto Reply Logic (Giữ nguyên)
     if (req.user.role === "customer") {
         const messageCount = await Message.countDocuments({
             $or: [{ senderId: senderId }, { receiverId: senderId }]

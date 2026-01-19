@@ -12,18 +12,27 @@ export const useChatStore = create((set, get) => ({
   unreadUsers: new Set(),
   viewers: {},
   
-  // --- THÊM STATE QUẢN LÝ MỞ/ĐÓNG POPUP ---
   isChatOpen: false, 
   toggleChat: () => set((state) => ({ isChatOpen: !state.isChatOpen })),
   openChat: () => set({ isChatOpen: true }),
   closeChat: () => set({ isChatOpen: false }),
-  // -----------------------------------------
 
+  // --- CẬP NHẬT: Xử lý hasUnread từ backend ---
   getUsers: async () => {
     set({ isUsersLoading: true });
     try {
       const res = await axios.get("/messages/users");
-      set({ users: res.data });
+      const usersList = res.data;
+      
+      set({ users: usersList });
+
+      // Lọc ra các user có tin nhắn chưa đọc để update state unreadUsers
+      const newUnreadSet = new Set();
+      usersList.forEach(u => {
+          if (u.hasUnread) newUnreadSet.add(u._id);
+      });
+      set({ unreadUsers: newUnreadSet });
+
     } catch (error) {
       toast.error(error.response?.data?.error);
     } finally {
