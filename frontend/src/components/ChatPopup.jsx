@@ -31,7 +31,7 @@ const ChatPopup = () => {
           setAdminId(admin._id);
           setSelectedUser(admin);
       }
-  }, [users, setSelectedUser, user]); // Thêm user vào dependency
+  }, [users, setSelectedUser, user]);
 
   useEffect(() => {
     if (!socket) return;
@@ -50,7 +50,6 @@ const ChatPopup = () => {
   }, [socket, isOpen, adminId]);
 
   useEffect(() => {
-    // Chỉ chạy logic chat nếu CÓ adminId và popup ĐANG MỞ
     if (isOpen && adminId) {
       setUnreadBubble(null);
       getMessages(adminId);
@@ -113,11 +112,14 @@ const ChatPopup = () => {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // 🛑 Chặn render giao diện nếu là Admin (Dòng này bạn đã có, nhưng thêm check ở useEffect trên là quan trọng nhất)
   if (!user || user.role === "admin" || user.role === "controller") return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-[200] flex flex-col items-end">
+    /* --- SỬA LỖI Ở ĐÂY: Bỏ class 'relative' đi, chỉ giữ lại 'fixed' --- 
+       Lý do: 'fixed' và 'relative' xung đột nhau, làm mất tính năng cố định góc màn hình.
+       Bản thân 'fixed' đã tạo điểm neo cho các thẻ con 'absolute' rồi.
+    */
+    <div className="fixed bottom-4 right-4 z-[200]">
       
       <AnimatePresence>
         {!isOpen && unreadBubble && (
@@ -126,7 +128,9 @@ const ChatPopup = () => {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
                 onClick={() => setIsOpen(true)}
-                className="mb-2 bg-white px-4 py-3 rounded-2xl rounded-br-none shadow-xl border border-blue-100 max-w-[200px] cursor-pointer relative hover:bg-gray-50 transition"
+                // Bong bóng bay lơ lửng phía trên bên trái của nút
+                className="absolute bottom-full right-full mb-2 mr-2 bg-white px-4 py-3 rounded-2xl rounded-br-none shadow-xl border border-blue-100 max-w-[200px] cursor-pointer hover:bg-gray-50 transition"
+                style={{ minWidth: '180px' }}
             >
                 <button 
                     onClick={(e) => { e.stopPropagation(); setUnreadBubble(null); }}
@@ -137,7 +141,7 @@ const ChatPopup = () => {
                 <p className="text-sm text-gray-800 line-clamp-2 font-medium">
                     {unreadBubble}
                 </p>
-                <div className="absolute bottom-0 right-[-6px] w-0 h-0 border-l-[10px] border-l-transparent border-t-[10px] border-t-white border-r-[0px] border-r-transparent"></div>
+                <div className="absolute bottom-0 right-0 translate-y-[5px] translate-x-[-5px] w-0 h-0 border-l-[12px] border-l-transparent border-t-[12px] border-t-white border-r-[0px] border-r-transparent"></div>
             </motion.div>
         )}
       </AnimatePresence>
@@ -148,7 +152,8 @@ const ChatPopup = () => {
             initial={{ opacity: 0, y: 20, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            className="bg-white w-80 sm:w-96 max-h-[80vh] h-[500px] rounded-lg shadow-2xl border border-gray-200 flex flex-col mb-4 overflow-hidden"
+            // Khung chat chính nằm ngay trên nút
+            className="absolute bottom-20 right-0 bg-white w-80 sm:w-96 max-h-[80vh] h-[500px] rounded-lg shadow-2xl border border-gray-200 flex flex-col mb-4 overflow-hidden"
           >
             <div className="bg-gray-950 p-4 flex justify-between items-center text-white shrink-0">
               <div className="flex items-center gap-2">
@@ -227,7 +232,7 @@ const ChatPopup = () => {
 
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="bg-gray-950 hover:bg-gray-800 text-white p-4 rounded-full shadow-lg transition-all hover:scale-110 flex items-center justify-center relative"
+        className="bg-gray-950 hover:bg-gray-800 text-white p-4 rounded-full shadow-lg transition-all hover:scale-110 flex items-center justify-center relative z-10"
       >
         {isOpen ? <X size={24} /> : <MessageCircle size={28} />}
         {!isOpen && unreadBubble && (
