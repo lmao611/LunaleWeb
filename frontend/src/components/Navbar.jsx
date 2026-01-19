@@ -376,7 +376,7 @@ const Navbar = () => {
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
                     // SỬA: Dùng fixed và định vị cứng để thoát khỏi header container
                     // top-[60px] là khoảng cách ước lượng để nằm dưới header
-                    className="fixed top-[65px] right-2 sm:right-16 z-[200] w-[90vw] sm:w-96 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden"
+                    className="fixed top-[65px] right-2 sm:right-50 z-[200] w-[90vw] sm:w-96 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden"
                 >
                     <div className="p-3 border-b bg-gray-50 flex justify-between items-center">
                         <h3 className="font-semibold text-gray-700">Thông báo</h3>
