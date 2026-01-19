@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useUserStore } from "../stores/useUserStore";
 import { useCartStore } from "../stores/useCartStore";
 import { useNotificationStore } from "../stores/useNotificationStore";
-import { useChatStore } from "../stores/useChatStore"; // Import useChatStore
+import { useChatStore } from "../stores/useChatStore";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "../lib/axios";
@@ -12,7 +12,6 @@ const Navbar = () => {
   const { user, logout, showUserBox, setShowUserBox, socket } = useUserStore();
   const { cart } = useCartStore();
   const { notifications, unreadCount, fetchNotifications, markAsRead, deleteNotification, addRealtimeNotification } = useNotificationStore();
-  // Lấy các function từ ChatStore
   const { openChat, setSelectedUser } = useChatStore();
   
   const isAdmin = user?.role === "admin" || user?.role === "controller";
@@ -205,37 +204,28 @@ const Navbar = () => {
     return s === "pending" || s === "chờ xử lý";
   };
 
-  // --- XỬ LÝ CLICK THÔNG BÁO ---
   const handleNotificationClick = async (notif) => {
-    // 1. Đánh dấu đã đọc
     if (!notif.isRead) {
         markAsRead(notif._id);
     }
     setShowNotifications(false);
 
-    // 2. Điều hướng dựa trên loại thông báo
     if (notif.type === "message" && notif.relatedId) {
-        
         if (isAdmin) {
-            // ADMIN: Chuyển đến trang Chat và chọn User
-            // Lấy thông tin user gửi tin để set vào ChatStore
             try {
-                const res = await axios.get(`/messages/users`); // Hoặc API lấy 1 user cụ thể nếu có
+                const res = await axios.get(`/messages/users`); 
                 const sender = res.data.find(u => u._id === notif.relatedId);
                 if (sender) {
                     setSelectedUser(sender);
-                    navigate("/secret-dashboard"); // Giả sử Chat ở ngay Dashboard hoặc cần thêm logic tab
+                    navigate("/secret-dashboard"); 
                 }
             } catch (err) {
                 console.error("Không tìm thấy user để chat:", err);
             }
         } else {
-            // CUSTOMER: Mở ChatPopup
             openChat();
         }
-
     } else {
-        // Mặc định hiện popup chi tiết cho các loại khác (Order, System...)
         setSelectedNotification(notif);
     }
   };
@@ -324,56 +314,7 @@ const Navbar = () => {
                             </span>
                         )}
                     </button>
-
-                    <AnimatePresence>
-                        {showNotifications && (
-                            <>
-                                <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)}></div>
-                                
-                                <motion.div
-                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                    className="fixed top-20 left-4 right-4 z-[200] w-auto sm:absolute sm:right-0 sm:left-auto sm:top-full sm:mt-2 sm:w-96 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden"
-                                >
-                                    <div className="p-3 border-b bg-gray-50 flex justify-between items-center">
-                                        <h3 className="font-semibold text-gray-700">Thông báo</h3>
-                                        <span className="text-xs text-gray-500">{notifications.length} tin</span>
-                                    </div>
-                                    <div className="max-h-[60vh] overflow-y-auto">
-                                        {notifications.length === 0 ? (
-                                            <div className="p-8 text-center text-gray-500 text-sm">Chưa có thông báo nào</div>
-                                        ) : (
-                                            notifications.map((notif) => (
-                                                <div 
-                                                    key={notif._id} 
-                                                    onClick={() => handleNotificationClick(notif)}
-                                                    className={`p-3 border-b last:border-0 cursor-pointer hover:bg-gray-50 transition flex gap-3 ${!notif.isRead ? 'bg-blue-50/50' : ''}`}
-                                                >
-                                                    {notif.image ? (
-                                                        <img src={notif.image} alt="img" className="w-12 h-12 rounded object-cover flex-shrink-0 bg-gray-200" />
-                                                    ) : (
-                                                        <div className="w-12 h-12 rounded bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0">
-                                                            <Bell size={20} />
-                                                        </div>
-                                                    )}
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className={`text-sm line-clamp-2 ${!notif.isRead ? 'font-semibold text-gray-800' : 'text-gray-600'}`}>
-                                                            {notif.message}
-                                                        </p>
-                                                        <p className="text-xs text-gray-400 mt-1">
-                                                            {new Date(notif.createdAt).toLocaleDateString("vi-VN")}
-                                                        </p>
-                                                    </div>
-                                                    {!notif.isRead && <div className="w-2 h-2 bg-blue-600 rounded-full mt-2"></div>}
-                                                </div>
-                                            ))
-                                        )}
-                                    </div>
-                                </motion.div>
-                            </>
-                        )}
-                    </AnimatePresence>
+                    {/* Đã xóa popup notification ở đây để chuyển xuống dưới cùng */}
                 </div>
               )}
 
@@ -423,8 +364,59 @@ const Navbar = () => {
         </div>
       </motion.header>
 
-      {/* Phần ShowUserBox và SelectedNotification popup giữ nguyên */}
-      {/* ... code cũ của bạn cho phần ShowUserBox ... */}
+      {/* --- MOVED: POPUP NOTIFICATION (Đã đưa ra khỏi Header để xử lý z-index) --- */}
+      <AnimatePresence>
+        {showNotifications && (
+            <>
+                <div className="fixed inset-0 z-[190]" onClick={() => setShowNotifications(false)}></div>
+                
+                <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    // SỬA: Dùng fixed và định vị cứng để thoát khỏi header container
+                    // top-[60px] là khoảng cách ước lượng để nằm dưới header
+                    className="fixed top-[65px] right-2 sm:right-16 z-[200] w-[90vw] sm:w-96 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden"
+                >
+                    <div className="p-3 border-b bg-gray-50 flex justify-between items-center">
+                        <h3 className="font-semibold text-gray-700">Thông báo</h3>
+                        <span className="text-xs text-gray-500">{notifications.length} tin</span>
+                    </div>
+                    <div className="max-h-[60vh] overflow-y-auto">
+                        {notifications.length === 0 ? (
+                            <div className="p-8 text-center text-gray-500 text-sm">Chưa có thông báo nào</div>
+                        ) : (
+                            notifications.map((notif) => (
+                                <div 
+                                    key={notif._id} 
+                                    onClick={() => handleNotificationClick(notif)}
+                                    className={`p-3 border-b last:border-0 cursor-pointer hover:bg-gray-50 transition flex gap-3 ${!notif.isRead ? 'bg-blue-50/50' : ''}`}
+                                >
+                                    {notif.image ? (
+                                        <img src={notif.image} alt="img" className="w-12 h-12 rounded object-cover flex-shrink-0 bg-gray-200" />
+                                    ) : (
+                                        <div className="w-12 h-12 rounded bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0">
+                                            <Bell size={20} />
+                                        </div>
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                        <p className={`text-sm line-clamp-2 ${!notif.isRead ? 'font-semibold text-gray-800' : 'text-gray-600'}`}>
+                                            {notif.message}
+                                        </p>
+                                        <p className="text-xs text-gray-400 mt-1">
+                                            {new Date(notif.createdAt).toLocaleDateString("vi-VN")}
+                                        </p>
+                                    </div>
+                                    {!notif.isRead && <div className="w-2 h-2 bg-blue-600 rounded-full mt-2"></div>}
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </motion.div>
+            </>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {showUserBox && user && (
           <div className="fixed inset-0 z-[999] bg-black/50 flex items-center justify-center p-4">
