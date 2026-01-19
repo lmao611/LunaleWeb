@@ -110,8 +110,7 @@ const AdminChatManager = () => {
                     </div>
                   ), { duration: 4000, position: "top-right" });
                   
-                  const audio = new Audio("/notification.mp3");
-                  audio.play().catch(()=>{});
+                  
               }
           }
       };
