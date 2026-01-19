@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useChatStore } from "../stores/useChatStore";
 import { useUserStore } from "../stores/useUserStore";
-import { Send, User, Search, Image as ImageIcon, X, ArrowLeft, Eye } from "lucide-react"; // Thêm icon Eye
+import { Send, User, Search, Image as ImageIcon, X, ArrowLeft, Eye } from "lucide-react";
 import toast from "react-hot-toast";
 
 const AdminChatManager = () => {
@@ -11,10 +11,13 @@ const AdminChatManager = () => {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
   const fileInputRef = useRef(null);
+  
+  // Ref cho khung chat để scroll
   const chatContainerRef = useRef(null);
-  // Ref để lưu lại người dùng cũ nhằm gửi sự kiện leave chat khi đổi người
+  // Ref để theo dõi người dùng cũ (để gửi sự kiện leave chat)
   const prevSelectedUserRef = useRef(null);
 
+  // --- HÀM NÉN ẢNH ---
   const compressImage = (file, callback) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -25,6 +28,7 @@ const AdminChatManager = () => {
             const canvas = document.createElement("canvas");
             const MAX_WIDTH = 800; 
             const scaleSize = MAX_WIDTH / img.width;
+            
             if (scaleSize < 1) {
                 canvas.width = MAX_WIDTH;
                 canvas.height = img.height * scaleSize;
@@ -32,6 +36,7 @@ const AdminChatManager = () => {
                 canvas.width = img.width;
                 canvas.height = img.height;
             }
+
             const ctx = canvas.getContext("2d");
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             callback(canvas.toDataURL("image/jpeg", 0.7));
@@ -47,45 +52,88 @@ const AdminChatManager = () => {
     });
   };
 
+  // --- LẮNG NGHE TOÀN CỤC (Để hiện Toast khi đang ở Dashboard) ---
   useEffect(() => {
       if(!socket) return;
+
       const handleGlobalMessage = (newMessage) => {
           if (newMessage.senderId !== currentUser._id) {
+              // Xác định ai là khách hàng trong tin nhắn này
               const partnerId = (newMessage.senderId === currentUser._id || users.some(u => u._id === newMessage.senderId)) 
                                 ? newMessage.senderId 
                                 : newMessage.receiverId;
+
               const isPartnerCustomer = users.some(u => u._id === partnerId && u.role === 'customer');
 
+              // Nếu tin nhắn KHÔNG thuộc về cuộc hội thoại đang mở
               if (partnerId !== selectedUser?._id && isPartnerCustomer) {
                   markUserAsUnread(partnerId);
+                  
                   const sender = users.find(u => u._id === partnerId);
                   const senderName = sender ? sender.name : "Khách hàng";
+
                   toast.custom((t) => (
-                    <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5`} onClick={() => { if (sender) setSelectedUser(sender); toast.dismiss(t.id); }}>
+                    <div
+                      className={`${
+                        t.visible ? 'animate-enter' : 'animate-leave'
+                      } max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5`}
+                      onClick={() => {
+                          if (sender) setSelectedUser(sender);
+                          toast.dismiss(t.id);
+                      }}
+                    >
                       <div className="flex-1 w-0 p-4 cursor-pointer">
                         <div className="flex items-start">
-                          <div className="flex-shrink-0 pt-0.5"><div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">{senderName.charAt(0).toUpperCase()}</div></div>
-                          <div className="ml-3 flex-1"><p className="text-sm font-medium text-gray-900">Tin nhắn mới liên quan {senderName}</p><p className="mt-1 text-sm text-gray-500 line-clamp-1">{newMessage.image ? "Đã gửi một ảnh" : newMessage.text}</p></div>
+                          <div className="flex-shrink-0 pt-0.5">
+                            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
+                                {senderName.charAt(0).toUpperCase()}
+                            </div>
+                          </div>
+                          <div className="ml-3 flex-1">
+                            <p className="text-sm font-medium text-gray-900">
+                              Tin nhắn mới liên quan {senderName}
+                            </p>
+                            <p className="mt-1 text-sm text-gray-500 line-clamp-1">
+                              {newMessage.image ? "Đã gửi một ảnh" : newMessage.text}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex border-l border-gray-200"><button onClick={(e) => { e.stopPropagation(); toast.dismiss(t.id); }} className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none">Đóng</button></div>
+                      <div className="flex border-l border-gray-200">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toast.dismiss(t.id); }}
+                          className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none"
+                        >
+                          Đóng
+                        </button>
+                      </div>
                     </div>
                   ), { duration: 4000, position: "top-right" });
+                  
                   const audio = new Audio("/notification.mp3");
                   audio.play().catch(()=>{});
               }
           }
       };
+
       socket.on("newMessage", handleGlobalMessage);
       return () => socket.off("newMessage", handleGlobalMessage);
   }, [socket, selectedUser, users, markUserAsUnread, currentUser]);
 
+  // --- INIT DATA & RESET STATE ---
   useEffect(() => {
     getUsers();
+    
+    // Quan trọng: Reset selectedUser về null khi component mount để luôn hiện danh sách trước
     setSelectedUser(null);
+
+    // Cleanup khi thoát component
+    return () => {
+        setSelectedUser(null);
+    };
   }, [getUsers, setSelectedUser]);
 
-  // --- LOGIC GỬI SỰ KIỆN ENTER/LEAVE CHAT ---
+  // --- LOGIC VÀO/RA PHÒNG CHAT & LẤY TIN NHẮN ---
   useEffect(() => {
     // 1. Nếu có người cũ -> Gửi Leave Chat
     if (prevSelectedUserRef.current && prevSelectedUserRef.current._id !== selectedUser?._id) {
@@ -104,7 +152,7 @@ const AdminChatManager = () => {
     prevSelectedUserRef.current = selectedUser;
 
     return () => {
-        // Cleanup khi unmount (thoát trang)
+        // Cleanup khi unmount hoặc đổi user
         unsubscribeFromMessages();
         if (selectedUser && socket) {
              socket.emit("admin_leave_chat", { customerId: selectedUser._id, adminId: currentUser._id });
@@ -112,6 +160,7 @@ const AdminChatManager = () => {
     };
   }, [selectedUser, getMessages, subscribeToMessages, unsubscribeFromMessages, socket, currentUser]);
 
+  // --- AUTO SCROLL ---
   useEffect(() => {
     if (chatContainerRef.current) {
         chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
@@ -134,13 +183,10 @@ const AdminChatManager = () => {
 
   const customerUsers = users.filter(u => u.role === 'customer');
 
-  // --- HÀM HELPER: Lấy thông tin người xem ---
+  // Helper lấy text người xem
   const getViewerText = (customerId) => {
       if (!viewers[customerId]) return null;
-      
-      // Lọc bỏ chính mình ra khỏi danh sách hiển thị
       const otherViewers = viewers[customerId].filter(v => v.adminId !== currentUser._id);
-      
       if (otherViewers.length === 0) return null;
 
       if (otherViewers.length === 1) {
@@ -190,7 +236,7 @@ const AdminChatManager = () => {
                                 {user.name}
                             </p>
                             
-                            {/* --- HIỂN THỊ DÒNG CHỮ ĐỎ (NẾU CÓ) --- */}
+                            {/* --- HIỂN THỊ DÒNG CHỮ ĐỎ (TRACKING) --- */}
                             {viewerText && (
                                 <div className="flex items-center gap-1 text-[10px] text-red-500 font-medium animate-pulse ml-2 shrink-0">
                                     <Eye size={12} />
@@ -217,11 +263,12 @@ const AdminChatManager = () => {
         </div>
       </div>
 
-      {/* MAIN CHAT AREA (Giữ nguyên phần này) */}
+      {/* MAIN CHAT AREA */}
       <div className={`flex-1 flex-col relative ${!selectedUser ? "hidden md:flex" : "flex"}`}>
         {selectedUser ? (
           <>
             <div className="p-3 border-b bg-white flex items-center gap-3 shadow-sm z-10">
+               {/* Nút Back trên Mobile */}
                <button 
                  onClick={() => setSelectedUser(null)}
                  className="md:hidden p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full"
@@ -236,7 +283,7 @@ const AdminChatManager = () => {
                  <h3 className="font-bold text-gray-800 text-sm md:text-base">{selectedUser.name}</h3>
                  <div className="flex items-center gap-2">
                     <p className="text-xs text-gray-500">Khách hàng</p>
-                    {/* Hiển thị luôn người đang xem ở Header Chat */}
+                    {/* Hiển thị tracking ở Header Chat */}
                     {getViewerText(selectedUser._id) && (
                         <span className="text-[10px] text-red-500 flex items-center gap-1 bg-red-50 px-2 py-0.5 rounded-full">
                             <Eye size={10} /> {getViewerText(selectedUser._id)}
@@ -246,12 +293,15 @@ const AdminChatManager = () => {
                </div>
             </div>
 
+            {/* --- KHUNG CHAT (Có ref để scroll) --- */}
             <div 
                 ref={chatContainerRef}
                 className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 scroll-smooth"
             >
               {messages.map((msg) => {
+                // LOGIC: Người gửi KHÁC khách hàng -> Là Admin -> Nằm phải
                 const isAdminSide = msg.senderId !== selectedUser._id;
+
                 return (
                   <div
                     key={msg._id}
@@ -268,6 +318,7 @@ const AdminChatManager = () => {
                         {msg.image && (
                           <img src={msg.image} alt="Attachment" className="w-full rounded-md mb-2 object-cover border border-white/20" />
                         )}
+                        {/* --- TEXT WRAPPING --- */}
                         {msg.text && <p className="whitespace-pre-wrap break-all">{msg.text}</p>}
                       </div>
                       <span className={`text-[10px] mt-1 ${isAdminSide ? "text-right text-gray-400" : "text-left text-gray-400"}`}>
@@ -308,6 +359,7 @@ const AdminChatManager = () => {
             </div>
           </>
         ) : (
+          // --- MÀN HÌNH CHỜ (Khi chưa chọn khách) ---
           <div className="flex-1 flex flex-col items-center justify-center text-gray-400 p-4 text-center">
             <div className="w-16 h-16 md:w-20 md:h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                 <User size={32} className="text-gray-300 md:w-10 md:h-10"/>
