@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useUserStore } from "../stores/useUserStore";
 import { useCartStore } from "../stores/useCartStore";
 import { useNotificationStore } from "../stores/useNotificationStore";
+import { useChatStore } from "../stores/useChatStore"; // Import useChatStore
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "../lib/axios";
@@ -11,6 +12,8 @@ const Navbar = () => {
   const { user, logout, showUserBox, setShowUserBox, socket } = useUserStore();
   const { cart } = useCartStore();
   const { notifications, unreadCount, fetchNotifications, markAsRead, deleteNotification, addRealtimeNotification } = useNotificationStore();
+  // Lấy các function từ ChatStore
+  const { openChat, setSelectedUser } = useChatStore();
   
   const isAdmin = user?.role === "admin" || user?.role === "controller";
   const location = useLocation();
@@ -40,23 +43,13 @@ const Navbar = () => {
 
   const setUser = useUserStore((state) => state.setUser);
 
-  // --- EFFECT: LẮNG NGHE SOCKET (CÓ DEBUG LOG) ---
   useEffect(() => {
     if (!socket) return;
-
-    console.log("🎧 Navbar đang lắng nghe Socket ID:", socket.id);
-
     const handleNewNotification = (data) => {
-        console.log("🔔 NHẬN ĐƯỢC THÔNG BÁO REALTIME:", data);
         addRealtimeNotification(data);
     };
-
     socket.on("newNotification", handleNewNotification);
-
-    return () => {
-        console.log("🛑 Navbar hủy lắng nghe Socket");
-        socket.off("newNotification", handleNewNotification);
-    };
+    return () => socket.off("newNotification", handleNewNotification);
   }, [socket, addRealtimeNotification]);
 
   useEffect(() => {
@@ -212,12 +205,39 @@ const Navbar = () => {
     return s === "pending" || s === "chờ xử lý";
   };
 
-  const handleNotificationClick = (notif) => {
-    setSelectedNotification(notif);
+  // --- XỬ LÝ CLICK THÔNG BÁO ---
+  const handleNotificationClick = async (notif) => {
+    // 1. Đánh dấu đã đọc
     if (!notif.isRead) {
         markAsRead(notif._id);
     }
     setShowNotifications(false);
+
+    // 2. Điều hướng dựa trên loại thông báo
+    if (notif.type === "message" && notif.relatedId) {
+        
+        if (isAdmin) {
+            // ADMIN: Chuyển đến trang Chat và chọn User
+            // Lấy thông tin user gửi tin để set vào ChatStore
+            try {
+                const res = await axios.get(`/messages/users`); // Hoặc API lấy 1 user cụ thể nếu có
+                const sender = res.data.find(u => u._id === notif.relatedId);
+                if (sender) {
+                    setSelectedUser(sender);
+                    navigate("/secret-dashboard"); // Giả sử Chat ở ngay Dashboard hoặc cần thêm logic tab
+                }
+            } catch (err) {
+                console.error("Không tìm thấy user để chat:", err);
+            }
+        } else {
+            // CUSTOMER: Mở ChatPopup
+            openChat();
+        }
+
+    } else {
+        // Mặc định hiện popup chi tiết cho các loại khác (Order, System...)
+        setSelectedNotification(notif);
+    }
   };
 
   return (
@@ -314,7 +334,6 @@ const Navbar = () => {
                                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                     animate={{ opacity: 1, y: 0, scale: 1 }}
                                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                    // SỬA LỖI: Nâng z-index lên [200] để nằm đè lên Logo (z-100)
                                     className="fixed top-20 left-4 right-4 z-[200] w-auto sm:absolute sm:right-0 sm:left-auto sm:top-full sm:mt-2 sm:w-96 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden"
                                 >
                                     <div className="p-3 border-b bg-gray-50 flex justify-between items-center">
@@ -404,6 +423,8 @@ const Navbar = () => {
         </div>
       </motion.header>
 
+      {/* Phần ShowUserBox và SelectedNotification popup giữ nguyên */}
+      {/* ... code cũ của bạn cho phần ShowUserBox ... */}
       <AnimatePresence>
         {showUserBox && user && (
           <div className="fixed inset-0 z-[999] bg-black/50 flex items-center justify-center p-4">

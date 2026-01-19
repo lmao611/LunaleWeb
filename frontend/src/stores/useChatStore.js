@@ -10,9 +10,14 @@ export const useChatStore = create((set, get) => ({
   isUsersLoading: false,
   isMessagesLoading: false,
   unreadUsers: new Set(),
+  viewers: {},
   
-  // --- THÊM STATE VIEWERS ---
-  viewers: {}, // { customerId: [ { adminId, adminName } ] }
+  // --- THÊM STATE QUẢN LÝ MỞ/ĐÓNG POPUP ---
+  isChatOpen: false, 
+  toggleChat: () => set((state) => ({ isChatOpen: !state.isChatOpen })),
+  openChat: () => set({ isChatOpen: true }),
+  closeChat: () => set({ isChatOpen: false }),
+  // -----------------------------------------
 
   getUsers: async () => {
     set({ isUsersLoading: true });
@@ -99,7 +104,6 @@ export const useChatStore = create((set, get) => ({
       }
     });
 
-    // --- LẮNG NGHE DANH SÁCH VIEWERS ---
     socket.on("viewersUpdated", (updatedViewers) => {
         set({ viewers: updatedViewers });
     });

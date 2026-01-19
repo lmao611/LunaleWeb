@@ -5,25 +5,23 @@ import { MessageCircle, X, Send, Image as ImageIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const ChatPopup = () => {
-  const [isOpen, setIsOpen] = useState(false);
+  // 🛑 THAY ĐỔI: Dùng state từ Store thay vì local state
+  const { isChatOpen, toggleChat, closeChat, messages, getMessages, sendMessage, subscribeToMessages, unsubscribeFromMessages, setSelectedUser, users, getUsers } = useChatStore();
+  
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
-  
   const [unreadBubble, setUnreadBubble] = useState(null); 
 
   const fileInputRef = useRef(null);
   const { user, socket } = useUserStore();
-  const { messages, getMessages, sendMessage, subscribeToMessages, unsubscribeFromMessages, setSelectedUser, users, getUsers } = useChatStore();
   const messagesEndRef = useRef(null);
   const [adminId, setAdminId] = useState(null);
 
   useEffect(() => {
-    // Chỉ lấy user nếu là KHÁCH (Admin tự lấy bên AdminChatManager rồi)
     if (user && user.role === "customer") getUsers();
   }, [user, getUsers]);
   
   useEffect(() => {
-      // 🛑 QUAN TRỌNG: Nếu là Admin/Controller thì DỪNG NGAY, không được tự động chọn user
       if (!user || user.role === "admin" || user.role === "controller") return;
 
       const admin = users.find(u => u.role === 'admin' || u.role === 'controller');
@@ -37,32 +35,32 @@ const ChatPopup = () => {
     if (!socket) return;
 
     const handleNewMessage = (newMessage) => {
-        if (!isOpen && newMessage.senderId === adminId) {
+        // Logic âm thanh đã chuyển qua store hoặc global nên ở đây chỉ lo UI
+        // Nếu chat ĐÓNG và là admin gửi -> Hiện bubble
+        if (!isChatOpen && newMessage.senderId === adminId) {
             const previewText = newMessage.image ? "Đã gửi một ảnh 📷" : newMessage.text;
             setUnreadBubble(previewText);
-            const audio = new Audio("/notification.mp3");
-            audio.play().catch(()=>{});
         }
     };
 
     socket.on("newMessage", handleNewMessage);
     return () => socket.off("newMessage", handleNewMessage);
-  }, [socket, isOpen, adminId]);
+  }, [socket, isChatOpen, adminId]); // Thay isOpen bằng isChatOpen
 
   useEffect(() => {
-    if (isOpen && adminId) {
+    if (isChatOpen && adminId) {
       setUnreadBubble(null);
       getMessages(adminId);
       subscribeToMessages();
       return () => unsubscribeFromMessages();
     }
-  }, [isOpen, adminId, getMessages, subscribeToMessages, unsubscribeFromMessages]);
+  }, [isChatOpen, adminId, getMessages, subscribeToMessages, unsubscribeFromMessages]); // Thay isOpen bằng isChatOpen
 
   useEffect(() => {
-    if (messagesEndRef.current && isOpen) {
+    if (messagesEndRef.current && isChatOpen) {
         messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages, isOpen, imagePreview]);
+  }, [messages, isChatOpen, imagePreview]); // Thay isOpen bằng isChatOpen
 
   const compressImage = (file, callback) => {
     const reader = new FileReader();
@@ -115,20 +113,15 @@ const ChatPopup = () => {
   if (!user || user.role === "admin" || user.role === "controller") return null;
 
   return (
-    /* --- SỬA LỖI Ở ĐÂY: Bỏ class 'relative' đi, chỉ giữ lại 'fixed' --- 
-       Lý do: 'fixed' và 'relative' xung đột nhau, làm mất tính năng cố định góc màn hình.
-       Bản thân 'fixed' đã tạo điểm neo cho các thẻ con 'absolute' rồi.
-    */
     <div className="fixed bottom-4 right-4 z-[200]">
       
       <AnimatePresence>
-        {!isOpen && unreadBubble && (
+        {!isChatOpen && unreadBubble && (
             <motion.div
                 initial={{ opacity: 0, y: 10, scale: 0.8 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
-                onClick={() => setIsOpen(true)}
-                // Bong bóng bay lơ lửng phía trên bên trái của nút
+                onClick={toggleChat} // Thay đổi hàm
                 className="absolute bottom-full right-full mb-2 mr-2 bg-white px-4 py-3 rounded-2xl rounded-br-none shadow-xl border border-blue-100 max-w-[200px] cursor-pointer hover:bg-gray-50 transition"
                 style={{ minWidth: '180px' }}
             >
@@ -147,12 +140,11 @@ const ChatPopup = () => {
       </AnimatePresence>
 
       <AnimatePresence>
-        {isOpen && (
+        {isChatOpen && (
           <motion.div
             initial={{ opacity: 0, y: 20, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            // Khung chat chính nằm ngay trên nút
             className="absolute bottom-20 right-0 bg-white w-80 sm:w-96 max-h-[80vh] h-[500px] rounded-lg shadow-2xl border border-gray-200 flex flex-col mb-4 overflow-hidden"
           >
             <div className="bg-gray-950 p-4 flex justify-between items-center text-white shrink-0">
@@ -160,7 +152,7 @@ const ChatPopup = () => {
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                 <h4 className="font-bold">HỖ TRỢ KHÁCH HÀNG</h4>
               </div>
-              <button onClick={() => setIsOpen(false)} className="hover:bg-gray-800 p-1 rounded">
+              <button onClick={closeChat} className="hover:bg-gray-800 p-1 rounded">
                 <X size={18} />
               </button>
             </div>
@@ -231,11 +223,11 @@ const ChatPopup = () => {
       </AnimatePresence>
 
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={toggleChat} // Thay đổi hàm
         className="bg-gray-950 hover:bg-gray-800 text-white p-4 rounded-full shadow-lg transition-all hover:scale-110 flex items-center justify-center relative z-10"
       >
-        {isOpen ? <X size={24} /> : <MessageCircle size={28} />}
-        {!isOpen && unreadBubble && (
+        {isChatOpen ? <X size={24} /> : <MessageCircle size={28} />}
+        {!isChatOpen && unreadBubble && (
             <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
         )}
       </button>

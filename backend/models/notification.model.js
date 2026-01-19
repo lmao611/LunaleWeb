@@ -2,10 +2,14 @@ import mongoose from "mongoose";
 
 const notificationSchema = new mongoose.Schema(
   {
-    recipient: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, // Người nhận
-    message: { type: String, required: true }, // Nội dung
-    image: { type: String }, // Ảnh đính kèm (URL từ Cloudinary)
-    isRead: { type: Boolean, default: false }, // Trạng thái đã xem
+    recipient: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    message: { type: String, required: true },
+    image: { type: String },
+    isRead: { type: Boolean, default: false },
+    
+    // --- THÊM 2 TRƯỜNG NÀY ---
+    type: { type: String, enum: ["message", "order", "system"], default: "system" }, 
+    relatedId: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // Lưu ID người gửi (nếu là tin nhắn) hoặc ID đơn hàng
   },
   { timestamps: true }
 );

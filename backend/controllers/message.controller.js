@@ -1,5 +1,6 @@
 import User from "../models/user.model.js";
 import Message from "../models/message.model.js";
+import Notification from "../models/notification.model.js"; // Import Notification
 import cloudinary from "../lib/cloudinary.js";
 import { getReceiverSocketId, io } from "../lib/socket.js";
 
@@ -14,31 +15,21 @@ export const getUsersForSidebar = async (req, res) => {
   }
 };
 
-// --- SỬA LOGIC LẤY TIN NHẮN (ĐỒNG BỘ LỊCH SỬ) ---
 export const getMessages = async (req, res) => {
   try {
     const { id: chatPartnerId } = req.params;
     const myId = req.user._id;
 
-    // 1. Nếu người gọi là KHÁCH HÀNG: Lấy toàn bộ tin nhắn của họ (gửi hoặc nhận)
-    // Không quan trọng chat với admin nào, lấy hết về.
+    // Logic lấy tin nhắn (giữ nguyên logic đã sửa ở các bước trước cho Customer/Admin)
     if (req.user.role === "customer") {
         const messages = await Message.find({
-            $or: [
-                { senderId: myId },
-                { receiverId: myId },
-            ]
-        }).sort({ createdAt: 1 }); // Sắp xếp cũ -> mới
+            $or: [{ senderId: myId }, { receiverId: myId }]
+        }).sort({ createdAt: 1 });
         return res.status(200).json(messages);
     }
 
-    // 2. Nếu người gọi là ADMIN: Lấy toàn bộ tin nhắn liên quan đến Khách Hàng (chatPartnerId)
-    // Bất kể ai là người gửi (Admin A, Admin B hay chính Khách đó)
     const messages = await Message.find({
-      $or: [
-        { senderId: chatPartnerId },
-        { receiverId: chatPartnerId },
-      ],
+      $or: [{ senderId: chatPartnerId }, { receiverId: chatPartnerId }],
     }).sort({ createdAt: 1 });
 
     res.status(200).json(messages);
@@ -48,7 +39,6 @@ export const getMessages = async (req, res) => {
   }
 };
 
-// --- SỬA LOGIC GỬI TIN (REALTIME SYNC) ---
 export const sendMessage = async (req, res) => {
   try {
     const { text, image } = req.body;
@@ -70,73 +60,72 @@ export const sendMessage = async (req, res) => {
 
     await newMessage.save();
 
-    // --- LOGIC SOCKET MỚI ---
-    
-    // 1. Gửi cho người nhận trực tiếp (Khách hoặc Admin đích)
+    // 1. Bắn Socket tin nhắn (Logic Chat cũ)
     const receiverSocketId = getReceiverSocketId(receiverId);
     if (receiverSocketId) {
       io.to(receiverSocketId).emit("newMessage", newMessage);
     }
 
-    // 2. Nếu tin nhắn liên quan đến Khách hàng, hãy gửi cho TẤT CẢ ADMIN khác để đồng bộ
-    // (Để Admin B cũng thấy Admin A vừa chat gì với khách)
+    // 2. Logic đồng bộ tin nhắn cho Admin (Logic cũ)
     const admins = await User.find({ role: { $in: ["admin", "controller"] } });
     admins.forEach(admin => {
-        // Không gửi lại cho chính người gửi (đã xử lý ở client) và người nhận (đã xử lý ở bước 1)
         if (admin._id.toString() !== senderId.toString() && admin._id.toString() !== receiverId.toString()) {
             const adminSocketId = getReceiverSocketId(admin._id);
-            if (adminSocketId) {
-                io.to(adminSocketId).emit("newMessage", newMessage);
-            }
+            if (adminSocketId) io.to(adminSocketId).emit("newMessage", newMessage);
         }
     });
 
-    res.status(201).json(newMessage);
+    // ============================================================
+    // 3. TẠO THÔNG BÁO (NOTIFICATION) VÀO DATABASE & SOCKET CHUÔNG
+    // ============================================================
+    try {
+        const sender = await User.findById(senderId).select("name");
+        const notifMsg = `Tin nhắn mới từ ${sender.name}: ${text ? text.substring(0, 30) + (text.length > 30 ? "..." : "") : "Đã gửi một ảnh"}`;
 
-    // --- AUTO REPLY LOGIC ---
-    if (req.user.role === "customer") {
-        const messageCount = await Message.countDocuments({
-            $or: [
-                { senderId: senderId }, // Đếm tất cả tin khách đã gửi
-                { receiverId: senderId }
-            ]
+        // Tạo Notification trong DB
+        const newNotif = await Notification.create({
+            recipient: receiverId,
+            message: notifMsg,
+            type: "message",
+            relatedId: senderId, // Lưu ID người gửi để lúc click vào biết mở chat với ai
+            isRead: false
         });
 
-        // Chỉ gửi tin nhắn tự động nếu đây là tin đầu tiên trong toàn bộ lịch sử của khách
-        if (messageCount === 1) {
-            const autoText = "Chào chị, Cảm Ơn Chị đã quan tâm đến Lunale ạ 🌸\n\n✨ Chị để lại câu hỏi về sản phẩm đang quan tâm Lunale sẽ hỗ trợ tư vấn sớm cho Chị nhé ạ.\n\nHello, Thank you for your interest in Lunale 🌸\n\n✨ Please leave your questions about the products you are interested in, Lunale will support you soon.";
+        // Bắn Socket thông báo (cái chuông)
+        if (receiverSocketId) {
+            io.to(receiverSocketId).emit("newNotification", newNotif);
+        }
+        
+        // Nếu người nhận là Admin, có thể bắn cho các Admin khác (tùy nhu cầu, ở đây tôi chỉ bắn cho người nhận chính)
 
+    } catch (notifError) {
+        console.error("Lỗi tạo thông báo:", notifError);
+    }
+    // ============================================================
+
+    res.status(201).json(newMessage);
+
+    // Auto Reply Logic (Giữ nguyên)
+    if (req.user.role === "customer") {
+        const messageCount = await Message.countDocuments({
+            $or: [{ senderId: senderId }, { receiverId: senderId }]
+        });
+
+        if (messageCount === 1) {
+            const autoText = "Chào Chị, Cảm Ơn Chị đã quan tâm đến Lunale ạ 🌸\n\n✨ Chị để lại câu hỏi về sản phẩm đang quan tâm Lunale sẽ hỗ trợ tư vấn sớm cho Chị nhé ạ.\n\nHello, Thank you for your interest in Lunale 🌸\n\n✨ Please leave your questions about the products you are interested in, Lunale will support you soon.";
             setTimeout(async () => {
                 try {
-                    const autoMessage = new Message({
-                        senderId: receiverId, // Admin nhận sẽ đứng tên gửi
-                        receiverId: senderId,
-                        text: autoText,
-                    });
+                    const autoMessage = new Message({ senderId: receiverId, receiverId: senderId, text: autoText });
                     await autoMessage.save();
-
-                    // Bắn socket cho khách
                     const customerSocket = getReceiverSocketId(senderId);
                     if (customerSocket) io.to(customerSocket).emit("newMessage", autoMessage);
-
-                    // Bắn socket cho toàn bộ admin
-                    const allAdmins = await User.find({ role: { $in: ["admin", "controller"] } });
-                    allAdmins.forEach(admin => {
-                         const adminSocket = getReceiverSocketId(admin._id);
-                         if(adminSocket) io.to(adminSocket).emit("newMessage", autoMessage);
-                    });
-
-                } catch (err) {
-                    console.error(err);
-                }
+                } catch (err) { console.error(err); }
             }, 1500);
         }
     }
 
   } catch (error) {
     console.log("Error in sendMessage controller: ", error.message);
-    if (!res.headersSent) {
-        res.status(500).json({ error: "Internal server error" });
-    }
+    if (!res.headersSent) res.status(500).json({ error: "Internal server error" });
   }
 };
