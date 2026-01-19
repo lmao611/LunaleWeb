@@ -18,24 +18,26 @@ const ChatPopup = () => {
   const [adminId, setAdminId] = useState(null);
 
   useEffect(() => {
-    if (user) getUsers();
+    // Chỉ lấy user nếu là KHÁCH (Admin tự lấy bên AdminChatManager rồi)
+    if (user && user.role === "customer") getUsers();
   }, [user, getUsers]);
   
   useEffect(() => {
+      // 🛑 QUAN TRỌNG: Nếu là Admin/Controller thì DỪNG NGAY, không được tự động chọn user
+      if (!user || user.role === "admin" || user.role === "controller") return;
+
       const admin = users.find(u => u.role === 'admin' || u.role === 'controller');
       if (admin) {
           setAdminId(admin._id);
           setSelectedUser(admin);
       }
-  }, [users, setSelectedUser]);
+  }, [users, setSelectedUser, user]); // Thêm user vào dependency
 
-  // --- SỬA LOGIC BUBBLE: Chấp nhận tin từ bất kỳ Admin nào ---
   useEffect(() => {
     if (!socket) return;
 
     const handleNewMessage = (newMessage) => {
-        // Nếu chat đang đóng VÀ người gửi không phải là mình (tức là Admin gửi)
-        if (!isOpen && newMessage.senderId !== user._id) {
+        if (!isOpen && newMessage.senderId === adminId) {
             const previewText = newMessage.image ? "Đã gửi một ảnh 📷" : newMessage.text;
             setUnreadBubble(previewText);
             const audio = new Audio("/notification.mp3");
@@ -45,9 +47,10 @@ const ChatPopup = () => {
 
     socket.on("newMessage", handleNewMessage);
     return () => socket.off("newMessage", handleNewMessage);
-  }, [socket, isOpen, user]);
+  }, [socket, isOpen, adminId]);
 
   useEffect(() => {
+    // Chỉ chạy logic chat nếu CÓ adminId và popup ĐANG MỞ
     if (isOpen && adminId) {
       setUnreadBubble(null);
       getMessages(adminId);
@@ -110,6 +113,7 @@ const ChatPopup = () => {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  // 🛑 Chặn render giao diện nếu là Admin (Dòng này bạn đã có, nhưng thêm check ở useEffect trên là quan trọng nhất)
   if (!user || user.role === "admin" || user.role === "controller") return null;
 
   return (
