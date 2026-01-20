@@ -33,6 +33,9 @@ const customerOrderSchema = new mongoose.Schema(
         enum: ["COD", "Chuyển khoản", "Tiền mặt"],
         default: "COD" 
     },
+    // --- THÊM TRƯỜNG NÀY ---
+    isPaid: { type: Boolean, default: false }, 
+    // -----------------------
     status: {
       type: String,
       enum: ["Pending", "Processed", "Cancelled"], 

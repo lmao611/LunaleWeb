@@ -1,8 +1,8 @@
 import { Link, useNavigate } from "react-router-dom"; 
 import { useCartStore } from "../stores/useCartStore";
 import { useUserStore } from "../stores/useUserStore"; 
-import { motion } from "framer-motion";
-import { ShoppingCart } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion"; // Import AnimatePresence
+import { ShoppingCart, QrCode, CreditCard, X, CheckCircle } from "lucide-react";
 import CartItem from "../components/CartItem";
 import PeopleAlsoBought from "../components/PeopleAlsoBought";
 import { useEffect, useState } from "react";
@@ -13,6 +13,11 @@ const CartPage = () => {
   const { user, setShowUserBox } = useUserStore(); 
   const [rate, setRate] = useState(null);
   const [isOrdering, setIsOrdering] = useState(false); 
+
+  // --- THÊM STATE ---
+  const [paymentMethod, setPaymentMethod] = useState("COD");
+  const [showQRModal, setShowQRModal] = useState(false);
+  // ------------------
 
   useEffect(() => {
     fetch("https://api.exchangerate-api.com/v4/latest/USD")
@@ -39,7 +44,7 @@ const CartPage = () => {
     totalVND = Math.floor(raw / 1000) * 1000; 
   }
 
-  const handleCartOrder = async () => {
+  const handlePreOrder = () => {
     if (!user) {
         toast.error("Vui lòng đăng nhập để đặt hàng!");
         return;
@@ -50,6 +55,14 @@ const CartPage = () => {
         return;
     }
 
+    if (paymentMethod === "Chuyển khoản") {
+        setShowQRModal(true); // Mở Modal QR
+    } else {
+        handleCartOrder(false); // Đặt luôn nếu là COD
+    }
+  };
+
+  const handleCartOrder = async (isPaid) => {
     setIsOrdering(true);
     
     const orderData = {
@@ -63,25 +76,26 @@ const CartPage = () => {
         })),
         totalAmount: totalUSD,
         isFromCart: true,
-        note: "Đặt hàng từ Giỏ hàng"
+        note: "Đặt hàng từ Giỏ hàng",
+        paymentMethod: paymentMethod, // Gửi method
+        isPaid: isPaid // Gửi trạng thái đã thanh toán
     };  
 
     const res = await placeOrder(orderData);
     setIsOrdering(false);
+    setShowQRModal(false);
     
     if (res.success) {
-        toast.success("Đặt hàng thành công, Lunale sẽ liên hệ bạn sớm.");
+        toast.success(isPaid ? "Xác nhận thanh toán thành công! Đơn hàng đang được xử lý." : "Đặt hàng thành công, Lunale sẽ liên hệ bạn sớm.");
     }
   };
 
   return (
-    <div className="py-40 md:py-16 bg-white min-h-screen">
+    <div className="py-40 md:py-16 bg-white min-h-screen relative">
       <div className="mx-auto max-w-screen-xl px-4 2xl:px-0">
         
-        {/* Container chính chứa 2 cột (List sản phẩm & Tóm tắt) */}
         <div className="mt-6 sm:mt-8 md:gap-6 lg:flex lg:items-start xl:gap-8 relative">
           
-          {/* CỘT TRÁI: DANH SÁCH SẢN PHẨM */}
           <motion.div
             className="mx-auto w-full flex-none lg:max-w-2xl xl:max-w-4xl"
             initial={{ opacity: 0, x: -20 }}
@@ -91,24 +105,17 @@ const CartPage = () => {
             {cart.length === 0 ? (
               <EmptyCartUI />
             ) : (
-              <div
-                className="space-y-6 pt-40"
-                id="cart-content"
-                style={{ position: "relative" }}
-              >
+              <div className="space-y-6 pt-40" id="cart-content">
                 {cart.map((item) => (
                   <CartItem key={item._id} item={item} />
                 ))}
               </div>
             )}
-
-            {/* ĐÃ XÓA PeopleAlsoBought Ở ĐÂY */}
           </motion.div>
 
-          {/* CỘT PHẢI: TÓM TẮT GIỎ HÀNG */}
           {cart.length > 0 && (
             <motion.div
-              className="mt-10 lg:mt-40 w-full max-w-md lg:self-start" // Đã sửa mt-40 thành mt-10 cho mobile đỡ trống
+              className="mt-10 lg:mt-40 w-full max-w-md lg:self-start"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.3 }}
@@ -133,6 +140,28 @@ const CartPage = () => {
                       </div>
                     )}
 
+                    {/* --- LỰA CHỌN THANH TOÁN --- */}
+                    <div className="mb-4">
+                        <label className="font-medium text-gray-700 block mb-2">Phương thức thanh toán:</label>
+                        <div className="space-y-2">
+                            <label className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition ${paymentMethod === 'COD' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}>
+                                <input type="radio" name="payment" className="w-4 h-4 text-blue-600" checked={paymentMethod === 'COD'} onChange={() => setPaymentMethod('COD')} />
+                                <div className="flex items-center gap-2">
+                                    <ShoppingCart size={18} className="text-gray-500"/>
+                                    <span className="text-sm font-medium">Thanh toán khi nhận hàng (COD)</span>
+                                </div>
+                            </label>
+
+                            <label className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition ${paymentMethod === 'Chuyển khoản' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}>
+                                <input type="radio" name="payment" className="w-4 h-4 text-blue-600" checked={paymentMethod === 'Chuyển khoản'} onChange={() => setPaymentMethod('Chuyển khoản')} />
+                                <div className="flex items-center gap-2">
+                                    <QrCode size={18} className="text-gray-500"/>
+                                    <span className="text-sm font-medium">Chuyển khoản ngân hàng (QR)</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
                     <Link
                       to="/contact"
                       className="block w-full text-center rounded-md bg-gray-100 text-gray-800 px-4 py-2 mb-3
@@ -142,7 +171,7 @@ const CartPage = () => {
                     </Link>
 
                     <button
-                      onClick={handleCartOrder}
+                      onClick={handlePreOrder}
                       disabled={isOrdering}
                       className="block w-full text-center rounded-md bg-blue-600 px-4 py-2 
                                  font-bold text-white hover:bg-blue-700 active:scale-95 transition disabled:opacity-70"
@@ -156,13 +185,51 @@ const CartPage = () => {
           )}
         </div>
 
-        {/* 👇 DI CHUYỂN PeopleAlsoBought XUỐNG DƯỚI CÙNG 👇 */}
-        {/* Việc này giúp nó nằm dưới cả 2 cột trên Mobile */}
         {cart.length > 0 && (
             <div className="mt-16">
                  <PeopleAlsoBought excludeIds={cart.map((i) => i._id)} />
             </div>
         )}
+
+        {/* --- MODAL QR CODE --- */}
+        <AnimatePresence>
+            {showQRModal && (
+                <div className="fixed inset-0 z-[999] bg-black/60 flex items-center justify-center p-4">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden relative"
+                    >
+                        <button onClick={() => setShowQRModal(false)} className="absolute top-3 right-3 text-gray-500 hover:text-red-500">
+                            <X size={24} />
+                        </button>
+
+                        <div className="p-6 text-center">
+                            <h3 className="text-xl font-bold text-gray-800 mb-2">Thanh toán QR</h3>
+                            <p className="text-sm text-gray-600 mb-4">Vui lòng quét mã bên dưới để thanh toán.</p>
+                            
+                            <div className="border-2 border-blue-500 rounded-lg p-2 inline-block mb-4">
+                                <img src="/qr-payment.jpg" alt="VietQR" className="w-64 h-64 object-contain" />
+                            </div>
+
+                            <p className="font-bold text-lg text-blue-700 mb-6">
+                                Tổng thanh toán: {totalVND ? totalVND.toLocaleString("vi-VN") : "..."} đ
+                            </p>
+
+                            <button 
+                                onClick={() => handleCartOrder(true)} // isPaid = true
+                                disabled={isOrdering}
+                                className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold flex items-center justify-center gap-2 transition"
+                            >
+                                <CheckCircle size={20}/>
+                                {isOrdering ? "Đang xử lý..." : "Tôi đã thanh toán"}
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+        </AnimatePresence>
 
       </div>
     </div>

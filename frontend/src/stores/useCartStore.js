@@ -31,7 +31,6 @@ export const useCartStore = create((set, get) => ({
     }
   },
 
-  // 👇 CẬP NHẬT: Nhận thêm size và quantity
   addToCart: async (product, size = "M", quantity = 1) => {
     try {
       await axios.post("/cart", { 
@@ -40,20 +39,16 @@ export const useCartStore = create((set, get) => ({
           quantity: quantity 
       });
 
-      // Update state local
       const currentCart = get().cart;
-      // Tìm xem đã có sản phẩm đó + size đó chưa
       const existingItemIndex = currentCart.findIndex(
           (i) => i._id === product._id && i.size === size
       );
 
       let newCart;
       if (existingItemIndex > -1) {
-          // Nếu có rồi thì tăng số lượng
           newCart = [...currentCart];
           newCart[existingItemIndex].quantity += quantity;
       } else {
-          // Chưa có thì thêm mới
           newCart = [...currentCart, { ...product, quantity, size }];
       }
 

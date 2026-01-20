@@ -314,7 +314,6 @@ const Navbar = () => {
                             </span>
                         )}
                     </button>
-                    {/* Đã xóa popup notification ở đây để chuyển xuống dưới cùng */}
                 </div>
               )}
 
@@ -364,19 +363,15 @@ const Navbar = () => {
         </div>
       </motion.header>
 
-      {/* --- MOVED: POPUP NOTIFICATION (Đã đưa ra khỏi Header để xử lý z-index) --- */}
       <AnimatePresence>
         {showNotifications && (
             <>
                 <div className="fixed inset-0 z-[190]" onClick={() => setShowNotifications(false)}></div>
-                
                 <motion.div
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    // SỬA: Dùng fixed và định vị cứng để thoát khỏi header container
-                    // top-[60px] là khoảng cách ước lượng để nằm dưới header
-                    className="fixed top-[80px] right-2 sm:right-92 z-[200] w-[90vw] sm:w-96 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden"
+                    className="fixed top-[65px] right-2 sm:right-40 z-[200] w-[90vw] sm:w-96 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden"
                 >
                     <div className="p-3 border-b bg-gray-50 flex justify-between items-center">
                         <h3 className="font-semibold text-gray-700">Thông báo</h3>
@@ -503,8 +498,12 @@ const Navbar = () => {
                                     <p className="text-gray-600 text-xs sm:text-sm">{selectedOrder.customerInfo?.address || selectedOrder.address || "Chưa có địa chỉ"}</p>
                                 </div>
                                 <div className="p-3 bg-gray-50 rounded border">
-                                    <h4 className="font-semibold text-gray-700 flex items-center gap-2 mb-2"><CreditCard size={16}/> Phương thức thanh toán</h4>
-                                    <p className="text-gray-600 text-xs sm:text-sm">COD (Thanh toán khi nhận hàng)</p>
+                                    <h4 className="font-semibold text-gray-700 flex items-center gap-2 mb-2"><CreditCard size={16}/> Thanh toán</h4>
+                                    <p className="text-gray-600 text-xs sm:text-sm">
+                                        {selectedOrder.paymentMethod || "COD"}
+                                        {/* --- THÊM DÒNG NÀY --- */}
+                                        {selectedOrder.isPaid && <span className="ml-2 text-green-600 font-bold">(Đã thanh toán)</span>}
+                                    </p>
                                 </div>
                             </div>
 
@@ -569,6 +568,12 @@ const Navbar = () => {
                                   <div className="flex items-center gap-2">
                                     <span className="font-bold text-base sm:text-lg text-gray-800">#{ (order._id).slice(-6).toUpperCase() }</span>
                                     {getStatusBadge(order.status)}
+                                    {/* --- CẬP NHẬT: HIỆN CHỮ ĐÃ THANH TOÁN --- */}
+                                    {order.isPaid && (
+                                        <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded border border-green-200">
+                                            Đã thanh toán
+                                        </span>
+                                    )}
                                   </div>
                                   <p className="text-xs sm:text-sm text-gray-500 mt-1">
                                     Ngày đặt: {new Date(order.createdAt).toLocaleDateString("vi-VN")}
@@ -645,58 +650,6 @@ const Navbar = () => {
               </div>
             </motion.div>
           </div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {selectedNotification && (
-            <div className="fixed inset-0 z-[1000] bg-black/60 flex items-center justify-center p-4">
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden relative"
-                >
-                    <button 
-                        onClick={() => setSelectedNotification(null)}
-                        className="absolute top-3 right-3 text-gray-500 hover:text-red-500 bg-white/80 rounded-full p-1"
-                    >
-                        <X size={24} />
-                    </button>
-
-                    <div className="p-6">
-                        <h3 className="text-xl font-bold text-gray-800 mb-2 border-b pb-2">Chi tiết thông báo</h3>
-                        <div className="text-sm text-gray-500 mb-4 flex justify-between">
-                            <span>{new Date(selectedNotification.createdAt).toLocaleString("vi-VN")}</span>
-                            <button 
-                                onClick={() => { deleteNotification(selectedNotification._id); setSelectedNotification(null); }}
-                                className="text-red-500 hover:text-red-700 flex items-center gap-1 text-xs"
-                            >
-                                <Trash2 size={14}/> Xóa tin này
-                            </button>
-                        </div>
-                        
-                        <p className="text-gray-700 whitespace-pre-line mb-4 text-base leading-relaxed">
-                            {selectedNotification.message}
-                        </p>
-
-                        {selectedNotification.image && (
-                            <div className="rounded-lg overflow-hidden border border-gray-100">
-                                <img src={selectedNotification.image} alt="Notification Detail" className="w-full h-auto object-contain max-h-[400px]" />
-                            </div>
-                        )}
-                    </div>
-                    
-                    <div className="bg-gray-50 p-4 flex justify-end">
-                        <button 
-                            onClick={() => setSelectedNotification(null)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition"
-                        >
-                            Đóng
-                        </button>
-                    </div>
-                </motion.div>
-            </div>
         )}
       </AnimatePresence>
     </>

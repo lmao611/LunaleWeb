@@ -1,11 +1,12 @@
 import CustomerOrder from "../models/customerOrder.model.js";
 import Order from "../models/orders.model.js"; 
 import User from "../models/user.model.js";
-
+import Notification from "../models/notification.model.js"; // Import Notification
+import { io, getReceiverSocketId } from "../lib/socket.js"; // Import Socket
 
 export const createOrder = async (req, res) => {
   try {
-    const { products, totalAmount, note, paymentMethod } = req.body; 
+    const { products, totalAmount, note, paymentMethod, isPaid } = req.body; // Lấy thêm isPaid
     const user = req.user;
 
     if (!products || products.length === 0) {
@@ -35,8 +36,8 @@ export const createOrder = async (req, res) => {
       existingOrder.totalAmount += totalAmount;
       if (note) existingOrder.note = existingOrder.note ? `${existingOrder.note} | ${note}` : note;
       
-      
       if (paymentMethod) existingOrder.paymentMethod = paymentMethod;
+      if (isPaid !== undefined) existingOrder.isPaid = isPaid; // Cập nhật trạng thái thanh toán
 
       existingOrder.customerInfo = {
         name: user.name,
@@ -67,7 +68,8 @@ export const createOrder = async (req, res) => {
       products,
       totalAmount,
       note,
-      paymentMethod: paymentMethod || "COD" 
+      paymentMethod: paymentMethod || "COD",
+      isPaid: isPaid || false // Lưu trạng thái thanh toán
     });
 
     if (req.body.isFromCart) {
@@ -102,6 +104,7 @@ export const getMyOrders = async (req, res) => {
       status: order.status,
       totalAmount: order.total,
       paymentMethod: order.paymentMethod,
+      isPaid: order.status === "Processed", // Đơn đã xử lý coi như đã thanh toán xong
       customerInfo: {
         address: order.address,
         phone: order.phone,
@@ -166,6 +169,26 @@ export const updateOrderStatus = async (req, res) => {
                 paymentMethod: customerOrder.paymentMethod || "COD", 
                 createdBy: req.user ? req.user._id : null
             });
+
+            // --- TẠO THÔNG BÁO GỬI KHÁCH HÀNG ---
+            try {
+                const message = `Đơn hàng #${customerOrder._id.toString().slice(-6).toUpperCase()} của bạn đã được xác nhận và đang được xử lý.`;
+                const notification = await Notification.create({
+                    recipient: customerOrder.user,
+                    message: message,
+                    type: "order", // Loại thông báo đơn hàng
+                    relatedId: customerOrder._id
+                });
+
+                // Gửi Socket realtime
+                const receiverSocketId = getReceiverSocketId(customerOrder.user);
+                if (receiverSocketId) {
+                    io.to(receiverSocketId).emit("newNotification", notification);
+                }
+            } catch (notifErr) {
+                console.error("Lỗi gửi thông báo đơn hàng:", notifErr);
+            }
+            // -------------------------------------
         }
         else if (status === "Pending" && oldOrder.status === "Processed") {
             await Order.findOneAndDelete(
