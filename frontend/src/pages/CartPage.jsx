@@ -212,7 +212,7 @@ const CartPage = () => {
                             */}
                             <div className="border-2 border-blue-500 rounded-lg p-2 inline-block mb-4 max-w-full">
                                 <img 
-                                    src="/qr-payment.png"  // Bạn lưu ảnh là qr-payment.png vào public nhé
+                                    src="/qr-payment.jpg"  // Bạn lưu ảnh là qr-payment.png vào public nhé
                                     alt="VietQR" 
                                     className="w-full max-w-[400px] h-auto object-contain mx-auto" 
                                 />

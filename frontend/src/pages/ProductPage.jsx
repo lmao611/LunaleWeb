@@ -250,7 +250,7 @@ const ProductPage = () => {
                                {/* 👇 SỬA CSS ẢNH Ở ĐÂY: w-full h-auto, max-w-[400px] */}
                                <div className="border-2 border-blue-500 rounded-lg p-2 inline-block mb-4 max-w-full">
                                    <img 
-                                        src="/qr-payment.png" 
+                                        src="/qr-payment.jpg" 
                                         alt="QR Code" 
                                         className="w-full max-w-[400px] h-auto object-contain mx-auto" 
                                    />
