@@ -218,7 +218,7 @@ const CartPage = () => {
                                 />
                             </div>
 
-                            <p className="font-bold text-lg text-blue-700 mb-6">
+                            <p className="font-bold text-lg text-red-700 mb-6">
                                 Tổng thanh toán: {totalVND ? totalVND.toLocaleString("vi-VN") : "..."} đ
                             </p>
 
