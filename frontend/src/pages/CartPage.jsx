@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router-dom"; 
 import { useCartStore } from "../stores/useCartStore";
 import { useUserStore } from "../stores/useUserStore"; 
-import { motion, AnimatePresence } from "framer-motion"; // Import AnimatePresence
+import { motion, AnimatePresence } from "framer-motion";
 import { ShoppingCart, QrCode, CreditCard, X, CheckCircle } from "lucide-react";
 import CartItem from "../components/CartItem";
 import PeopleAlsoBought from "../components/PeopleAlsoBought";
@@ -14,10 +14,9 @@ const CartPage = () => {
   const [rate, setRate] = useState(null);
   const [isOrdering, setIsOrdering] = useState(false); 
 
-  // --- THÊM STATE ---
+  // --- STATE ---
   const [paymentMethod, setPaymentMethod] = useState("COD");
   const [showQRModal, setShowQRModal] = useState(false);
-  // ------------------
 
   useEffect(() => {
     fetch("https://api.exchangerate-api.com/v4/latest/USD")
@@ -56,9 +55,9 @@ const CartPage = () => {
     }
 
     if (paymentMethod === "Chuyển khoản") {
-        setShowQRModal(true); // Mở Modal QR
+        setShowQRModal(true); 
     } else {
-        handleCartOrder(false); // Đặt luôn nếu là COD
+        handleCartOrder(false); 
     }
   };
 
@@ -77,8 +76,8 @@ const CartPage = () => {
         totalAmount: totalUSD,
         isFromCart: true,
         note: "Đặt hàng từ Giỏ hàng",
-        paymentMethod: paymentMethod, // Gửi method
-        isPaid: isPaid // Gửi trạng thái đã thanh toán
+        paymentMethod: paymentMethod, 
+        isPaid: isPaid 
     };  
 
     const res = await placeOrder(orderData);
@@ -140,7 +139,6 @@ const CartPage = () => {
                       </div>
                     )}
 
-                    {/* --- LỰA CHỌN THANH TOÁN --- */}
                     <div className="mb-4">
                         <label className="font-medium text-gray-700 block mb-2">Phương thức thanh toán:</label>
                         <div className="space-y-2">
@@ -199,7 +197,7 @@ const CartPage = () => {
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.9 }}
-                        className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden relative"
+                        className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden relative"
                     >
                         <button onClick={() => setShowQRModal(false)} className="absolute top-3 right-3 text-gray-500 hover:text-red-500">
                             <X size={24} />
@@ -209,8 +207,15 @@ const CartPage = () => {
                             <h3 className="text-xl font-bold text-gray-800 mb-2">Thanh toán QR</h3>
                             <p className="text-sm text-gray-600 mb-4">Vui lòng quét mã bên dưới để thanh toán.</p>
                             
-                            <div className="border-2 border-blue-500 rounded-lg p-2 inline-block mb-4">
-                                <img src="/qr-payment.jpg" alt="VietQR" className="w-64 h-64 object-contain" />
+                            {/* 👇 SỬA CSS ẢNH Ở ĐÂY 👇 
+                                w-full, max-w-[400px], h-auto để giữ tỷ lệ, object-contain
+                            */}
+                            <div className="border-2 border-blue-500 rounded-lg p-2 inline-block mb-4 max-w-full">
+                                <img 
+                                    src="/qr-payment.png"  // Bạn lưu ảnh là qr-payment.png vào public nhé
+                                    alt="VietQR" 
+                                    className="w-full max-w-[400px] h-auto object-contain mx-auto" 
+                                />
                             </div>
 
                             <p className="font-bold text-lg text-blue-700 mb-6">
@@ -218,7 +223,7 @@ const CartPage = () => {
                             </p>
 
                             <button 
-                                onClick={() => handleCartOrder(true)} // isPaid = true
+                                onClick={() => handleCartOrder(true)} 
                                 disabled={isOrdering}
                                 className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold flex items-center justify-center gap-2 transition"
                             >

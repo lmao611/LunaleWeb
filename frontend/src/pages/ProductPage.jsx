@@ -15,7 +15,7 @@ import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 const ProductPage = () => {
   const { id } = useParams();
   const productStore = useProductStore.getState();
-  const { cart, placeOrder } = useCartStore(); // Lấy placeOrder
+  const { cart, placeOrder } = useCartStore(); 
   const { user, setShowUserBox } = useUserStore();
 
   const [product, setProduct] = useState(productStore.selectedProduct);
@@ -28,14 +28,13 @@ const ProductPage = () => {
   const [loading, setLoading] = useState(true);
   const [showAddToCartModal, setShowAddToCartModal] = useState(false);
 
-  // --- STATE CHO QUICK BUY ---
+  // --- QUICK BUY ---
   const [showQuickBuyModal, setShowQuickBuyModal] = useState(false);
   const [buySize, setBuySize] = useState("M");
   const [buyQuantity, setBuyQuantity] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState("COD");
   const [showQR, setShowQR] = useState(false);
   const [isOrdering, setIsOrdering] = useState(false);
-  // ---------------------------
 
   const visibleCount = 3;
 
@@ -64,7 +63,6 @@ const ProductPage = () => {
   if (loading) return <div className="flex justify-center items-center h-[60vh]"><LoadingSpinner /></div>;
   if (!product) return <p className="text-gray-600 text-center mt-10">Không tìm thấy sản phẩm</p>;
 
-  // Logic Giá
   const originalPrice = Number(product.price) || 0;
   const percent = Number(product.salePercentage) || 0;
   const isSale = (product.isSale === true || product.isSale === "true" || product.isSale === 1) && percent > 0;
@@ -72,7 +70,6 @@ const ProductPage = () => {
   const originalPriceDisplay = originalPrice.toLocaleString("vi-VN", { maximumFractionDigits: 0 }) + "đ";
   const discountedPriceDisplay = discountedPrice.toLocaleString("vi-VN", { maximumFractionDigits: 0 }) + "đ";
 
-  // Handle Logic
   const allThumbnails = [product.image, ...(Array.isArray(product.thumbnails) ? product.thumbnails : [])].filter(Boolean);
   const canScroll = allThumbnails.length > visibleCount;
   const visibleThumbnails = allThumbnails.slice(startIndex, startIndex + visibleCount);
@@ -106,7 +103,7 @@ const ProductPage = () => {
               quantity: buyQuantity,
               size: buySize
           }],
-          totalAmount: totalAmount / 25000, // (Lưu ý: Nếu backend lưu VND thì bỏ chia 25000)
+          totalAmount: totalAmount / 25000, 
           note: "Mua ngay từ trang sản phẩm",
           paymentMethod: paymentMethod,
           isPaid: isPaid
@@ -173,7 +170,6 @@ const ProductPage = () => {
               </button>
             </div>
             
-            {/* --- NÚT MUA NGAY --- */}
             <button type="button" onClick={handleBuyNow} className="w-full py-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg shadow-lg hover:shadow-xl transition transform active:scale-[0.98]">
                 MUA NGAY
             </button>
@@ -187,7 +183,6 @@ const ProductPage = () => {
       {showContactModal && <ContactModal product={product} onClose={() => setShowContactModal(false)} />}
       {showAddToCartModal && <AddToCartModal product={product} onClose={() => setShowAddToCartModal(false)} />}
 
-      {/* --- QUICK BUY MODAL --- */}
       <AnimatePresence>
         {showQuickBuyModal && (
             <div className="fixed inset-0 z-[999] bg-black/60 flex items-center justify-center p-4">
@@ -196,7 +191,6 @@ const ProductPage = () => {
                     <div className="p-6">
                         <h3 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Mua Ngay</h3>
                         
-                        {/* 1. Chọn Size & Số lượng */}
                         {!showQR ? (
                            <div className="space-y-4">
                                <div className="flex gap-4 mb-4">
@@ -251,11 +245,15 @@ const ProductPage = () => {
                                </div>
                            </div>
                         ) : (
-                           // 2. Màn hình QR
                            <div className="text-center">
                                <p className="text-sm text-gray-600 mb-4">Quét mã để thanh toán</p>
-                               <div className="border-2 border-blue-500 rounded-lg p-2 inline-block mb-4">
-                                   <img src="/qr-payment.jpg" alt="QR Code" className="w-56 h-56 object-contain" />
+                               {/* 👇 SỬA CSS ẢNH Ở ĐÂY: w-full h-auto, max-w-[400px] */}
+                               <div className="border-2 border-blue-500 rounded-lg p-2 inline-block mb-4 max-w-full">
+                                   <img 
+                                        src="/qr-payment.png" 
+                                        alt="QR Code" 
+                                        className="w-full max-w-[400px] h-auto object-contain mx-auto" 
+                                   />
                                </div>
                                <p className="font-bold text-lg text-blue-700 mb-6">
                                    Tổng: {(discountedPrice * buyQuantity).toLocaleString("vi-VN")} đ
