@@ -190,6 +190,11 @@ const Navbar = () => {
     return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
   };
 
+  const formatOrderId = (order) => {
+    if (order.orderId) return `#LN${String(order.orderId).padStart(4, '0')}`;
+    return `#${order._id.slice(-6).toUpperCase()}`;
+  };
+
   const getStatusBadge = (status) => {
     const s = status?.toLowerCase() || "";
     if (s === "pending" || s === "chờ xử lý") return <span className="text-yellow-600 bg-yellow-100 px-2 py-1 rounded text-xs font-bold">Đang xử lý</span>;
@@ -483,7 +488,7 @@ const Navbar = () => {
                             >
                                 <ChevronLeft size={20} /> Quay lại
                             </button>
-                            <span className="font-bold text-gray-800 text-sm sm:text-base">#{ (selectedOrder._id).slice(-6).toUpperCase() }</span>
+                            <span className="font-bold text-gray-800 text-sm sm:text-base">{formatOrderId(selectedOrder)}</span>
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 sm:space-y-6">
@@ -501,7 +506,6 @@ const Navbar = () => {
                                     <h4 className="font-semibold text-gray-700 flex items-center gap-2 mb-2"><CreditCard size={16}/> Thanh toán</h4>
                                     <p className="text-gray-600 text-xs sm:text-sm">
                                         {selectedOrder.paymentMethod || "COD"}
-                                        {/* --- THÊM DÒNG NÀY --- */}
                                         {selectedOrder.isPaid && <span className="ml-2 text-green-600 font-bold">(Đã thanh toán)</span>}
                                     </p>
                                 </div>
@@ -566,9 +570,8 @@ const Navbar = () => {
                               <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 sm:gap-4 border-b pb-3 mb-3">
                                 <div>
                                   <div className="flex items-center gap-2">
-                                    <span className="font-bold text-base sm:text-lg text-gray-800">#{ (order._id).slice(-6).toUpperCase() }</span>
+                                    <span className="font-bold text-base sm:text-lg text-gray-800">{formatOrderId(order)}</span>
                                     {getStatusBadge(order.status)}
-                                    {/* --- CẬP NHẬT: HIỆN CHỮ ĐÃ THANH TOÁN --- */}
                                     {order.isPaid && (
                                         <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded border border-green-200">
                                             Đã thanh toán

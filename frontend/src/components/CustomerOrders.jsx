@@ -12,6 +12,17 @@ const CustomerOrders = () => {
   
   const [receiptData, setReceiptData] = useState(null); 
 
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+  };
+
+  const formatOrderId = (order) => {
+    if (order.orderId) {
+        return `#LN${String(order.orderId).padStart(4, '0')}`;
+    }
+    return `#${order._id.slice(-6).toUpperCase()}`;
+  };
+
   const fetchOrders = async () => {
     try {
       const res = await axios.get("/customer-orders");
@@ -86,11 +97,8 @@ const CustomerOrders = () => {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 relative pb-20">
-      {/* --- POPUP PHIẾU IN --- */}
       <AnimatePresence>
         {receiptData && (
-            // FIX 1: Tăng z-index lên 99999 để đè lên Navbar (Navbar thường là z-50 hoặc z-100)
-            // FIX 2: Tăng pt-24 (96px) để nội dung tụt xuống dưới Navbar, không bị che nút đóng
             <div className="fixed inset-0 z-[99999] bg-black/60 flex items-start justify-center overflow-y-auto pt-24 pb-10 px-4">
                 <motion.div 
                     initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -107,7 +115,6 @@ const CustomerOrders = () => {
         )}
       </AnimatePresence>
 
-      {/* Header */}
       <div className="flex justify-between items-center px-2 border-b pb-4">
         <div>
             <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
@@ -142,14 +149,15 @@ const CustomerOrders = () => {
                     
                     {currentOrders.map((order) => (
                         <div key={order._id} className="bg-white p-4 sm:p-5 rounded-lg shadow-sm border border-gray-200 flex flex-col md:flex-row gap-6 relative overflow-hidden group hover:shadow-md transition-all">
-                            {/* Thanh trạng thái màu bên trái */}
                             <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${order.status === "Processed" ? "bg-green-500" : "bg-yellow-400"}`} />
 
-                            {/* Cột 1: Thông tin khách hàng */}
                             <div className="flex-1 space-y-2.5 min-w-[220px]">
                                 <div className="flex items-center gap-2 font-bold text-gray-800 text-lg">
                                     <User size={18} className="text-blue-600" /> 
                                     {order.customerInfo?.name || "Khách vãng lai"}
+                                    <span className="text-xs font-normal text-white bg-blue-500 px-2 py-0.5 rounded-full ml-auto">
+                                        {formatOrderId(order)}
+                                    </span>
                                 </div>
                                 <div className="text-sm text-gray-600 flex items-center gap-2">
                                     <Phone size={14} /> 
@@ -170,7 +178,6 @@ const CustomerOrders = () => {
                                 )}
                             </div>
 
-                            {/* Cột 2: Chi tiết sản phẩm */}
                             <div className="flex-[2] border-t pt-4 mt-2 md:border-t-0 md:mt-0 md:pt-0 md:border-l pl-0 md:pl-6 border-gray-100 flex flex-col">
                                 <div className="flex items-center gap-2 mb-3 text-sm font-semibold text-gray-700">
                                     <ShoppingBag size={16} /> Đơn hàng ({order.products.length} món)
@@ -185,7 +192,7 @@ const CustomerOrders = () => {
                                                 <p className="text-xs text-gray-500">Size: <span className="font-semibold text-gray-700">{p.size || "M"}</span> | SL: <span className="font-semibold text-gray-700">{p.quantity}</span></p>
                                             </div>
                                             <div className="text-sm font-bold text-gray-700 whitespace-nowrap">
-                                                {(p.price * p.quantity).toLocaleString()} 
+                                                {formatCurrency(p.price * p.quantity)}
                                             </div>
                                         </div>
                                     ))}
@@ -195,25 +202,19 @@ const CustomerOrders = () => {
                                     <span className="text-sm text-gray-500 font-medium">Tổng tiền:</span>
                                     <div className="text-right">
                                         <span className="text-lg font-bold text-blue-600 block leading-none">
-                                            {order.totalAmount.toLocaleString()} ₫
+                                            {formatCurrency(order.totalAmount)}
                                         </span>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Cột 3: Hành động (ĐÃ SỬA BỐ CỤC MOBILE) */}
-                            {/* Chuyển flex-row thành flex-col để các nút nằm dọc, to rõ hơn */}
                             <div className="flex flex-col gap-3 justify-center items-stretch md:items-end min-w-[160px] border-t pt-4 mt-2 md:border-t-0 md:mt-0 md:pt-0 md:border-l pl-0 md:pl-4 border-gray-100">
                                 
-                                {/* Trạng thái: Full width */}
                                 <span className={`px-3 py-1.5 rounded-full text-xs font-bold w-full text-center uppercase tracking-wide ${order.status === "Processed" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>
                                     {order.status === "Processed" ? "ĐÃ XỬ LÝ" : "CHỜ XỬ LÝ"}
                                 </span>
 
-                                {/* Nút bấm: Chia lưới 2 cột trên mobile */}
                                 <div className="grid grid-cols-2 md:flex md:flex-col gap-2 w-full">
-                                    
-                                    {/* Nút Xác nhận/Hoàn tác: Full width trên mobile (col-span-2) để dễ bấm nhất */}
                                     <button 
                                         onClick={() => handleToggleStatus(order._id, order.status)}
                                         className={`col-span-2 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-bold w-full transition-all shadow-sm ${
@@ -226,7 +227,6 @@ const CustomerOrders = () => {
                                         {order.status === "Processed" ? "Hoàn tác" : "Xác nhận đơn"}
                                     </button>
 
-                                    {/* Nút Xem phiếu */}
                                     <button 
                                         onClick={() => setReceiptData(order)}
                                         className="flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-sm font-medium bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100 transition-all"
@@ -234,7 +234,6 @@ const CustomerOrders = () => {
                                         <FileText size={16} /> Phiếu in
                                     </button>
 
-                                    {/* Nút Xóa */}
                                     <button 
                                         onClick={() => handleDelete(order._id)}
                                         className="flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-sm font-medium bg-white border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 transition-all"

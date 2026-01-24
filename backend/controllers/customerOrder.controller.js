@@ -13,12 +13,8 @@ export const createOrder = async (req, res) => {
       return res.status(400).json({ message: "Giỏ hàng trống" });
     }
 
-    // --- LOGIC TẠO MÃ SỐ TỰ TĂNG ---
-    // Tìm đơn hàng có orderId lớn nhất
     const lastOrder = await CustomerOrder.findOne().sort({ orderId: -1 });
-    // Nếu chưa có thì bắt đầu là 1, có rồi thì +1
     const nextOrderId = lastOrder && lastOrder.orderId ? lastOrder.orderId + 1 : 1;
-    // -------------------------------
 
     const existingOrder = await CustomerOrder.findOne({
       user: user._id,
@@ -46,7 +42,6 @@ export const createOrder = async (req, res) => {
       if (paymentMethod) existingOrder.paymentMethod = paymentMethod;
       if (isPaid !== undefined) existingOrder.isPaid = isPaid;
 
-      // Nếu đơn cũ chưa có orderId, cập nhật luôn số mới
       if (!existingOrder.orderId) existingOrder.orderId = nextOrderId;
 
       existingOrder.customerInfo = {
@@ -80,7 +75,7 @@ export const createOrder = async (req, res) => {
       note,
       paymentMethod: paymentMethod || "COD",
       isPaid: isPaid || false,
-      orderId: nextOrderId // Lưu số thứ tự
+      orderId: nextOrderId
     });
 
     if (req.body.isFromCart) {
@@ -115,7 +110,7 @@ export const getMyOrders = async (req, res) => {
       status: order.status,
       totalAmount: order.total,
       paymentMethod: order.paymentMethod,
-      isPaid: order.status === "Processed", // Đơn đã xử lý coi như xong
+      isPaid: order.status === "Processed", 
       customerInfo: {
         address: order.address,
         phone: order.phone,
@@ -181,9 +176,7 @@ export const updateOrderStatus = async (req, res) => {
                 createdBy: req.user ? req.user._id : null
             });
 
-            // --- TẠO THÔNG BÁO GỬI KHÁCH HÀNG ---
             try {
-                // Format mã hiển thị: #LNxxxx
                 const displayId = customerOrder.orderId 
                     ? `#LN${customerOrder.orderId.toString().padStart(4, '0')}` 
                     : `#${customerOrder._id.toString().slice(-6).toUpperCase()}`;
@@ -204,7 +197,6 @@ export const updateOrderStatus = async (req, res) => {
             } catch (notifErr) {
                 console.error("Lỗi gửi thông báo đơn hàng:", notifErr);
             }
-            // -------------------------------------
         }
         else if (status === "Pending" && oldOrder.status === "Processed") {
             await Order.findOneAndDelete(
