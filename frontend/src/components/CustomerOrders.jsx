@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import axios from "../lib/axios";
-import { CheckCircle, Trash2, Clock, MapPin, Phone, User, ShoppingBag, FileText, X } from "lucide-react";
+import { CheckCircle, Trash2, Clock, MapPin, Phone, User, ShoppingBag, FileText, X, CreditCard } from "lucide-react";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import OrderReceipt from "./OrderReceipt"; 
+import { useUserStore } from "../stores/useUserStore"; // Import để lấy socket
 
 const CustomerOrders = () => {
   const [orders, setOrders] = useState([]);
@@ -11,6 +12,9 @@ const CustomerOrders = () => {
   const [selectedDate, setSelectedDate] = useState(null);
   
   const [receiptData, setReceiptData] = useState(null); 
+  
+  // Lấy socket từ store
+  const { socket } = useUserStore();
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
@@ -37,6 +41,40 @@ const CustomerOrders = () => {
   useEffect(() => {
     fetchOrders();
   }, []);
+
+  // --- LOGIC REAL-TIME SOCKET ---
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewOrder = (newOrder) => {
+        // Phát âm thanh thông báo (nếu có file mp3)
+        const audio = new Audio("/notification.mp3"); 
+        audio.play().catch(e => {}); 
+
+        toast.success(`Có đơn hàng mới: ${newOrder.orderId ? '#LN'+String(newOrder.orderId).padStart(4,'0') : 'Vừa đặt'}!`, {
+            duration: 5000,
+            icon: '🔔'
+        });
+
+        setOrders((prevOrders) => {
+            // Kiểm tra xem đơn này đã có trong list chưa (để update hay thêm mới)
+            const exists = prevOrders.find(o => o._id === newOrder._id);
+            
+            if (exists) {
+                return prevOrders.map(o => o._id === newOrder._id ? newOrder : o);
+            } else {
+                return [newOrder, ...prevOrders];
+            }
+        });
+    };
+
+    socket.on("newCustomerOrder", handleNewOrder);
+
+    return () => {
+        socket.off("newCustomerOrder", handleNewOrder);
+    };
+  }, [socket]);
+  // -----------------------------
 
   const handleToggleStatus = async (orderId, currentStatus) => {
     const newStatus = currentStatus === "Pending" ? "Processed" : "Pending";
@@ -90,6 +128,20 @@ const CustomerOrders = () => {
       setSelectedDate(sortedDates[0]);
     }
   }, [sortedDates, selectedDate]);
+
+  // Hàm render Badge Thanh toán
+  const renderPaymentBadge = (method, isPaid) => {
+      const isCK = method === "Chuyển khoản";
+      return (
+          <div className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-bold border ${
+              isCK ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-gray-50 text-gray-700 border-gray-200"
+          }`}>
+              <CreditCard size={12} />
+              {method || "COD"}
+              {isPaid && <span className="text-green-600 ml-1">(Đã thanh toán)</span>}
+          </div>
+      );
+  };
 
   if (loading) return <div className="text-center py-20 text-gray-500">Đang tải dữ liệu đơn hàng...</div>;
 
@@ -151,6 +203,7 @@ const CustomerOrders = () => {
                         <div key={order._id} className="bg-white p-4 sm:p-5 rounded-lg shadow-sm border border-gray-200 flex flex-col md:flex-row gap-6 relative overflow-hidden group hover:shadow-md transition-all">
                             <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${order.status === "Processed" ? "bg-green-500" : "bg-yellow-400"}`} />
 
+                            {/* Cột 1: Thông tin khách hàng */}
                             <div className="flex-1 space-y-2.5 min-w-[220px]">
                                 <div className="flex items-center gap-2 font-bold text-gray-800 text-lg">
                                     <User size={18} className="text-blue-600" /> 
@@ -178,9 +231,14 @@ const CustomerOrders = () => {
                                 )}
                             </div>
 
+                            {/* Cột 2: Chi tiết sản phẩm */}
                             <div className="flex-[2] border-t pt-4 mt-2 md:border-t-0 md:mt-0 md:pt-0 md:border-l pl-0 md:pl-6 border-gray-100 flex flex-col">
-                                <div className="flex items-center gap-2 mb-3 text-sm font-semibold text-gray-700">
-                                    <ShoppingBag size={16} /> Đơn hàng ({order.products.length} món)
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                                        <ShoppingBag size={16} /> Đơn hàng ({order.products.length} món)
+                                    </div>
+                                    {/* --- HIỂN THỊ PHƯƠNG THỨC THANH TOÁN --- */}
+                                    {renderPaymentBadge(order.paymentMethod, order.isPaid)}
                                 </div>
                                 
                                 <div className="flex-1 space-y-2 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar">
@@ -208,6 +266,7 @@ const CustomerOrders = () => {
                                 </div>
                             </div>
 
+                            {/* Cột 3: Hành động */}
                             <div className="flex flex-col gap-3 justify-center items-stretch md:items-end min-w-[160px] border-t pt-4 mt-2 md:border-t-0 md:mt-0 md:pt-0 md:border-l pl-0 md:pl-4 border-gray-100">
                                 
                                 <span className={`px-3 py-1.5 rounded-full text-xs font-bold w-full text-center uppercase tracking-wide ${order.status === "Processed" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>

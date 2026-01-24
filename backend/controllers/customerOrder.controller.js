@@ -40,7 +40,6 @@ export const createOrder = async (req, res) => {
       });
 
       // --- SỬA LOGIC TÍNH TỔNG TIỀN TẠI ĐÂY ---
-      // Thay vì: existingOrder.totalAmount += totalAmount; (Dễ sai)
       // Ta tính lại tổng tiền dựa trên danh sách sản phẩm thực tế đang có
       existingOrder.totalAmount = existingOrder.products.reduce((total, item) => {
         return total + (Number(item.price) * Number(item.quantity));
@@ -69,11 +68,13 @@ export const createOrder = async (req, res) => {
         await user.save();
       }
 
+      // [UPDATE] Bắn socket cập nhật đơn hàng cũ
+      io.emit("newCustomerOrder", existingOrder);
+
       return res.status(200).json(existingOrder);
     }
 
     // --- LOGIC TẠO ĐƠN MỚI ---
-    // Để an toàn, cũng nên tính lại totalAmount ở đây thay vì tin tưởng req.body hoàn toàn
     const calculatedTotal = products.reduce((total, item) => {
         return total + (Number(item.price) * Number(item.quantity));
     }, 0);
@@ -98,6 +99,9 @@ export const createOrder = async (req, res) => {
         user.cartItems = [];
         await user.save();
     }
+
+    // [UPDATE] Bắn socket cho đơn hàng mới
+    io.emit("newCustomerOrder", newOrder);
 
     res.status(201).json(newOrder);
   } catch (error) {
