@@ -22,6 +22,7 @@ export const createOrder = async (req, res) => {
     });
 
     if (existingOrder) {
+      // 1. Gộp sản phẩm mới vào đơn hàng cũ
       products.forEach((newProduct) => {
         const existingItemIndex = existingOrder.products.findIndex(
           (p) =>
@@ -31,12 +32,21 @@ export const createOrder = async (req, res) => {
 
         if (existingItemIndex > -1) {
           existingOrder.products[existingItemIndex].quantity += newProduct.quantity;
+          // Cập nhật giá mới nhất nếu cần (tùy chọn)
+          // existingOrder.products[existingItemIndex].price = newProduct.price; 
         } else {
           existingOrder.products.push(newProduct);
         }
       });
 
-      existingOrder.totalAmount += totalAmount;
+      // --- SỬA LOGIC TÍNH TỔNG TIỀN TẠI ĐÂY ---
+      // Thay vì: existingOrder.totalAmount += totalAmount; (Dễ sai)
+      // Ta tính lại tổng tiền dựa trên danh sách sản phẩm thực tế đang có
+      existingOrder.totalAmount = existingOrder.products.reduce((total, item) => {
+        return total + (Number(item.price) * Number(item.quantity));
+      }, 0);
+      // -----------------------------------------
+
       if (note) existingOrder.note = existingOrder.note ? `${existingOrder.note} | ${note}` : note;
       
       if (paymentMethod) existingOrder.paymentMethod = paymentMethod;
@@ -62,6 +72,12 @@ export const createOrder = async (req, res) => {
       return res.status(200).json(existingOrder);
     }
 
+    // --- LOGIC TẠO ĐƠN MỚI ---
+    // Để an toàn, cũng nên tính lại totalAmount ở đây thay vì tin tưởng req.body hoàn toàn
+    const calculatedTotal = products.reduce((total, item) => {
+        return total + (Number(item.price) * Number(item.quantity));
+    }, 0);
+
     const newOrder = await CustomerOrder.create({
       user: user._id,
       customerInfo: {
@@ -71,7 +87,7 @@ export const createOrder = async (req, res) => {
         address: user.direction,
       },
       products,
-      totalAmount,
+      totalAmount: calculatedTotal, // Dùng số đã tính toán lại
       note,
       paymentMethod: paymentMethod || "COD",
       isPaid: isPaid || false,
