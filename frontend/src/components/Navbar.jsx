@@ -1,17 +1,17 @@
-import { ShoppingCart, UserPlus, LogIn, LogOut, Lock, Home, User, X, Clock, Package, History, Edit2, Save, XCircle, ChevronLeft, MapPin, Phone, CreditCard, Bell, Trash2 } from "lucide-react";
+import { ShoppingCart, UserPlus, LogIn, LogOut, Lock, Home, User, X, Clock, Package, History, Edit2, Save, XCircle, ChevronLeft, MapPin, Phone, CreditCard, Bell, Trash2, Camera } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useUserStore } from "../stores/useUserStore";
 import { useCartStore } from "../stores/useCartStore";
 import { useNotificationStore } from "../stores/useNotificationStore";
 import { useChatStore } from "../stores/useChatStore";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "../lib/axios";
 
 const Navbar = () => {
-  const { user, logout, showUserBox, setShowUserBox, socket } = useUserStore();
+  const { user, logout, showUserBox, setShowUserBox, socket, setUser } = useUserStore(); // Lấy thêm setUser
   const { cart } = useCartStore();
-  const { notifications, unreadCount, fetchNotifications, markAsRead, deleteNotification, addRealtimeNotification } = useNotificationStore();
+  const { notifications, unreadCount, fetchNotifications, markAsRead, addRealtimeNotification } = useNotificationStore();
   const { openChat, setSelectedUser } = useChatStore();
   
   const isAdmin = user?.role === "admin" || user?.role === "controller";
@@ -23,6 +23,11 @@ const Navbar = () => {
   const [editEmail, setEditEmail] = useState(user?.email || "");
   const [editPhone, setEditPhone] = useState(user?.phoneNumber || "");
   const [editDirection, setEditDirection] = useState(user?.direction || "");
+  
+  // State cho Avatar
+  const [newAvatar, setNewAvatar] = useState(""); // Base64 string để gửi lên server
+  const [avatarPreview, setAvatarPreview] = useState(user?.avatar || ""); // Để hiển thị preview
+  const fileInputRef = useRef(null);
 
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
@@ -36,12 +41,9 @@ const Navbar = () => {
   const [editOrderAddress, setEditOrderAddress] = useState("");
   
   const [selectedOrder, setSelectedOrder] = useState(null);
-
   const [showNotifications, setShowNotifications] = useState(false);
-  const [selectedNotification, setSelectedNotification] = useState(null);
 
-  const setUser = useUserStore((state) => state.setUser);
-
+  // ... (Giữ nguyên các useEffect socket, notifications, resize, scroll, token timer)
   useEffect(() => {
     if (!socket) return;
     const handleNewNotification = (data) => {
@@ -63,11 +65,13 @@ const Navbar = () => {
       setEditEmail(user.email || "");
       setEditPhone(user.phoneNumber || "");
       setEditDirection(user.direction || "");
+      setAvatarPreview(user.avatar || ""); // Reset avatar preview về avatar hiện tại
+      setNewAvatar(""); // Clear ảnh mới chọn
       setActiveTab("profile"); 
       setSelectedOrder(null); 
     }
   }, [showUserBox, user]);
-
+  
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 640);
     window.addEventListener("resize", handleResize);
@@ -108,7 +112,8 @@ const Navbar = () => {
     } catch (error) { console.error(error); }
   }, [isAdmin]);
 
-  const fetchMyOrders = async () => {
+  // ... (Giữ nguyên fetchMyOrders, handleLogoClick, handleGoBack, handleCancelOrder, startEditOrder, saveOrderAddress, formatCurrency, formatOrderId, getStatusBadge, isEditable, handleNotificationClick)
+    const fetchMyOrders = async () => {
     setLoadingOrders(true);
     try {
       const res = await axios.get("/customer-orders/my-orders");
@@ -140,24 +145,6 @@ const Navbar = () => {
     if (window.history.length > 2) navigate(-1);
     else navigate("/");
   };
-
-  const handleUpdateProfile = async () => {
-    try {
-      const res = await axios.put("/auth/profile", {
-        name: editName,
-        email: editEmail,
-        phoneNumber: editPhone,
-        direction: editDirection,
-      });
-      if (res.status === 200) {
-        setUser(res.data);
-        alert("Thông tin đã được cập nhật");
-      }
-    } catch (err) {
-      alert(err.response?.data?.message || "Lỗi cập nhật");
-    }
-  };
-
   const handleCancelOrder = async (orderId) => {
     if (!window.confirm("Bạn có chắc chắn muốn hủy đơn hàng này không?")) return;
     try {
@@ -235,8 +222,41 @@ const Navbar = () => {
     }
   };
 
+  // --- XỬ LÝ ẢNH ---
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+        setNewAvatar(reader.result); // Lưu chuỗi base64 để gửi đi
+        setAvatarPreview(reader.result); // Hiển thị ngay
+    };
+  };
+
+  const handleUpdateProfile = async () => {
+    try {
+      const res = await axios.put("/auth/profile", {
+        name: editName,
+        email: editEmail,
+        phoneNumber: editPhone,
+        direction: editDirection,
+        avatar: newAvatar, // Gửi thêm avatar nếu có
+      });
+      if (res.status === 200) {
+        setUser(res.data);
+        setNewAvatar(""); // Clear sau khi update thành công
+        alert("Thông tin đã được cập nhật");
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || "Lỗi cập nhật");
+    }
+  };
+
   return (
     <>
+      {/* ... (Phần nút GoBack và Logo giữ nguyên) */}
       {!isHome && (
         <button
           onClick={handleGoBack}
@@ -306,6 +326,7 @@ const Navbar = () => {
                 <Home size={22} strokeWidth={2.2} />
               </Link>
               
+              {/* Notification icon ... */}
               {user && (
                 <div className="relative">
                     <button 
@@ -322,14 +343,21 @@ const Navbar = () => {
                 </div>
               )}
 
+              {/* USER ICON / AVATAR TRÊN NAVBAR */}
               {user && (
                 <div className="relative">
-                  <button onClick={() => setShowUserBox(true)} className={`transition flex items-end mb-0.5 ${isHome && !isScrolled ? "text-white hover:text-gray-200" : "text-black hover:text-blue-700"}`}>
-                    <User size={20} />
+                  <button onClick={() => setShowUserBox(true)} className={`transition flex items-center mb-0.5 ${isHome && !isScrolled ? "text-white hover:text-gray-200" : "text-black hover:text-blue-700"}`}>
+                    {user.avatar ? (
+                        <img src={user.avatar} alt="Avatar" className="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover border border-gray-200" />
+                    ) : (
+                        <User size={20} />
+                    )}
                   </button>
                   {(!user.phoneNumber || !user.direction) && <span className="absolute -top-1 -left-1 w-2.5 h-2.5 bg-red-600 rounded-full border border-white" />}
                 </div>
               )}
+              
+              {/* Cart, Admin, Login/Logout buttons ... (giữ nguyên) */}
               {user && (
                 <Link to="/cart" className={`relative group transition flex items-end mb-1.5 ${isHome && !isScrolled ? "text-white hover:text-gray-200" : "text-black hover:text-blue-700"}`}>
                   <ShoppingCart size={18} className="mr-1" />
@@ -368,6 +396,7 @@ const Navbar = () => {
         </div>
       </motion.header>
 
+      {/* Notification popup ... (giữ nguyên) */}
       <AnimatePresence>
         {showNotifications && (
             <>
@@ -438,13 +467,13 @@ const Navbar = () => {
                   onClick={() => {setActiveTab("profile"); setSelectedOrder(null);}}
                   className={`flex-1 py-4 sm:py-5 font-bold text-sm sm:text-lg flex items-center justify-center gap-1.5 sm:gap-2 transition-colors duration-300 ${activeTab === "profile" ? "bg-black text-white" : "bg-gray-700 text-white hover:bg-gray-600"}`}
                 >
-                  <User size={20} className="sm:w-5 sm:h-5" /> THÔNG TIN CÁ NHÂN
+                  <User size={20} className="sm:w-5 sm:h-5" /> Thông tin cá nhân
                 </button>
                 <button
                   onClick={() => setActiveTab("orders")}
                   className={`flex-1 py-4 sm:py-5 font-bold text-sm sm:text-lg flex items-center justify-center gap-1.5 sm:gap-2 transition-colors duration-300 pr-10 sm:pr-0 ${activeTab === "orders" ? "bg-black text-white" : "bg-gray-700 text-white hover:bg-gray-600"}`}
                 >
-                  <History size={20} className="sm:w-5 sm:h-5" /> ĐƠN HÀNG ĐÃ ĐẶT
+                  <History size={20} className="sm:w-5 sm:h-5" /> Đơn hàng đã đặt
                 </button>
               </div>
 
@@ -469,18 +498,57 @@ const Navbar = () => {
                         <textarea value={editDirection} onChange={(e) => setEditDirection(e.target.value)} rows="3" className="w-full mt-1 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-500 outline-none resize-none text-sm sm:text-base" />
                       </label>
                     </div>
+
                     <button onClick={handleUpdateProfile} className="w-full mt-6 bg-blue-700 hover:bg-blue-800 text-white font-medium py-2.5 rounded transition shadow-md text-sm sm:text-base">
                       Lưu Thay Đổi
                     </button>
+
+                    {/* --- PHẦN UPLOAD ẢNH ĐẠI DIỆN --- */}
+                    <div className="mt-8 pt-6 border-t border-gray-200">
+                        <h4 className="text-sm font-semibold text-gray-700 mb-3">Ảnh đại diện</h4>
+                        <div className="flex items-center gap-4">
+                            <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 border border-gray-300 shrink-0">
+                                {avatarPreview ? (
+                                    <img src={avatarPreview} alt="Avatar Preview" className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                        <User size={24} />
+                                    </div>
+                                )}
+                            </div>
+                            <div>
+                                <input 
+                                    type="file" 
+                                    ref={fileInputRef} 
+                                    onChange={handleImageChange} 
+                                    accept="image/*" 
+                                    className="hidden" 
+                                />
+                                <button 
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="flex items-center gap-2 px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs sm:text-sm rounded transition mb-1"
+                                >
+                                    <Camera size={14} /> Chọn ảnh mới
+                                </button>
+                                <p className="text-[10px] text-gray-500">
+                                    Ảnh sẽ được lưu khi bấm "Lưu Thay Đổi"
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {/* ---------------------------------- */}
                   </div>
                 ) : (
+                    // ... (Phần hiển thị đơn hàng giữ nguyên)
                   <>
                     {selectedOrder ? (
+                        // ... code chi tiết đơn hàng (giữ nguyên)
                       <motion.div 
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden h-full flex flex-col"
                       >
+                         {/* ... (Nội dung chi tiết đơn hàng giữ nguyên) */}
                         <div className="p-3 sm:p-4 border-b flex items-center justify-between bg-gray-50">
                             <button 
                                 onClick={() => setSelectedOrder(null)}

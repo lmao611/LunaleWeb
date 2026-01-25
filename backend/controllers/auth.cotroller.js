@@ -207,15 +207,30 @@ export const getProfile = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
     try {
-        const { name, email, phoneNumber, direction } = req.body;
+        const { name, email, phoneNumber, direction, avatar } = req.body; // Thêm avatar vào destructuring
+        const userId = req.user._id;
+
+        let updatedData = { name, email, phoneNumber, direction };
+
+        // Logic upload ảnh lên Cloudinary nếu có ảnh mới gửi lên (dạng base64)
+        if (avatar) {
+            // Nếu user cũ đã có avatar (không phải từ fb), có thể xóa ảnh cũ trên cloudinary nếu muốn tiết kiệm dung lượng (tùy chọn)
+            
+            const uploadResponse = await cloudinary.uploader.upload(avatar, {
+                folder: "lunale_avatars"
+            });
+            updatedData.avatar = uploadResponse.secure_url;
+        }
+
         const user = await User.findByIdAndUpdate(
-            req.user._id,
-            { name, email, phoneNumber, direction },
+            userId,
+            updatedData,
             { new: true }
         ).select("-password");
 
         res.json(user);
     } catch (error) {
+        console.log("Error in updateProfile:", error.message);
         res.status(500).json({ message: "Server error", error: error.message });
     }
 };
