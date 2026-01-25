@@ -172,8 +172,8 @@ const ProductPage = () => {
             </button>
 
             <div className="w-full mt-6 rounded-lg overflow-hidden shadow-lg bg-black">
-                <video controls className="w-full h-auto">
-                    <source src="/tutor.mp4" type="video/mp4" />
+                <video controls playsInline preload="metadata" className="w-full h-auto">
+                    <source src="/tutor.mp4#t=0.001" type="video/mp4" />
                 </video>
             </div>
 
