@@ -2,6 +2,7 @@ import { redis } from "../lib/redis.js";
 import User from "../models/user.model.js";
 import jwt from "jsonwebtoken";
 import fetch from "node-fetch";
+import cloudinary from "../lib/cloudinary.js"; // Quan trọng: Import Cloudinary
 
 const generateTokens = (userId) => {
     const accessToken = jwt.sign({ userId }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "1h" });
@@ -12,7 +13,6 @@ const generateTokens = (userId) => {
 const storeRefreshToken = async (userId, refreshToken) => {
     await redis.set(`refresh_token:${userId}`, refreshToken, "EX", 7 * 24 * 60 * 60);
 };
-
 
 const getCookieOptions = () => {
     const isProduction = process.env.NODE_ENV === "production";
@@ -74,6 +74,7 @@ export const facebookLogin = async (req, res) => {
                 email: user.email,
                 provider: user.provider,
                 role: user.role,
+                avatar: user.avatar // Trả về avatar
             },
         });
     } catch (error) {
@@ -104,6 +105,7 @@ export const signup = async (req, res) => {
                 phoneNumber: user.phoneNumber,
                 direction: user.direction,
                 role: user.role,
+                avatar: user.avatar
             },
             message: "User created successfully",
         });
@@ -132,6 +134,7 @@ export const login = async (req, res) => {
                     phoneNumber: user.phoneNumber,
                     direction: user.direction,
                     role: user.role,
+                    avatar: user.avatar
                 },
             });
         } else {
@@ -205,21 +208,27 @@ export const getProfile = async (req, res) => {
     }
 };
 
+// --- HÀM CẬP NHẬT QUAN TRỌNG ĐỂ XỬ LÝ AVATAR ---
 export const updateProfile = async (req, res) => {
     try {
-        const { name, email, phoneNumber, direction, avatar } = req.body; // Thêm avatar vào destructuring
+        const { name, email, phoneNumber, direction, avatar } = req.body;
         const userId = req.user._id;
 
         let updatedData = { name, email, phoneNumber, direction };
 
-        // Logic upload ảnh lên Cloudinary nếu có ảnh mới gửi lên (dạng base64)
+        // Nếu có avatar (chuỗi base64) gửi lên thì upload lên Cloudinary
         if (avatar) {
-            // Nếu user cũ đã có avatar (không phải từ fb), có thể xóa ảnh cũ trên cloudinary nếu muốn tiết kiệm dung lượng (tùy chọn)
-            
-            const uploadResponse = await cloudinary.uploader.upload(avatar, {
-                folder: "lunale_avatars"
-            });
-            updatedData.avatar = uploadResponse.secure_url;
+            try {
+                const uploadResponse = await cloudinary.uploader.upload(avatar, {
+                    folder: "lunale_avatars",
+                    // Tùy chọn nén ảnh thêm ở server nếu muốn
+                    transformation: [{ width: 500, height: 500, crop: "limit" }]
+                });
+                updatedData.avatar = uploadResponse.secure_url;
+            } catch (uploadError) {
+                console.error("Cloudinary upload failed:", uploadError);
+                return res.status(500).json({ message: "Lỗi tải ảnh lên server" });
+            }
         }
 
         const user = await User.findByIdAndUpdate(
@@ -230,7 +239,7 @@ export const updateProfile = async (req, res) => {
 
         res.json(user);
     } catch (error) {
-        console.log("Error in updateProfile:", error.message);
+        console.error("Error in updateProfile:", error.message);
         res.status(500).json({ message: "Server error", error: error.message });
     }
 };
