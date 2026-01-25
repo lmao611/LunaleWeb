@@ -28,7 +28,6 @@ const ProductPage = () => {
   const [loading, setLoading] = useState(true);
   const [showAddToCartModal, setShowAddToCartModal] = useState(false);
 
-  // --- QUICK BUY ---
   const [showQuickBuyModal, setShowQuickBuyModal] = useState(false);
   const [buySize, setBuySize] = useState("M");
   const [buyQuantity, setBuyQuantity] = useState(1);
@@ -127,7 +126,6 @@ const ProductPage = () => {
     <div className="max-w-5xl mx-auto p-6 bg-white text-gray-900 pt-30">
       <div className="flex flex-col md:flex-row gap-8">
         
-        {/* CỘT TRÁI: ẢNH SẢN PHẨM */}
         <div className="flex-1 flex flex-col items-center">
           <div className="w-full max-w-[464px] aspect-[3/4] rounded-lg shadow-lg overflow-hidden bg-gray-100 relative">
             <img src={mainImage || fallbackImage} alt={product.name} onLoad={() => setIsImageLoading(false)} onError={(e) => (e.target.src = fallbackImage)} onClick={handleMainImageClick} onMouseDown={stopDown} className={`absolute inset-0 w-full h-full object-cover cursor-pointer transition-all duration-500 ease-in-out ${isImageLoading ? "opacity-0 scale-105" : "opacity-100 hover:scale-110"}`} />
@@ -146,7 +144,6 @@ const ProductPage = () => {
           )}
         </div>
 
-        {/* CỘT PHẢI: THÔNG TIN */}
         <div className="flex-1 flex flex-col">
           <div className="p-6 rounded-xl border border-gray-200 bg-white shadow-lg space-y-4">
             <h1 className="text-3xl font-bold">{product.name}</h1>
@@ -173,6 +170,13 @@ const ProductPage = () => {
             <button type="button" onClick={handleBuyNow} className="w-full py-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg shadow-lg hover:shadow-xl transition transform active:scale-[0.98]">
                 MUA NGAY
             </button>
+
+            <div className="w-full mt-6 rounded-lg overflow-hidden shadow-lg bg-black">
+                <video controls className="w-full h-auto">
+                    <source src="/tutor.mp4" type="video/mp4" />
+                </video>
+            </div>
+
           </div>
           <img src="/model.jpg" alt="Model Size" className="mt-6 rounded-lg shadow-lg w-full object-cover" />
           <img src="/size.jpg" alt="Size Chart" className="mt-6 rounded-lg shadow-lg w-full object-contain bg-white" onMouseDown={stopDown} />
@@ -247,7 +251,6 @@ const ProductPage = () => {
                         ) : (
                            <div className="text-center">
                                <p className="text-sm text-gray-600 mb-4">Quét mã để thanh toán</p>
-                               {/* 👇 SỬA CSS ẢNH Ở ĐÂY: w-full h-auto, max-w-[400px] */}
                                <div className="border-2 border-blue-500 rounded-lg p-2 inline-block mb-4 max-w-full">
                                    <img 
                                         src="/qr-payment.jpg" 
