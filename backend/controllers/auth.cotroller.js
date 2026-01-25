@@ -2,7 +2,7 @@ import { redis } from "../lib/redis.js";
 import User from "../models/user.model.js";
 import jwt from "jsonwebtoken";
 import fetch from "node-fetch";
-import cloudinary from "../lib/cloudinary.js"; // Quan trọng: Import Cloudinary
+import cloudinary from "../lib/cloudinary.js"; // Import Cloudinary
 
 const generateTokens = (userId) => {
     const accessToken = jwt.sign({ userId }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "1h" });
@@ -74,7 +74,7 @@ export const facebookLogin = async (req, res) => {
                 email: user.email,
                 provider: user.provider,
                 role: user.role,
-                avatar: user.avatar // Trả về avatar
+                avatar: user.avatar 
             },
         });
     } catch (error) {
@@ -208,7 +208,7 @@ export const getProfile = async (req, res) => {
     }
 };
 
-// --- HÀM CẬP NHẬT QUAN TRỌNG ĐỂ XỬ LÝ AVATAR ---
+// --- ĐÂY LÀ HÀM QUAN TRỌNG ĐÃ ĐƯỢC THÊM LOGIC LƯU ẢNH ---
 export const updateProfile = async (req, res) => {
     try {
         const { name, email, phoneNumber, direction, avatar } = req.body;
@@ -221,8 +221,6 @@ export const updateProfile = async (req, res) => {
             try {
                 const uploadResponse = await cloudinary.uploader.upload(avatar, {
                     folder: "lunale_avatars",
-                    // Tùy chọn nén ảnh thêm ở server nếu muốn
-                    transformation: [{ width: 500, height: 500, crop: "limit" }]
                 });
                 updatedData.avatar = uploadResponse.secure_url;
             } catch (uploadError) {
