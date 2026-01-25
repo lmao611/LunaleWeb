@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import axios from "../lib/axios";
 
 const Navbar = () => {
-  const { user, logout, showUserBox, setShowUserBox, socket, setUser } = useUserStore(); // Lấy thêm setUser
+  const { user, logout, showUserBox, setShowUserBox, socket, setUser } = useUserStore();
   const { cart } = useCartStore();
   const { notifications, unreadCount, fetchNotifications, markAsRead, addRealtimeNotification } = useNotificationStore();
   const { openChat, setSelectedUser } = useChatStore();
@@ -25,8 +25,8 @@ const Navbar = () => {
   const [editDirection, setEditDirection] = useState(user?.direction || "");
   
   // State cho Avatar
-  const [newAvatar, setNewAvatar] = useState(""); // Base64 string để gửi lên server
-  const [avatarPreview, setAvatarPreview] = useState(user?.avatar || ""); // Để hiển thị preview
+  const [newAvatar, setNewAvatar] = useState(""); 
+  const [avatarPreview, setAvatarPreview] = useState(user?.avatar || ""); 
   const fileInputRef = useRef(null);
 
   const [isScrolled, setIsScrolled] = useState(false);
@@ -43,7 +43,6 @@ const Navbar = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  // ... (Giữ nguyên các useEffect socket, notifications, resize, scroll, token timer)
   useEffect(() => {
     if (!socket) return;
     const handleNewNotification = (data) => {
@@ -65,8 +64,8 @@ const Navbar = () => {
       setEditEmail(user.email || "");
       setEditPhone(user.phoneNumber || "");
       setEditDirection(user.direction || "");
-      setAvatarPreview(user.avatar || ""); // Reset avatar preview về avatar hiện tại
-      setNewAvatar(""); // Clear ảnh mới chọn
+      setAvatarPreview(user.avatar || ""); 
+      setNewAvatar(""); 
       setActiveTab("profile"); 
       setSelectedOrder(null); 
     }
@@ -112,8 +111,7 @@ const Navbar = () => {
     } catch (error) { console.error(error); }
   }, [isAdmin]);
 
-  // ... (Giữ nguyên fetchMyOrders, handleLogoClick, handleGoBack, handleCancelOrder, startEditOrder, saveOrderAddress, formatCurrency, formatOrderId, getStatusBadge, isEditable, handleNotificationClick)
-    const fetchMyOrders = async () => {
+  const fetchMyOrders = async () => {
     setLoadingOrders(true);
     try {
       const res = await axios.get("/customer-orders/my-orders");
@@ -145,6 +143,7 @@ const Navbar = () => {
     if (window.history.length > 2) navigate(-1);
     else navigate("/");
   };
+
   const handleCancelOrder = async (orderId) => {
     if (!window.confirm("Bạn có chắc chắn muốn hủy đơn hàng này không?")) return;
     try {
@@ -227,11 +226,17 @@ const Navbar = () => {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Giới hạn kích thước file ở client (ví dụ 5MB) để tránh gửi file quá nặng
+    if (file.size > 5 * 1024 * 1024) {
+        alert("File ảnh quá lớn! Vui lòng chọn ảnh dưới 5MB.");
+        return;
+    }
+
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = () => {
-        setNewAvatar(reader.result); // Lưu chuỗi base64 để gửi đi
-        setAvatarPreview(reader.result); // Hiển thị ngay
+        setNewAvatar(reader.result); 
+        setAvatarPreview(reader.result); 
     };
   };
 
@@ -242,21 +247,22 @@ const Navbar = () => {
         email: editEmail,
         phoneNumber: editPhone,
         direction: editDirection,
-        avatar: newAvatar, // Gửi thêm avatar nếu có
+        avatar: newAvatar,
       });
       if (res.status === 200) {
         setUser(res.data);
-        setNewAvatar(""); // Clear sau khi update thành công
+        setNewAvatar(""); 
         alert("Thông tin đã được cập nhật");
       }
     } catch (err) {
-      alert(err.response?.data?.message || "Lỗi cập nhật");
+      // In lỗi chi tiết ra console để debug nếu cần
+      console.error("Lỗi update profile:", err);
+      alert(err.response?.data?.message || "Lỗi cập nhật thông tin");
     }
   };
 
   return (
     <>
-      {/* ... (Phần nút GoBack và Logo giữ nguyên) */}
       {!isHome && (
         <button
           onClick={handleGoBack}
@@ -326,7 +332,6 @@ const Navbar = () => {
                 <Home size={22} strokeWidth={2.2} />
               </Link>
               
-              {/* Notification icon ... */}
               {user && (
                 <div className="relative">
                     <button 
@@ -343,7 +348,6 @@ const Navbar = () => {
                 </div>
               )}
 
-              {/* USER ICON / AVATAR TRÊN NAVBAR */}
               {user && (
                 <div className="relative">
                   <button onClick={() => setShowUserBox(true)} className={`transition flex items-center mb-0.5 ${isHome && !isScrolled ? "text-white hover:text-gray-200" : "text-black hover:text-blue-700"}`}>
@@ -357,7 +361,6 @@ const Navbar = () => {
                 </div>
               )}
               
-              {/* Cart, Admin, Login/Logout buttons ... (giữ nguyên) */}
               {user && (
                 <Link to="/cart" className={`relative group transition flex items-end mb-1.5 ${isHome && !isScrolled ? "text-white hover:text-gray-200" : "text-black hover:text-blue-700"}`}>
                   <ShoppingCart size={18} className="mr-1" />
@@ -396,7 +399,6 @@ const Navbar = () => {
         </div>
       </motion.header>
 
-      {/* Notification popup ... (giữ nguyên) */}
       <AnimatePresence>
         {showNotifications && (
             <>
@@ -499,12 +501,8 @@ const Navbar = () => {
                       </label>
                     </div>
 
-                    <button onClick={handleUpdateProfile} className="w-full mt-6 bg-blue-700 hover:bg-blue-800 text-white font-medium py-2.5 rounded transition shadow-md text-sm sm:text-base">
-                      Lưu Thay Đổi
-                    </button>
-
-                    {/* --- PHẦN UPLOAD ẢNH ĐẠI DIỆN --- */}
-                    <div className="mt-8 pt-6 border-t border-gray-200">
+                    {/* --- ĐÃ DI CHUYỂN: PHẦN UPLOAD ẢNH ĐẠI DIỆN --- */}
+                    <div className="mt-4 mb-4 pt-4 border-t border-gray-200">
                         <h4 className="text-sm font-semibold text-gray-700 mb-3">Ảnh đại diện</h4>
                         <div className="flex items-center gap-4">
                             <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 border border-gray-300 shrink-0">
@@ -537,18 +535,20 @@ const Navbar = () => {
                         </div>
                     </div>
                     {/* ---------------------------------- */}
+
+                    <button onClick={handleUpdateProfile} className="w-full bg-blue-700 hover:bg-blue-800 text-white font-medium py-2.5 rounded transition shadow-md text-sm sm:text-base">
+                      Lưu Thay Đổi
+                    </button>
+
                   </div>
                 ) : (
-                    // ... (Phần hiển thị đơn hàng giữ nguyên)
                   <>
                     {selectedOrder ? (
-                        // ... code chi tiết đơn hàng (giữ nguyên)
                       <motion.div 
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden h-full flex flex-col"
                       >
-                         {/* ... (Nội dung chi tiết đơn hàng giữ nguyên) */}
                         <div className="p-3 sm:p-4 border-b flex items-center justify-between bg-gray-50">
                             <button 
                                 onClick={() => setSelectedOrder(null)}

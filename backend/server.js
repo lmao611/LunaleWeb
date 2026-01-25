@@ -28,7 +28,8 @@ dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 app.set("trust proxy", 1);
 
-app.use(express.json({ limit: "10mb" }));
+app.use(express.json({ limit: "23mb" }));
+app.use(express.urlencoded({ limit: "23mb", extended: true }));
 app.use(cookieParser());
 
 const allowedOrigins = [
