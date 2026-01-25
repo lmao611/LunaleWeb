@@ -270,16 +270,24 @@ const Navbar = () => {
         email: editEmail,
         phoneNumber: editPhone,
         direction: editDirection,
-        avatar: newAvatar,
+        avatar: newAvatar, // Gửi ảnh base64 lên
       });
+
       if (res.status === 200) {
-        setUser(res.data);
-        setNewAvatar(""); 
+        const updatedUser = res.data;
+        setUser(updatedUser); // Cập nhật store user
+        
+        // QUAN TRỌNG: Set ngay avatarPreview bằng link ảnh mới từ server trả về (Link Cloudinary)
+        // Thay vì chờ useEffect chạy
+        if (updatedUser.avatar) {
+            setAvatarPreview(updatedUser.avatar);
+        }
+        
+        setNewAvatar(""); // Clear base64 tạm
         alert("Thông tin đã được cập nhật");
       }
     } catch (err) {
       console.error("Lỗi update profile:", err);
-      // Hiển thị message lỗi cụ thể nếu server trả về
       alert(err.response?.data?.message || "Lỗi cập nhật. Vui lòng kiểm tra kết nối hoặc thử ảnh khác.");
     }
   };

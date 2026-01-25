@@ -17,7 +17,7 @@ export const useChatStore = create((set, get) => ({
   openChat: () => set({ isChatOpen: true }),
   closeChat: () => set({ isChatOpen: false }),
 
-  // --- CẬP NHẬT: Xử lý hasUnread từ backend ---
+  // ... (giữ nguyên getUsers, getMessages, sendMessage...)
   getUsers: async () => {
     set({ isUsersLoading: true });
     try {
@@ -26,7 +26,6 @@ export const useChatStore = create((set, get) => ({
       
       set({ users: usersList });
 
-      // Lọc ra các user có tin nhắn chưa đọc để update state unreadUsers
       const newUnreadSet = new Set();
       usersList.forEach(u => {
           if (u.hasUnread) newUnreadSet.add(u._id);
@@ -82,11 +81,13 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
+  // --- CẬP NHẬT: Lắng nghe sự kiện đổi Avatar/Info ---
   subscribeToMessages: () => {
     const socket = useUserStore.getState().socket;
     const currentUser = useUserStore.getState().user;
     if (!socket || !currentUser) return;
 
+    // Nghe tin nhắn mới
     socket.on("newMessage", (newMessage) => {
       const { selectedUser, messages } = get();
       const isCustomer = currentUser.role === "customer";
@@ -113,8 +114,18 @@ export const useChatStore = create((set, get) => ({
       }
     });
 
+    // Nghe ai đang xem chat
     socket.on("viewersUpdated", (updatedViewers) => {
         set({ viewers: updatedViewers });
+    });
+
+    // MỚI: Nghe sự kiện user đổi avatar/tên để cập nhật list Admin
+    socket.on("userProfileUpdated", (updatedUser) => {
+        set((state) => ({
+            users: state.users.map(u => u._id === updatedUser._id ? { ...u, ...updatedUser } : u),
+            // Nếu đang chat với user này, cập nhật luôn info của họ trong khung chat
+            selectedUser: state.selectedUser?._id === updatedUser._id ? { ...state.selectedUser, ...updatedUser } : state.selectedUser
+        }));
     });
   },
 
@@ -123,6 +134,7 @@ export const useChatStore = create((set, get) => ({
     if (socket) {
         socket.off("newMessage");
         socket.off("viewersUpdated");
+        socket.off("userProfileUpdated"); // Hủy đăng ký sự kiện này
     }
   },
 

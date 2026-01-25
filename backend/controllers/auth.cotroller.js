@@ -2,7 +2,8 @@ import { redis } from "../lib/redis.js";
 import User from "../models/user.model.js";
 import jwt from "jsonwebtoken";
 import fetch from "node-fetch";
-import cloudinary from "../lib/cloudinary.js"; // Import Cloudinary
+import cloudinary from "../lib/cloudinary.js"; 
+import { io } from "../lib/socket.js"; // Import thêm socket IO
 
 const generateTokens = (userId) => {
     const accessToken = jwt.sign({ userId }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "1h" });
@@ -208,7 +209,7 @@ export const getProfile = async (req, res) => {
     }
 };
 
-// --- ĐÂY LÀ HÀM QUAN TRỌNG ĐÃ ĐƯỢC THÊM LOGIC LƯU ẢNH ---
+// --- HÀM CẬP NHẬT: THÊM LOGIC SOCKET IO EMIT ---
 export const updateProfile = async (req, res) => {
     try {
         const { name, email, phoneNumber, direction, avatar } = req.body;
@@ -216,7 +217,7 @@ export const updateProfile = async (req, res) => {
 
         let updatedData = { name, email, phoneNumber, direction };
 
-        // Nếu có avatar (chuỗi base64) gửi lên thì upload lên Cloudinary
+        // 1. Upload ảnh lên Cloudinary
         if (avatar) {
             try {
                 const uploadResponse = await cloudinary.uploader.upload(avatar, {
@@ -229,11 +230,15 @@ export const updateProfile = async (req, res) => {
             }
         }
 
+        // 2. Cập nhật vào DB
         const user = await User.findByIdAndUpdate(
             userId,
             updatedData,
-            { new: true }
+            { new: true } // Trả về data mới nhất
         ).select("-password");
+
+        // 3. QUAN TRỌNG: Bắn tín hiệu cho AdminChat và Navbar biết
+        io.emit("userProfileUpdated", user);
 
         res.json(user);
     } catch (error) {
