@@ -221,23 +221,46 @@ const Navbar = () => {
     }
   };
 
-  // --- XỬ LÝ ẢNH ---
+  // --- HÀM NÉN ẢNH (MỚI) ---
+  const compressImage = (file, callback) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+            const canvas = document.createElement("canvas");
+            // Giới hạn chiều rộng tối đa 500px (đủ cho avatar)
+            const MAX_WIDTH = 500; 
+            const scaleSize = MAX_WIDTH / img.width;
+            
+            // Nếu ảnh nhỏ hơn 500px thì giữ nguyên, lớn hơn thì scale xuống
+            if (scaleSize < 1) {
+                canvas.width = MAX_WIDTH;
+                canvas.height = img.height * scaleSize;
+            } else {
+                canvas.width = img.width;
+                canvas.height = img.height;
+            }
+
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            
+            // Xuất ra dạng JPEG chất lượng 0.7 (giảm dung lượng đáng kể)
+            callback(canvas.toDataURL("image/jpeg", 0.7));
+        };
+    };
+  };
+
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Giới hạn kích thước file ở client (ví dụ 5MB) để tránh gửi file quá nặng
-    if (file.size > 5 * 1024 * 1024) {
-        alert("File ảnh quá lớn! Vui lòng chọn ảnh dưới 5MB.");
-        return;
-    }
-
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => {
-        setNewAvatar(reader.result); 
-        setAvatarPreview(reader.result); 
-    };
+    // Gọi hàm nén ảnh trước khi set state
+    compressImage(file, (compressedResult) => {
+        setNewAvatar(compressedResult); 
+        setAvatarPreview(compressedResult); 
+    });
   };
 
   const handleUpdateProfile = async () => {
@@ -255,9 +278,9 @@ const Navbar = () => {
         alert("Thông tin đã được cập nhật");
       }
     } catch (err) {
-      // In lỗi chi tiết ra console để debug nếu cần
       console.error("Lỗi update profile:", err);
-      alert(err.response?.data?.message || "Lỗi cập nhật thông tin");
+      // Hiển thị message lỗi cụ thể nếu server trả về
+      alert(err.response?.data?.message || "Lỗi cập nhật. Vui lòng kiểm tra kết nối hoặc thử ảnh khác.");
     }
   };
 
@@ -501,7 +524,7 @@ const Navbar = () => {
                       </label>
                     </div>
 
-                    {/* --- ĐÃ DI CHUYỂN: PHẦN UPLOAD ẢNH ĐẠI DIỆN --- */}
+                    {/* --- PHẦN UPLOAD ẢNH (ĐÃ CẬP NHẬT: TRÊN NÚT LƯU) --- */}
                     <div className="mt-4 mb-4 pt-4 border-t border-gray-200">
                         <h4 className="text-sm font-semibold text-gray-700 mb-3">Ảnh đại diện</h4>
                         <div className="flex items-center gap-4">
