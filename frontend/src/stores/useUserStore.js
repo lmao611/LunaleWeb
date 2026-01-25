@@ -3,8 +3,6 @@ import axios from "../lib/axios";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
 
-// --- SỬA DÒNG NÀY ---
-// Thay "https://ten-backend-cua-ban.onrender.com" bằng link backend thực tế của bạn
 const BASE_URL = import.meta.env.MODE === "development" 
   ? "http://localhost:5000" 
   : "https://api.lunale.com.vn"; 
@@ -50,7 +48,6 @@ export const useUserStore = create((set, get) => ({
 
       set({ user: res.data.user, loading: false });
       
-      // Kết nối socket ngay khi login
       get().connectSocket();
       
       toast.success("Đăng nhập thành công");
@@ -65,7 +62,6 @@ export const useUserStore = create((set, get) => ({
       await axios.post("/auth/logout");
       localStorage.removeItem("accessToken");
       
-      // Ngắt kết nối socket
       get().disconnectSocket();
 
       set({ user: null });
@@ -80,7 +76,6 @@ export const useUserStore = create((set, get) => ({
       const response = await axios.get("/auth/profile");
       set({ user: response.data, checkingAuth: false });
 
-      // Kết nối socket khi checkAuth thành công
       get().connectSocket();
       
     } catch (error) {
@@ -92,7 +87,6 @@ export const useUserStore = create((set, get) => ({
     const { user, socket } = get();
     if (!user || (socket && socket.connected)) return;
 
-    // Sử dụng BASE_URL đã sửa ở trên
     const newSocket = io(BASE_URL, {
       query: { userId: user._id },
       transports: ["websocket"], 
@@ -102,6 +96,15 @@ export const useUserStore = create((set, get) => ({
     newSocket.on("connect", () => {
         console.log("🟢 Socket connected:", newSocket.id);
     });
+
+    // --- BỔ SUNG QUAN TRỌNG: Nghe sự kiện cập nhật profile để update Navbar ---
+    newSocket.on("userProfileUpdated", (updatedUser) => {
+        // Chỉ cập nhật nếu đúng là user hiện tại
+        if (updatedUser._id === user._id) {
+            set({ user: { ...user, ...updatedUser } });
+        }
+    });
+    // -------------------------------------------------------------------------
 
     newSocket.on("connect_error", (err) => {
         console.error("🔴 Socket connection error:", err);

@@ -17,13 +17,11 @@ export const useChatStore = create((set, get) => ({
   openChat: () => set({ isChatOpen: true }),
   closeChat: () => set({ isChatOpen: false }),
 
-  // ... (giữ nguyên getUsers, getMessages, sendMessage...)
   getUsers: async () => {
     set({ isUsersLoading: true });
     try {
       const res = await axios.get("/messages/users");
       const usersList = res.data;
-      
       set({ users: usersList });
 
       const newUnreadSet = new Set();
@@ -81,13 +79,32 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
-  // --- CẬP NHẬT: Lắng nghe sự kiện đổi Avatar/Info ---
+  // --- HÀM MỚI: Lắng nghe cập nhật User toàn cục (dành cho Admin) ---
+  subscribeToUserUpdates: () => {
+    const socket = useUserStore.getState().socket;
+    if (!socket) return;
+
+    socket.on("userProfileUpdated", (updatedUser) => {
+        set((state) => ({
+            users: state.users.map(u => u._id === updatedUser._id ? { ...u, ...updatedUser } : u),
+            selectedUser: state.selectedUser?._id === updatedUser._id ? { ...state.selectedUser, ...updatedUser } : state.selectedUser
+        }));
+    });
+  },
+
+  unsubscribeFromUserUpdates: () => {
+    const socket = useUserStore.getState().socket;
+    if (socket) {
+        socket.off("userProfileUpdated");
+    }
+  },
+  // ------------------------------------------------------------------
+
   subscribeToMessages: () => {
     const socket = useUserStore.getState().socket;
     const currentUser = useUserStore.getState().user;
     if (!socket || !currentUser) return;
 
-    // Nghe tin nhắn mới
     socket.on("newMessage", (newMessage) => {
       const { selectedUser, messages } = get();
       const isCustomer = currentUser.role === "customer";
@@ -114,18 +131,8 @@ export const useChatStore = create((set, get) => ({
       }
     });
 
-    // Nghe ai đang xem chat
     socket.on("viewersUpdated", (updatedViewers) => {
         set({ viewers: updatedViewers });
-    });
-
-    // MỚI: Nghe sự kiện user đổi avatar/tên để cập nhật list Admin
-    socket.on("userProfileUpdated", (updatedUser) => {
-        set((state) => ({
-            users: state.users.map(u => u._id === updatedUser._id ? { ...u, ...updatedUser } : u),
-            // Nếu đang chat với user này, cập nhật luôn info của họ trong khung chat
-            selectedUser: state.selectedUser?._id === updatedUser._id ? { ...state.selectedUser, ...updatedUser } : state.selectedUser
-        }));
     });
   },
 
@@ -134,7 +141,6 @@ export const useChatStore = create((set, get) => ({
     if (socket) {
         socket.off("newMessage");
         socket.off("viewersUpdated");
-        socket.off("userProfileUpdated"); // Hủy đăng ký sự kiện này
     }
   },
 
