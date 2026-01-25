@@ -438,13 +438,13 @@ const Navbar = () => {
                   onClick={() => {setActiveTab("profile"); setSelectedOrder(null);}}
                   className={`flex-1 py-4 sm:py-5 font-bold text-sm sm:text-lg flex items-center justify-center gap-1.5 sm:gap-2 transition-colors duration-300 ${activeTab === "profile" ? "bg-black text-white" : "bg-gray-700 text-white hover:bg-gray-600"}`}
                 >
-                  <User size={20} className="sm:w-5 sm:h-5" /> Thông tin cá nhân
+                  <User size={20} className="sm:w-5 sm:h-5" /> THÔNG TIN CÁ NHÂN
                 </button>
                 <button
                   onClick={() => setActiveTab("orders")}
                   className={`flex-1 py-4 sm:py-5 font-bold text-sm sm:text-lg flex items-center justify-center gap-1.5 sm:gap-2 transition-colors duration-300 pr-10 sm:pr-0 ${activeTab === "orders" ? "bg-black text-white" : "bg-gray-700 text-white hover:bg-gray-600"}`}
                 >
-                  <History size={20} className="sm:w-5 sm:h-5" /> Đơn hàng đã đặt
+                  <History size={20} className="sm:w-5 sm:h-5" /> ĐƠN HÀNG ĐÃ ĐẶT
                 </button>
               </div>
 
