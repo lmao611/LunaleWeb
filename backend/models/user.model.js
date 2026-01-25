@@ -8,10 +8,14 @@ const userSchema = new mongoose.Schema(
     password: { type: String, minlength: [6, "Password must be at least 6 characters long"] },
     phoneNumber: { type: String },
     direction: { type: String },
+
+    // --- QUAN TRỌNG: Thêm dòng này để lưu link ảnh ---
+    avatar: { type: String, default: "" },
+    // -------------------------------------------------
+
     provider: { type: String, enum: ["local", "facebook"], default: "local" },
     facebookId: { type: String, unique: false, sparse: true },
 
-    
     cartItems: [
       {
         quantity: { type: Number, default: 1 },
