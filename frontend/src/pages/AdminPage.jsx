@@ -20,7 +20,7 @@ import OrdersManager from "../components/OrdersManager";
 import CustomerOrders from "../components/CustomerOrders";
 import OrderReceipt from "../components/OrderReceipt";
 import SendNotificationForm from "../components/SendNotificationForm";
-import AdminChatManager from "../components/AdminChatManager"; // Component quản lý chat
+import AdminChatManager from "../components/AdminChatManager";
 
 import { useProductStore } from "../stores/useProductStore";
 import { useUserStore } from "../stores/useUserStore";
@@ -34,7 +34,7 @@ const tabs = [
   { id: "orders", label: "Q.Lý Vận Chuyển", icon: FileText },
   { id: "customer_orders", label: "Đơn Khách Đặt", icon: ClipboardList },
   { id: "notifications", label: "Gửi Thông Báo", icon: Bell },
-  { id: "messages", label: "Tin nhắn khách", icon: MessageSquare }, // Tab mới
+  { id: "messages", label: "Tin nhắn khách", icon: MessageSquare }, 
   { id: "receipt", label: "Phiếu đặt hàng", icon: FileText },
 ];
 
@@ -52,11 +52,24 @@ const AdminPage = () => {
   };
 
   const visibleTabs = tabs.filter((tab) => {
+    // 1. Controller: Thấy tất cả
     if (user?.role === "controller") return true;
+    
+    // 2. Admin: Ẩn "orders" (Q.Lý Vận Chuyển)
+    // Lưu ý: Các tab 'products' và 'collectionsList' trong code render phía dưới cũng đang chỉ dành cho controller, 
+    // nên tôi loại chúng khỏi danh sách tabs của Admin luôn để đỡ bị hiện tab trống.
     if (user?.role === "admin") {
-      // Thêm "messages" vào danh sách cho phép của admin
-      return ["create", "collections", "banner", "orders", "customer_orders", "notifications", "messages", "receipt"].includes(tab.id);
+      return [
+        "create", 
+        "collections", 
+        "banner", 
+        "customer_orders", // Đơn Khách Đặt (Vẫn hiện)
+        "notifications", 
+        "messages", 
+        "receipt"
+      ].includes(tab.id);
     }
+    
     return false;
   });
 
@@ -120,7 +133,8 @@ const AdminPage = () => {
             </motion.div>
           )}
 
-          {activeTab === "orders" && (
+          {/* CHỈ HIỂN THỊ NẾU TAB 'orders' CÓ TRONG visibleTabs */}
+          {activeTab === "orders" && visibleTabs.some(t => t.id === "orders") && (
             <motion.div key="orders" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
               <OrdersManager />
             </motion.div>
