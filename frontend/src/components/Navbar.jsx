@@ -433,18 +433,18 @@ const Navbar = () => {
                 <X size={20} className="sm:w-6 sm:h-6" />
               </button>
 
-              <div className="flex border-b shrink-0">
+              <div className="flex shrink-0">
                 <button
                   onClick={() => {setActiveTab("profile"); setSelectedOrder(null);}}
-                  className={`flex-1 py-3 sm:py-4 font-semibold text-sm sm:text-lg flex items-center justify-center gap-1.5 sm:gap-2 transition ${activeTab === "profile" ? "text-blue-700 border-b-2 border-blue-700 bg-blue-50" : "text-gray-500 hover:bg-gray-50"}`}
+                  className={`flex-1 py-4 sm:py-5 font-bold text-sm sm:text-lg flex items-center justify-center gap-1.5 sm:gap-2 transition-colors duration-300 ${activeTab === "profile" ? "bg-black text-white" : "bg-gray-700 text-white hover:bg-gray-600"}`}
                 >
-                  <User size={18} className="sm:w-5 sm:h-5" /> Thông tin cá nhân
+                  <User size={20} className="sm:w-5 sm:h-5" /> Thông tin cá nhân
                 </button>
                 <button
                   onClick={() => setActiveTab("orders")}
-                  className={`flex-1 py-3 sm:py-4 font-semibold text-sm sm:text-lg flex items-center justify-center gap-1.5 sm:gap-2 transition pr-10 sm:pr-0 ${activeTab === "orders" ? "text-blue-700 border-b-2 border-blue-700 bg-blue-50" : "text-gray-500 hover:bg-gray-50"}`}
+                  className={`flex-1 py-4 sm:py-5 font-bold text-sm sm:text-lg flex items-center justify-center gap-1.5 sm:gap-2 transition-colors duration-300 pr-10 sm:pr-0 ${activeTab === "orders" ? "bg-black text-white" : "bg-gray-700 text-white hover:bg-gray-600"}`}
                 >
-                  <History size={18} className="sm:w-5 sm:h-5" /> Đơn hàng đã đặt
+                  <History size={20} className="sm:w-5 sm:h-5" /> Đơn hàng đã đặt
                 </button>
               </div>
 
