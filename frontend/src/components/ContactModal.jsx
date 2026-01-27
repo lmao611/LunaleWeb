@@ -90,15 +90,15 @@ const ContactModal = ({ product, onClose }) => {
           </div>
           
           <button onClick={handleCopy} className="w-full bg-gray-200 text-gray-800 py-2 rounded hover:bg-gray-300 font-medium">
-            Sao chép nội dung tin nhắn
+            Sao chép
           </button>
 
           <button 
             onClick={handlePlaceOrder} 
             disabled={isOrdering}
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-bold flex justify-center items-center gap-2"
+            className="w-full bg-gray-900 text-white py-2 rounded hover:bg-gray-700 font-bold flex justify-center items-center gap-2"
           >
-            {isOrdering ? "Đang xử lý..." : "Đặt Hàng Ngay (Lưu hệ thống)"}
+            {isOrdering ? "Đang xử lý..." : "Đặt Hàng Ngay"}
           </button>
         </div>
       </div>
