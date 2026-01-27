@@ -160,7 +160,7 @@ const ProductPage = () => {
             </div>
             <p className="text-gray-600 whitespace-pre-line leading-relaxed">{product.description}</p>
             <div className="mt-4 flex gap-3">
-              <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowContactModal(true) }} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-white hover:bg-gray-400 text-gray-800 border-gray-800 font-medium transition active:scale-95 shadow-sm">LIÊN HỆ</button>
+              <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowContactModal(true) }} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-white hover:bg-gray-400 text-gray-800 font-medium transition active:scale-95 shadow-sm border-gray-800 ">LIÊN HỆ</button>
               
               <button type="button" onClick={handleAddToCart} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-white border border-gray-800 text-gray-800 hover:bg-gray-400 font-medium transition active:scale-95 shadow-sm">
                 <ShoppingCart size={20} className="mr-1" />THÊM
