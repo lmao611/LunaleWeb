@@ -146,7 +146,7 @@ const ProductPage = () => {
 
         <div className="flex-1 flex flex-col">
           <div className="p-6 rounded-xl border border-gray-200 bg-white shadow-lg space-y-4">
-            <h1 className="text-3xl font-bold">{product.name}</h1>
+            <h1 className="text-2xl font-bold">{product.name}</h1>
             <div className="flex items-center gap-4 flex-wrap">
                 {isSale ? (
                     <>
