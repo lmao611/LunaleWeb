@@ -6,13 +6,13 @@ const LoadingSpinner = () => {
         {/* Vòng tròn xoay */}
         <div className="relative">
           <div className="w-16 h-16 border-4 border-gray-200 rounded-full" />
-          <div className="w-16 h-16 border-t-4 border-blue-600 animate-spin rounded-full absolute left-0 top-0" />
+          <div className="w-16 h-16 border-t-4 border-gray-800 animate-spin rounded-full absolute left-0 top-0" />
         </div>
         
         {/* Thêm dòng chữ này */}
-        <p className="mt-4 text-gray-500 font-medium text-sm animate-pulse">
-          Đang kết nối đến server...
-        </p>
+        <h4 className="mt-4 text-gray-500 font-medium text-sm animate-pulse">
+          Đang tải
+        </h4>
       </div>
     </div>
   );
