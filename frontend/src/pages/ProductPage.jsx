@@ -160,14 +160,14 @@ const ProductPage = () => {
             </div>
             <p className="text-gray-600 whitespace-pre-line leading-relaxed">{product.description}</p>
             <div className="mt-4 flex gap-3">
-              <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowContactModal(true) }} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-black hover:bg-gray-800 text-white font-medium transition active:scale-95 shadow-sm">💬 Liên hệ</button>
+              <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowContactModal(true) }} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-black hover:bg-gray-800 text-white font-medium transition active:scale-95 shadow-sm">LIÊN HỆ</button>
               
-              <button type="button" onClick={handleAddToCart} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-white border border-blue-600 text-blue-600 hover:bg-blue-50 font-medium transition active:scale-95 shadow-sm">
-                <ShoppingCart size={20} className="mr-1" /> Thêm giỏ hàng
+              <button type="button" onClick={handleAddToCart} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-white border border-gray-800 text-gray-800 hover:bg-blue-50 font-medium transition active:scale-95 shadow-sm">
+                <ShoppingCart size={20} className="mr-1" />THÊM
               </button>
             </div>
             
-            <button type="button" onClick={handleBuyNow} className="w-full py-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg shadow-lg hover:shadow-xl transition transform active:scale-[0.98]">
+            <button type="button" onClick={handleBuyNow} className="w-full py-4 rounded-lg bg-black hover:bg-black text-white font-bold text-lg shadow-lg hover:shadow-xl transition transform active:scale-[0.98]">
                 MUA NGAY
             </button>
 
