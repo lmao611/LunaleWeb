@@ -168,7 +168,7 @@ const ProductPage = () => {
             </div>
             
             <button type="button" onClick={handleBuyNow} className="w-full py-4 rounded-lg bg-teal-800 hover:bg-teal-500 text-white font-bold text-lg shadow-lg hover:shadow-xl transition transform active:scale-[0.98]">
-                MUA NGAY
+                BUY NOW
             </button>
 
             <div className="w-full mt-6 rounded-lg overflow-hidden shadow-lg bg-black">
