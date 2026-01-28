@@ -2,26 +2,21 @@ import { useState, useEffect } from "react";
 import { Search, X } from "lucide-react";
 import { useProductStore } from "../stores/useProductStore";
 import ProductCard from "../components/ProductCard";
-import LoadingSpinner from "../components/LoadingSpinner";
 import axios from "../lib/axios";
 import { motion } from "framer-motion";
 
 const SearchPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [results, setResults] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
   
   const searchProducts = useProductStore((state) => state.searchProducts);
 
   const fetchRecommendations = async () => {
-    setIsSearching(true);
     try {
       const res = await axios.get("/products/recommendations");
       setResults(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
       setResults([]);
-    } finally {
-      setIsSearching(false);
     }
   };
 
@@ -34,14 +29,11 @@ const SearchPage = () => {
       return;
     }
 
-    setIsSearching(true);
     try {
       const products = await searchProducts(value);
       setResults(products || []);
     } catch (error) {
       console.error(error);
-    } finally {
-      setIsSearching(false);
     }
   };
 
@@ -80,26 +72,22 @@ const SearchPage = () => {
         <h2 className="text-xl font-bold text-gray-800">
           {searchTerm.trim() === "" ? "Gợi ý cho bạn" : `Kết quả: "${searchTerm}"`}
         </h2>
-        {results.length === 0 && !isSearching && searchTerm.trim() !== "" && (
+        {results.length === 0 && searchTerm.trim() !== "" && (
           <p className="text-gray-500 mt-2">Không tìm thấy sản phẩm nào.</p>
         )}
       </div>
 
-      {isSearching ? (
-        <div className="flex justify-center py-20">
-             <LoadingSpinner />
-        </div>
-      ) : (
-        <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 gap-y-10"
-        >
-          {results.map((product) => (
-            <ProductCard key={product._id} product={product} />
-          ))}
-        </motion.div>
-      )}
+      <motion.div 
+          layout
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 gap-y-10"
+      >
+        {results.map((product) => (
+          <ProductCard key={product._id} product={product} />
+        ))}
+      </motion.div>
     </div>
   );
 };
