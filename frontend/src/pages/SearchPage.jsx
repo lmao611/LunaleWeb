@@ -10,31 +10,40 @@ const SearchPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [results, setResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
-  const { searchProducts } = useProductStore();
+  
+  // Chỉ lấy hàm searchProducts, không lấy state để tránh re-render thừa
+  const searchProducts = useProductStore((state) => state.searchProducts);
 
-  // Hàm debounce để tránh gọi API liên tục khi gõ
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
-      setIsSearching(true);
+      // Nếu có từ khóa mới bắt đầu loading
+      if (searchTerm.trim() !== "") {
+          setIsSearching(true);
+      }
       
       if (searchTerm.trim() === "") {
-        // Nếu chưa nhập gì: Lấy gợi ý ngẫu nhiên (dùng lại logic PeopleAlsoBought)
-        // API getRecommendedProducts đã lọc sẵn: feedback, sale, v.v ở Backend controller
         try {
+          // Lấy gợi ý (API recommendations đã lọc feedback/sale)
           const res = await axios.get("/products/recommendations");
           setResults(Array.isArray(res.data) ? res.data : []);
         } catch (error) {
           console.error("Lỗi lấy gợi ý:", error);
           setResults([]);
+        } finally {
+            setIsSearching(false);
         }
       } else {
-        // Nếu đã nhập: Gọi API tìm kiếm
-        const products = await searchProducts(searchTerm);
-        setResults(products || []);
+        // Gọi API tìm kiếm
+        try {
+            const products = await searchProducts(searchTerm);
+            setResults(products || []);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsSearching(false);
+        }
       }
-      
-      setIsSearching(false);
-    }, 500); // Delay 500ms sau khi ngừng gõ
+    }, 500);
 
     return () => clearTimeout(delayDebounceFn);
   }, [searchTerm, searchProducts]);
@@ -43,6 +52,7 @@ const SearchPage = () => {
     <div className="min-h-screen bg-white pt-24 px-4 max-w-7xl mx-auto">
       {/* Input Section */}
       <div className="flex justify-center mb-10">
+        {/* ❌ Đã thay thẻ form bằng thẻ div để chặn tuyệt đối việc reload */}
         <div className="relative w-full max-w-xl">
           <input
             type="text"
@@ -50,9 +60,13 @@ const SearchPage = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-12 pr-4 py-3 rounded-full border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition shadow-sm"
-            autoFocus
+            autoFocus 
           />
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+          <button 
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-500 transition"
+          >
+            <Search size={20} />
+          </button>
         </div>
       </div>
 

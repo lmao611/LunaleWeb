@@ -17,12 +17,10 @@ import CollectionDetailPage from "./pages/CollectionDetailPage";
 import PolicyPage from "./pages/PolicyPage";
 import ScrollToTop from "./components/ScrollToTop";
 import PrivacyPage from "./pages/PrivacyPage.jsx";
-import SearchPage from "./pages/SearchPage"; // <--- Import mới
+import SearchPage from "./pages/SearchPage";
 
 import { useCollectionStore } from "./stores/useCollectionStore";
 import { useProductStore } from "./stores/useProductStore";
-
-// Import Component Chat
 import ChatPopup from "./components/ChatPopup";
 
 function App() {
@@ -30,7 +28,9 @@ function App() {
   const { getCartItems } = useCartStore();
   
   const { fetchCollections } = useCollectionStore();
-  const { fetchFeaturedProducts } = useProductStore();
+  
+  // ✅ TỐI ƯU HÓA: Chỉ lấy function, không lấy toàn bộ state để tránh App re-render khi search loading
+  const fetchFeaturedProducts = useProductStore((state) => state.fetchFeaturedProducts);
 
   const [isForceLoadingDone, setIsForceLoadingDone] = useState(false);
 
@@ -62,14 +62,12 @@ function App() {
     <div className="min-h-screen bg-white text-gray-900 flex flex-col relative">
       <Navbar />
       <ScrollToTop/>
-      
-      {/* Hiển thị ChatPopup ở tất cả các trang (chỉ hiện với khách hàng) */}
       <ChatPopup />
 
       <div className="flex-1 w-full">
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/search" element={<SearchPage />} /> {/* <--- Route mới */}
+          <Route path="/search" element={<SearchPage />} />
           <Route
             path="/signup"
             element={!user ? <SignUpPage /> : <Navigate to="/" />}
