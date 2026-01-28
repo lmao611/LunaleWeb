@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Search, X } from "lucide-react";
 import { useProductStore } from "../stores/useProductStore";
 import ProductCard from "../components/ProductCard";
@@ -7,40 +7,53 @@ import axios from "../lib/axios";
 const SearchPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [results, setResults] = useState([]);
-  const [hasSearched, setHasSearched] = useState(false);
+  
+  // ✅ Dùng useRef để lưu lại từ khóa mới nhất user vừa gõ
+  const latestQuery = useRef(""); 
   
   const searchProducts = useProductStore((state) => state.searchProducts);
 
   const fetchRecommendations = async () => {
     try {
       const res = await axios.get("/products/recommendations");
-      setResults(Array.isArray(res.data) ? res.data : []);
+      // Chỉ cập nhật nếu user chưa gõ gì khác
+      if (latestQuery.current === "") {
+        setResults(Array.isArray(res.data) ? res.data : []);
+      }
     } catch (error) {
-      setResults([]);
+      if (latestQuery.current === "") setResults([]);
     }
   };
 
   const handleInputChange = async (e) => {
     const value = e.target.value;
     setSearchTerm(value);
+    
+    // ✅ Cập nhật ngay "con dấu" cho từ khóa mới nhất
+    latestQuery.current = value;
 
     if (value.trim() === "") {
-      setHasSearched(false);
       fetchRecommendations();
       return;
     }
 
-    setHasSearched(true);
-    
     try {
+      // Gọi API tìm kiếm
       const products = await searchProducts(value);
-      setResults(products || []);
+      
+      // ✅ CHỐT CHẶN QUAN TRỌNG:
+      // Chỉ cập nhật UI nếu từ khóa trả về khớp với từ khóa đang gõ hiện tại
+      // Nếu user đã gõ sang chữ khác rồi thì BỎ QUA kết quả này.
+      if (latestQuery.current === value) {
+        setResults(products || []);
+      }
     } catch (error) {
       console.error(error);
     }
   };
 
   useEffect(() => {
+    latestQuery.current = ""; // Reset khi mới vào trang
     fetchRecommendations();
   }, []);
 
@@ -64,7 +77,7 @@ const SearchPage = () => {
             <button 
               onClick={() => { 
                 setSearchTerm(""); 
-                setHasSearched(false); 
+                latestQuery.current = ""; // Reset ref
                 fetchRecommendations(); 
               }}
               className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-red-500 rounded-full transition"
@@ -79,7 +92,7 @@ const SearchPage = () => {
         <h2 className="text-xl font-bold text-gray-800">
           {searchTerm.trim() === "" ? "Gợi ý cho bạn" : `Kết quả: "${searchTerm}"`}
         </h2>
-        {hasSearched && results.length === 0 && (
+        {results.length === 0 && searchTerm.trim() !== "" && (
           <p className="text-gray-500 mt-2">Không tìm thấy sản phẩm nào.</p>
         )}
       </div>
