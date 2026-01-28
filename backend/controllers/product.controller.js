@@ -259,7 +259,26 @@ export const togglePreOrderProduct = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+export const searchProducts = async (req, res) => {
+  try {
+    const { query } = req.query;
+    
+    // Nếu không có từ khóa, trả về mảng rỗng (frontend sẽ tự hiện gợi ý)
+    if (!query || query.trim() === "") {
+      return res.json({ products: [] });
+    }
 
+    // Tìm kiếm theo tên (không phân biệt hoa thường), loại bỏ category 'feedback'
+    const products = await Product.find({
+      name: { $regex: query, $options: "i" },
+      category: { $ne: "feedback" }
+    });
+
+    res.json({ products });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
 export const getProductsByCategory = async (req, res) => {
   try {
     const { category } = req.params;

@@ -1,4 +1,4 @@
-import { ShoppingCart, UserPlus, LogIn, LogOut, Lock, Home, User, X, Clock, Package, History, Edit2, Save, XCircle, ChevronLeft, MapPin, Phone, CreditCard, Bell, Trash2, Camera } from "lucide-react";
+import { ShoppingCart, UserPlus, LogIn, LogOut, Lock, Home, User, X, Clock, Package, History, Edit2, Save, XCircle, ChevronLeft, MapPin, Phone, CreditCard, Bell, Trash2, Camera, Search } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useUserStore } from "../stores/useUserStore";
 import { useCartStore } from "../stores/useCartStore";
@@ -217,11 +217,11 @@ const Navbar = () => {
             openChat();
         }
     } else {
-        setSelectedNotification(notif);
+        // Nếu có logic xem chi tiết thông báo khác thì thêm vào đây
+        // setSelectedNotification(notif);
     }
   };
 
-  // --- HÀM NÉN ẢNH (MỚI) ---
   const compressImage = (file, callback) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -230,11 +230,9 @@ const Navbar = () => {
         img.src = event.target.result;
         img.onload = () => {
             const canvas = document.createElement("canvas");
-            // Giới hạn chiều rộng tối đa 500px (đủ cho avatar)
             const MAX_WIDTH = 500; 
             const scaleSize = MAX_WIDTH / img.width;
             
-            // Nếu ảnh nhỏ hơn 500px thì giữ nguyên, lớn hơn thì scale xuống
             if (scaleSize < 1) {
                 canvas.width = MAX_WIDTH;
                 canvas.height = img.height * scaleSize;
@@ -246,7 +244,6 @@ const Navbar = () => {
             const ctx = canvas.getContext("2d");
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             
-            // Xuất ra dạng JPEG chất lượng 0.7 (giảm dung lượng đáng kể)
             callback(canvas.toDataURL("image/jpeg", 0.7));
         };
     };
@@ -256,7 +253,6 @@ const Navbar = () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Gọi hàm nén ảnh trước khi set state
     compressImage(file, (compressedResult) => {
         setNewAvatar(compressedResult); 
         setAvatarPreview(compressedResult); 
@@ -270,20 +266,18 @@ const Navbar = () => {
         email: editEmail,
         phoneNumber: editPhone,
         direction: editDirection,
-        avatar: newAvatar, // Gửi ảnh base64 lên
+        avatar: newAvatar,
       });
 
       if (res.status === 200) {
         const updatedUser = res.data;
-        setUser(updatedUser); // Cập nhật store user
+        setUser(updatedUser); 
         
-        // QUAN TRỌNG: Set ngay avatarPreview bằng link ảnh mới từ server trả về (Link Cloudinary)
-        // Thay vì chờ useEffect chạy
         if (updatedUser.avatar) {
             setAvatarPreview(updatedUser.avatar);
         }
         
-        setNewAvatar(""); // Clear base64 tạm
+        setNewAvatar(""); 
         alert("Thông tin đã được cập nhật");
       }
     } catch (err) {
@@ -362,6 +356,12 @@ const Navbar = () => {
               <Link to="/" className={`flex items-end pb-[2px] transition ${isHome && !isScrolled ? "text-white" : "text-black hover:text-blue-700"}`}>
                 <Home size={22} strokeWidth={2.2} />
               </Link>
+              
+              {/* --- TÍNH NĂNG TÌM KIẾM MỚI --- */}
+              <Link to="/search" className={`flex items-end pb-[2px] transition ${isHome && !isScrolled ? "text-white hover:text-gray-200" : "text-black hover:text-blue-700"}`}>
+                <Search size={22} strokeWidth={2.2} />
+              </Link>
+              {/* --------------------------------- */}
               
               {user && (
                 <div className="relative">
@@ -532,7 +532,6 @@ const Navbar = () => {
                       </label>
                     </div>
 
-                    {/* --- PHẦN UPLOAD ẢNH (ĐÃ CẬP NHẬT: TRÊN NÚT LƯU) --- */}
                     <div className="mt-4 mb-4 pt-4 border-t border-gray-200">
                         <h4 className="text-sm font-semibold text-gray-700 mb-3">Ảnh đại diện</h4>
                         <div className="flex items-center gap-4">
@@ -565,7 +564,6 @@ const Navbar = () => {
                             </div>
                         </div>
                     </div>
-                    {/* ---------------------------------- */}
 
                     <button onClick={handleUpdateProfile} className="w-full bg-blue-700 hover:bg-blue-800 text-white font-medium py-2.5 rounded transition shadow-md text-sm sm:text-base">
                       Lưu Thay Đổi

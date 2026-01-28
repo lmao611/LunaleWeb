@@ -29,7 +29,18 @@ export const useProductStore = create((set, get) => ({
       return null;
     }
   },
-
+  searchProducts: async (query) => {
+    set({ loading: true });
+    try {
+      const response = await axios.get(`/products/search?query=${query}`);
+      // Trả về dữ liệu để component tự xử lý hiển thị
+      set({ loading: false });
+      return response.data.products;
+    } catch (error) {
+      set({ error: "Failed to search products", loading: false });
+      return [];
+    }
+  },
   fetchAllProducts: async () => {
     set({ loading: true });
     try {

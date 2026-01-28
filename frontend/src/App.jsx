@@ -17,6 +17,7 @@ import CollectionDetailPage from "./pages/CollectionDetailPage";
 import PolicyPage from "./pages/PolicyPage";
 import ScrollToTop from "./components/ScrollToTop";
 import PrivacyPage from "./pages/PrivacyPage.jsx";
+import SearchPage from "./pages/SearchPage"; // <--- Import mới
 
 import { useCollectionStore } from "./stores/useCollectionStore";
 import { useProductStore } from "./stores/useProductStore";
@@ -68,6 +69,7 @@ function App() {
       <div className="flex-1 w-full">
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/search" element={<SearchPage />} /> {/* <--- Route mới */}
           <Route
             path="/signup"
             element={!user ? <SignUpPage /> : <Navigate to="/" />}

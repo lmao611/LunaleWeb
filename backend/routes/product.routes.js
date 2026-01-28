@@ -10,6 +10,7 @@ import {
   getProductById,
   updateProduct,
   reorderProducts,
+  searchProducts, // <--- Nhớ import hàm mới
 } from "../controllers/product.controller.js";
 import { adminRoute, protectRoute } from "../middleware/auth.middleware.js";
 
@@ -25,6 +26,7 @@ router.delete("/:id", protectRoute, adminRoute, deleteProduct);
 router.get("/featured", getFeaturedProducts);
 router.get("/category/:category", getProductsByCategory);
 router.get("/recommendations", getRecommendedProducts);
+router.get("/search", searchProducts); // <--- [THÊM ROUTE NÀY]
 router.get("/:id", getProductById);
 
 export default router;
