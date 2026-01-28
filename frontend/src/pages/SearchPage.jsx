@@ -7,6 +7,7 @@ import axios from "../lib/axios";
 const SearchPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [results, setResults] = useState([]);
+  const [hasSearched, setHasSearched] = useState(false);
   
   const searchProducts = useProductStore((state) => state.searchProducts);
 
@@ -24,10 +25,13 @@ const SearchPage = () => {
     setSearchTerm(value);
 
     if (value.trim() === "") {
+      setHasSearched(false);
       fetchRecommendations();
       return;
     }
 
+    setHasSearched(true);
+    
     try {
       const products = await searchProducts(value);
       setResults(products || []);
@@ -58,7 +62,11 @@ const SearchPage = () => {
           />
           {searchTerm && (
             <button 
-              onClick={() => { setSearchTerm(""); fetchRecommendations(); }}
+              onClick={() => { 
+                setSearchTerm(""); 
+                setHasSearched(false); 
+                fetchRecommendations(); 
+              }}
               className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-red-500 rounded-full transition"
             >
               <X size={16} />
@@ -71,12 +79,11 @@ const SearchPage = () => {
         <h2 className="text-xl font-bold text-gray-800">
           {searchTerm.trim() === "" ? "Gợi ý cho bạn" : `Kết quả: "${searchTerm}"`}
         </h2>
-        {results.length === 0 && searchTerm.trim() !== "" && (
+        {hasSearched && results.length === 0 && (
           <p className="text-gray-500 mt-2">Không tìm thấy sản phẩm nào.</p>
         )}
       </div>
 
-      {/* Thay motion.div bằng thẻ div thường để bỏ hiệu ứng */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 gap-y-10">
         {results.map((product) => (
           <ProductCard key={product._id} product={product} />
