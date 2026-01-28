@@ -3,7 +3,6 @@ import { Search, X } from "lucide-react";
 import { useProductStore } from "../stores/useProductStore";
 import ProductCard from "../components/ProductCard";
 import axios from "../lib/axios";
-import { motion } from "framer-motion";
 
 const SearchPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -77,17 +76,12 @@ const SearchPage = () => {
         )}
       </div>
 
-      <motion.div 
-          layout
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3 }}
-          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 gap-y-10"
-      >
+      {/* Thay motion.div bằng thẻ div thường để bỏ hiệu ứng */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 gap-y-10">
         {results.map((product) => (
           <ProductCard key={product._id} product={product} />
         ))}
-      </motion.div>
+      </div>
     </div>
   );
 };
