@@ -15,13 +15,10 @@ export const useProductStore = create((set, get) => ({
     try {
       const res = await axios.post("/products", productData);
       set((state) => ({
-        // 👇 Đưa sản phẩm mới lên đầu mảng
         products: [res.data, ...state.products],
         loading: false,
       }));
       toast.success("Tạo sản phẩm thành công");
-      
-      // ✅ QUAN TRỌNG: Phải return res.data để bên Form lấy được ID
       return res.data; 
     } catch (error) {
       toast.error(error.response?.data?.error || "Lỗi khi tạo sản phẩm");
@@ -29,18 +26,17 @@ export const useProductStore = create((set, get) => ({
       return null;
     }
   },
+
   searchProducts: async (query) => {
-    set({ loading: true });
     try {
       const response = await axios.get(`/products/search?query=${query}`);
-      // Trả về dữ liệu để component tự xử lý hiển thị
-      set({ loading: false });
       return response.data.products;
     } catch (error) {
-      set({ error: "Failed to search products", loading: false });
+      console.error(error);
       return [];
     }
   },
+
   fetchAllProducts: async () => {
     set({ loading: true });
     try {
@@ -113,10 +109,7 @@ export const useProductStore = create((set, get) => ({
     set({ loading: true });
     try {
       const res = await axios.put(`/products/${productId}`, { isPreOrder: newState });
-      const updated =
-        res.data.product && typeof res.data.product === "object"
-          ? res.data.product
-          : res.data;
+      const updated = res.data.product || res.data;
 
       set((state) => ({
         products: state.products.map((p) =>
@@ -135,10 +128,7 @@ export const useProductStore = create((set, get) => ({
     set({ loading: true });
     try {
       const res = await axios.put(`/products/${productId}`, updatedData);
-      const updated =
-        res.data.product && typeof res.data.product === "object"
-          ? res.data.product
-          : res.data;
+      const updated = res.data.product || res.data;
 
       set((state) => ({
         products: state.products.map((p) =>
@@ -170,13 +160,10 @@ export const useProductStore = create((set, get) => ({
     set({ loading: true });
     try {
       const response = await axios.get("/products/featured");
-      const products = Array.isArray(response.data)
-        ? response.data
-        : response.data.products || [];
+      const products = Array.isArray(response.data) ? response.data : response.data.products || [];
       set({ products, loading: false });
     } catch (error) {
-      const status = error.response?.status;
-      if (status === 404) {
+      if (error.response?.status === 404) {
         set({ products: [], loading: false });
         return;
       }
