@@ -261,6 +261,9 @@ const ProductPage = () => {
                                <p className="font-bold text-lg text-blue-700 mb-6">
                                    Tổng: {(discountedPrice * buyQuantity).toLocaleString("vi-VN")} đ
                                </p>
+                               <p className="text-sm text-gray-400 mb-5">
+                                  Chi phí chưa bao gồm phí ship.
+                               </p>
                                <div className="flex gap-3">
                                    <button onClick={() => setShowQR(false)} className="flex-1 py-3 border border-gray-300 rounded-lg font-medium hover:bg-gray-50">Quay lại</button>
                                    <button onClick={() => submitQuickOrder(true)} disabled={isOrdering} className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold flex items-center justify-center gap-2">

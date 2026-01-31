@@ -52,7 +52,7 @@ const ContactModal = ({ product, onClose }) => {
     setIsOrdering(false);
 
     if (result.success) {
-      toast.success("🎉 Đặt hàng thành công! Shop sẽ liên hệ sớm.");
+      toast.success("Đặt hàng thành công! Lunale sẽ liên hệ sớm.");
       onClose();
     }
   };
