@@ -19,6 +19,7 @@ import userRoutes from "./routes/user.routes.js";
 import customerOrderRoutes from "./routes/customerOrder.routes.js";
 import notificationRoutes from "./routes/notification.route.js";
 import messageRoutes from "./routes/message.route.js";
+
 dotenv.config();
 const PORT = process.env.PORT || 5000;
 
@@ -27,6 +28,12 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 app.set("trust proxy", 1);
+
+app.use((req, res, next) => {
+  const realIp = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  req.realIp = realIp;
+  next();
+});
 
 app.use(express.json({ limit: "23mb" }));
 app.use(express.urlencoded({ limit: "23mb", extended: true }));
