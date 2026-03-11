@@ -66,7 +66,8 @@ const AdminPage = () => {
         "customer_orders", // Đơn Khách Đặt (Vẫn hiện)
         "notifications", 
         "messages", 
-        "receipt"
+        "receipt",
+        "orders"
       ].includes(tab.id);
     }
     

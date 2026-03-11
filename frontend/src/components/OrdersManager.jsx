@@ -16,15 +16,14 @@ export default function OrdersManager() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   
-  // State quản lý tab tháng
-  const [selectedMonthKey, setSelectedMonthKey] = useState(null); // Format: "MM/YYYY"
+  const [selectedMonthKey, setSelectedMonthKey] = useState(null);
 
-  // State Modal & Filter
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [filterStatus, setFilterStatus] = useState("");
 
-  const { checkingAuth } = useUserStore();
+  const { checkingAuth, user } = useUserStore();
+  const isAdmin = user?.role === "admin";
 
   useEffect(() => {
     if (!checkingAuth) {
@@ -70,7 +69,6 @@ export default function OrdersManager() {
     }
   }
 
-  // --- LOGIC NHÓM THEO THÁNG ---
   const filteredOrders = orders.filter((o) => (filterStatus ? o.status === filterStatus : true));
 
   const groupedOrders = filteredOrders.reduce((groups, order) => {
@@ -98,7 +96,6 @@ export default function OrdersManager() {
 
   const currentMonthOrders = selectedMonthKey ? groupedOrders[selectedMonthKey] : [];
 
-  // --- CÁC HÀM XỬ LÝ (MODAL, CRUD) ---
   function openCreate() {
     setEditing({
       customerId: "",
@@ -230,7 +227,6 @@ export default function OrdersManager() {
     ];
     worksheet.addRow(headers);
   
-    // Xuất đơn hàng THÁNG ĐANG CHỌN
     currentMonthOrders.forEach((o, idx) => {
       const itemsStr = (o.items || [])
         .map((it) => {
@@ -255,7 +251,6 @@ export default function OrdersManager() {
       ]);
     });
   
-    // Style Excel
     worksheet.columns.forEach((column) => {
       column.width = 25;
     });
@@ -300,7 +295,6 @@ export default function OrdersManager() {
         </div>
       </div>
 
-      {/* --- CONTENT AREA (BẢNG DỮ LIỆU CŨ NHƯNG GROUP THEO THÁNG) --- */}
       <div className="flex-1 bg-white rounded-xl shadow border border-gray-200 relative overflow-hidden flex flex-col">
         {loading ? (
             <div className="flex-1 flex items-center justify-center text-gray-400">Đang tải dữ liệu...</div>
@@ -316,7 +310,6 @@ export default function OrdersManager() {
                             transition={{ duration: 0.2 }}
                             className="min-w-max w-full"
                         >
-                            {/* BẢNG DỮ LIỆU CŨ */}
                             <table className="w-full text-sm text-left border-collapse">
                                 <thead className="bg-gray-100 text-gray-700 font-semibold border-b">
                                     <tr>
@@ -358,7 +351,6 @@ export default function OrdersManager() {
                                                 </td>
                                                 <td className="px-4 py-2 align-top whitespace-nowrap">{o.phone}</td>
 
-                                                {/* SP */}
                                                 <td className="px-4 py-2 align-top">
                                                     <ul className="list-disc ml-4">
                                                         {(o.items || []).map((it, i) => {
@@ -368,12 +360,10 @@ export default function OrdersManager() {
                                                     </ul>
                                                 </td>
 
-                                                {/* SL */}
                                                 <td className="px-4 py-2 align-top">
                                                     <ul>{(o.items || []).map((it, i) => <li key={i}>x{it.quantity}</li>)}</ul>
                                                 </td>
 
-                                                {/* Size */}
                                                 <td className="px-4 py-2 align-top">
                                                     <ul>{(o.items || []).map((it, i) => <li key={i}>{it.size}</li>)}</ul>
                                                 </td>
@@ -388,9 +378,11 @@ export default function OrdersManager() {
                                                         <button onClick={() => openEdit(o)} className="text-blue-600 hover:underline flex items-center gap-1">
                                                             <Edit2 className="w-4 h-4" /> Sửa
                                                         </button>
-                                                        <button onClick={() => handleDelete(o._id ?? o.id)} className="text-red-600 hover:underline flex items-center gap-1">
-                                                            <Trash2 className="w-4 h-4" /> Xóa
-                                                        </button>
+                                                        {!isAdmin && (
+                                                            <button onClick={() => handleDelete(o._id ?? o.id)} className="text-red-600 hover:underline flex items-center gap-1">
+                                                                <Trash2 className="w-4 h-4" /> Xóa
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </td>
                                             </tr>
@@ -409,7 +401,6 @@ export default function OrdersManager() {
             </div>
         )}
 
-        {/* --- FOOTER: MONTH SELECTOR BAR --- */}
         <div className="bg-white border-t p-3 overflow-x-auto custom-scrollbar">
              <div className="flex items-center gap-3 min-w-max pb-1">
                 <span className="text-xs font-bold text-gray-400 uppercase mr-2 tracking-wide sticky left-0 bg-white pl-1">Chọn tháng:</span>
@@ -434,7 +425,6 @@ export default function OrdersManager() {
         </div>
       </div>
 
-      {/* --- MODAL EDIT --- */}
       {showModal && editing && (
         <div className="fixed inset-0 bg-black/40 flex items-start justify-center z-[100] pt-10 overflow-y-auto">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white w-full max-w-3xl rounded-xl p-6 shadow-2xl mb-10 border border-gray-100">
