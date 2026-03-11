@@ -488,11 +488,16 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
           </datalist>
         </div>
 
-        <div className="pt-8 relative mt-6 border-t border-gray-100">
-          <div className="sm:absolute right-0 bottom-0 sm:text-right space-y-3 bg-white sm:p-4 rounded-lg">
-            <div className="flex justify-between sm:block items-center"><span className="text-sm text-gray-600 sm:mr-2">Thành tiền:</span><span>{calcTotal().toLocaleString()}₫</span></div>
-            <div className="flex justify-between sm:block items-center"><span className="text-sm text-gray-600 sm:mr-2">Phí ship:</span><span>+{(form.shipFee || 0).toLocaleString()}₫</span></div>
-            <div className="flex justify-between sm:flex-row items-center border-t pt-3 mt-2">
+        <div className="pt-6 mt-6 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-start gap-4">
+          <div className="w-full sm:w-40 order-2 sm:order-1 mt-4 sm:mt-0">
+            <label className="block text-sm mb-1 font-medium text-gray-700">Phí ship (₫)</label>
+            <input type="number" value={form.shipFee} onChange={(e) => setForm((f) => ({ ...f, shipFee: Number(e.target.value) }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base focus:ring-2 focus:ring-blue-500 outline-none" />
+          </div>
+          
+          <div className="w-full sm:w-auto order-1 sm:order-2 space-y-3 bg-white">
+            <div className="flex justify-between sm:justify-end items-center"><span className="text-sm text-gray-600 sm:mr-4">Thành tiền:</span><span className="font-medium text-right sm:w-24">{calcTotal().toLocaleString()}₫</span></div>
+            <div className="flex justify-between sm:justify-end items-center"><span className="text-sm text-gray-600 sm:mr-4">Phí ship:</span><span className="font-medium text-right sm:w-24">+{(form.shipFee || 0).toLocaleString()}₫</span></div>
+            <div className="flex justify-between sm:justify-end items-center border-t pt-3 mt-2">
                 <span className="text-lg font-bold text-blue-700 sm:mr-3">Tổng cộng:</span>
                 <input
                     type="number"
@@ -502,7 +507,6 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
                 />
             </div>
           </div>
-          <div className="w-full sm:w-40 mt-4 sm:mt-0"><label className="block text-sm mb-1 font-medium text-gray-700">Phí ship (₫)</label><input type="number" value={form.shipFee} onChange={(e) => setForm((f) => ({ ...f, shipFee: Number(e.target.value) }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base focus:ring-2 focus:ring-blue-500 outline-none" /></div>
         </div>
       </div>
 
