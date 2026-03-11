@@ -34,9 +34,9 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
       case "preorder": 
         return { label: "Pre-Order", color: "bg-gray-950 text-white" };
       case "out": 
-        return { label: "Hết hàng", color: "bg-red-500 text-white" };
+        return { label: "Sold Out", color: "bg-red-500 text-white" };
       case "low": 
-        return { label: "Số lượng còn ít", color: "bg-yellow-400 text-gray-900" };
+        return { label: "Low Stock", color: "bg-yellow-400 text-gray-900" };
       default: 
         return null; 
     }
