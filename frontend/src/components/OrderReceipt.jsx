@@ -6,7 +6,6 @@ import axios from "../lib/axios";
 import { useUserStore } from "../stores/useUserStore";
 import toast from "react-hot-toast";
 
-// THÊM PROPS: inputOrder và onClose
 const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
   const [customers, setCustomers] = useState([]);
   const [products, setProducts] = useState([]);
@@ -26,22 +25,20 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
     salePercent: 0,
     shipFee: 25000,
     items: [],
+    customTotalAmount: undefined,
   });
 
   const { checkingAuth } = useUserStore();
   const receiptRef = useRef(null);
   const printRef = useRef(null);
 
-  // --- LOGIC TỰ ĐỘNG ĐIỀN THÔNG TIN ---
   useEffect(() => {
     if (inputOrder) {
-        // Map dữ liệu từ đơn hàng đã lưu
         const mappedItems = inputOrder.products.map(p => ({
             productId: p.product._id || p.product,
             quantity: p.quantity,
             size: p.size,
             sale: 0,
-            // Lưu thêm tên và giá gốc từ đơn hàng để hiển thị ngay cả khi chưa load xong list products
             tempName: p.name, 
             tempPrice: p.price 
         }));
@@ -59,11 +56,11 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
             receivedDate: new Date().toLocaleDateString("vi-VN"), 
             salePercent: 0,
             shipFee: inputOrder.shipFee || 30000, 
-            items: mappedItems
+            items: mappedItems,
+            customTotalAmount: undefined
         });
     }
   }, [inputOrder]);
-  // ------------------------------------------------
 
   useEffect(() => {
     const loadLogo = async () => {
@@ -116,15 +113,10 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
   const addProduct = () => setForm((f) => ({ ...f, items: [...f.items, { productId: "", quantity: 1, size: "", sale: 0 }] }));
   const removeProduct = (index) => setForm((f) => ({ ...f, items: f.items.filter((_, i) => i !== index) }));
 
-  // Helper tìm thông tin sản phẩm (Ưu tiên lấy từ đơn hàng inputOrder trước, rồi mới tìm trong database)
   const getProductInfo = (item) => {
-      // 1. Tìm trong database
       const productInDb = products.find((p) => String(p._id || p.id) === String(item.productId));
-      
-      // 2. Nếu không thấy (hoặc db chưa load kịp), dùng thông tin tạm từ inputOrder
-      const name = productInDb?.name || item.tempName || "Sản phẩm không xác định";
-      const price = productInDb?.price || item.tempPrice || 0;
-      
+      const name = item.tempName !== undefined ? item.tempName : (productInDb?.name || "");
+      const price = item.tempPrice !== undefined ? item.tempPrice : (productInDb?.price || 0);
       return { name, price };
   };
 
@@ -140,7 +132,8 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
     return subtotal - discount;
   };
 
-  const totalWithShip = calcTotal() + (form.shipFee || 0);
+  const calculatedTotalWithShip = calcTotal() + (form.shipFee || 0);
+  const totalWithShip = form.customTotalAmount !== undefined ? form.customTotalAmount : calculatedTotalWithShip;
 
   const convertToISO = (dateString) => {
     if (!dateString) return null;
@@ -224,7 +217,6 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
     if (!printRef.current) return;
     setIsGenerating(true);
 
-    // Nếu không phải Popup (InputOrder) thì mới lưu vào DB
     if (!inputOrder && form.customerId) {
         const saved = await saveOrderToSystem();
         await new Promise(r => setTimeout(r, 200));
@@ -265,7 +257,6 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
 
       const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
 
-      // Nếu đang xem Popup -> Không tải ngay mà hiện modal xem trước
       if (isDesktop && !inputOrder) {
         const link = document.createElement("a");
         link.href = dataUrl;
@@ -320,10 +311,8 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      // SỬA: Bỏ shadow/border nếu đang là Popup cho gọn
       className={`relative bg-white ${inputOrder ? '' : 'border border-gray-200 shadow-md rounded-2xl'} p-4 sm:p-6 max-w-4xl mx-auto`}
     >
-      {/* HEADER STICKY: Giúp nút luôn hiện ở trên cùng khi cuộn */}
       <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm py-2 border-b border-gray-100 mb-6 -mx-4 px-4 sm:-mx-6 sm:px-6 flex justify-between items-center shadow-sm">
         {onClose ? (
             <button onClick={onClose} className="flex items-center gap-2 text-gray-600 hover:text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-50 transition font-medium text-sm">
@@ -352,7 +341,6 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
           {inputOrder ? "Chi Tiết Đơn Hàng" : "Phiếu Đặt Hàng"}
         </h2>
         
-        {/* INPUT FORM */}
         <div className="grid sm:grid-cols-2 gap-4 mb-6">
           <div className="relative">
             <label className="block text-sm mb-1 font-medium text-gray-700">Khách hàng <span className="text-red-500">*</span></label>
@@ -406,7 +394,6 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
           </div>
         </div>
 
-        {/* LIST SẢN PHẨM */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-lg text-blue-700">Sản phẩm</h3>
@@ -426,27 +413,41 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
           </div>
           <div className="space-y-4 sm:space-y-2">
             {form.items.map((item, i) => {
-              // Dùng helper để lấy tên/giá chính xác (từ DB hoặc từ đơn hàng cũ)
               const info = getProductInfo(item);
-              const basePrice = info.price * (item.quantity || 1);
               const salePrice = calcSubtotal(item);
 
               return (
                 <div key={i} className="grid grid-cols-1 sm:grid-cols-7 gap-3 border rounded-lg p-3 items-center bg-gray-50 sm:bg-white shadow-sm sm:shadow-none">
                   <div className="relative">
                     <label className="sm:hidden text-xs text-gray-500 mb-1">Sản phẩm</label>
-                    {/* Nếu là đơn Popup (có tên sẵn) thì hiện tên text, nếu không thì hiện Select */}
-                    {inputOrder && item.tempName ? (
+                    {inputOrder && item.tempName && !item.productId ? (
                         <div className="font-medium text-sm text-gray-800 p-2 bg-gray-100 rounded border border-gray-200 truncate" title={item.tempName}>
                             {item.tempName}
                         </div>
                     ) : (
                         <>
-                            <select value={item.productId} onChange={(e) => setForm((f) => { const newItems = [...f.items]; newItems[i].productId = e.target.value; return { ...f, items: newItems }; })} className={`${selectClass} py-1 text-sm`}>
-                            <option value="">-- Chọn sản phẩm --</option>
-                            {products.map((p) => <option key={p._id || p.id} value={p._id || p.id}>{p.name}</option>)}
-                            </select>
-                            <ChevronDown className="absolute right-2 bottom-2 w-4 h-4 text-gray-500 pointer-events-none" />
+                            <input 
+                                list="product-list-options"
+                                value={item.tempName !== undefined ? item.tempName : info.name}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    const prod = products.find(p => p.name === val);
+                                    setForm(f => {
+                                        const newItems = [...f.items];
+                                        if (prod) {
+                                            newItems[i].productId = prod._id || prod.id;
+                                            newItems[i].tempName = prod.name;
+                                            newItems[i].tempPrice = prod.price;
+                                        } else {
+                                            newItems[i].productId = "";
+                                            newItems[i].tempName = val;
+                                        }
+                                        return { ...f, items: newItems };
+                                    });
+                                }}
+                                className={`${selectClass} py-1 text-sm bg-transparent`}
+                                placeholder="Tên sản phẩm..."
+                            />
                         </>
                     )}
                   </div>
@@ -459,26 +460,52 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
                   </div>
                   <div><label className="sm:hidden text-xs text-gray-500 mb-1">SL</label><input type="number" min="1" value={item.quantity} onChange={(e) => setForm((f) => { const newItems = [...f.items]; newItems[i].quantity = Number(e.target.value); return { ...f, items: newItems }; })} className="w-full border border-gray-300 rounded px-2 py-1 text-center text-base" /></div>
                   <div><label className="sm:hidden text-xs text-gray-500 mb-1">Sale</label><input type="number" min="0" max="100" value={item.sale} onChange={(e) => setForm((f) => { const newItems = [...f.items]; newItems[i].sale = Number(e.target.value); return { ...f, items: newItems }; })} className="w-full border border-gray-300 rounded px-2 py-1 text-center text-red-600 font-medium text-base" /></div>
-                  <div className="flex justify-between sm:block text-right"><span className="sm:hidden text-sm text-gray-500">Giá gốc:</span><span className="text-gray-600">{basePrice.toLocaleString()}₫</span></div>
+                  <div className="flex justify-between sm:block text-right">
+                    <span className="sm:hidden text-sm text-gray-500">Giá gốc:</span>
+                    <input
+                        type="number"
+                        value={info.price}
+                        onChange={(e) => {
+                            setForm((f) => {
+                                const newItems = [...f.items];
+                                newItems[i].tempPrice = Number(e.target.value);
+                                return { ...f, items: newItems };
+                            });
+                        }}
+                        className="w-full sm:w-24 border border-gray-300 rounded px-2 py-1 text-right text-gray-600 text-base"
+                    />
+                  </div>
                   <div className="flex justify-between sm:block text-right"><span className="sm:hidden text-sm text-gray-500">Thành tiền:</span><span className="font-bold text-blue-700">{salePrice.toLocaleString()}₫</span></div>
                   <div className="flex justify-center sm:justify-center mt-2 sm:mt-0"><button onClick={() => removeProduct(i)} className="bg-red-100 hover:bg-red-200 p-2 rounded-full text-red-600 transition"><Trash2 className="w-4 h-4" /></button></div>
                 </div>
               );
             })}
           </div>
+          <datalist id="product-list-options">
+            {products.map((p) => (
+                <option key={p._id || p.id} value={p.name} />
+            ))}
+          </datalist>
         </div>
 
         <div className="pt-8 relative mt-6 border-t border-gray-100">
-          <div className="sm:absolute right-0 bottom-0 sm:text-right space-y-2 bg-white sm:p-4 rounded-lg">
-            <div className="flex justify-between sm:block"><span className="text-sm text-gray-600 sm:mr-2">Thành tiền:</span><span>{calcTotal().toLocaleString()}₫</span></div>
-            <div className="flex justify-between sm:block"><span className="text-sm text-gray-600 sm:mr-2">Phí ship:</span><span>+{(form.shipFee || 0).toLocaleString()}₫</span></div>
-            <div className="flex justify-between sm:block border-t pt-2 mt-2"><span className="text-lg font-bold text-blue-700 sm:mr-2">Tổng cộng:</span><span className="text-lg font-bold text-blue-700">{totalWithShip.toLocaleString()}₫</span></div>
+          <div className="sm:absolute right-0 bottom-0 sm:text-right space-y-3 bg-white sm:p-4 rounded-lg">
+            <div className="flex justify-between sm:block items-center"><span className="text-sm text-gray-600 sm:mr-2">Thành tiền:</span><span>{calcTotal().toLocaleString()}₫</span></div>
+            <div className="flex justify-between sm:block items-center"><span className="text-sm text-gray-600 sm:mr-2">Phí ship:</span><span>+{(form.shipFee || 0).toLocaleString()}₫</span></div>
+            <div className="flex justify-between sm:flex-row items-center border-t pt-3 mt-2">
+                <span className="text-lg font-bold text-blue-700 sm:mr-3">Tổng cộng:</span>
+                <input
+                    type="number"
+                    value={totalWithShip}
+                    onChange={(e) => setForm(f => ({ ...f, customTotalAmount: e.target.value === "" ? undefined : Number(e.target.value) }))}
+                    className="w-32 border border-gray-300 rounded px-2 py-1.5 text-right text-lg font-bold text-blue-700 outline-none focus:ring-2 focus:ring-blue-500"
+                />
+            </div>
           </div>
           <div className="w-full sm:w-40 mt-4 sm:mt-0"><label className="block text-sm mb-1 font-medium text-gray-700">Phí ship (₫)</label><input type="number" value={form.shipFee} onChange={(e) => setForm((f) => ({ ...f, shipFee: Number(e.target.value) }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base focus:ring-2 focus:ring-blue-500 outline-none" /></div>
         </div>
       </div>
 
-      {/* MODAL XEM TRƯỚC VÀ CHIA SẺ */}
       <AnimatePresence>
         {generatedImage && (
           <div className="fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center p-4">
@@ -513,7 +540,6 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
         )}
       </AnimatePresence>
 
-      {/* VÙNG IN ẨN (Giữ nguyên cấu trúc để ảnh ra đẹp) */}
       <div
         id="print-area"
         ref={printRef}
@@ -567,7 +593,7 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
           </tbody>
         </table>
 
-        <div className="flex justify-between items-end mt-10 pt-6 border-t-2 border-gray-300">
+        <div className="flex justify-between items-end mt-24 pt-10 border-t-2 border-gray-300">
            <div className="pl-4">
               <img id="print-logo" src={logoBase64 || "/lunale.png"} alt="Logo" className="w-56 block object-contain" />
               <p className="text-gray-400 text-sm mt-2 italic font-medium">Cảm ơn bạn đã lựa chọn Lunale!</p>
