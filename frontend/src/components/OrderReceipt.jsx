@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { PlusCircle, Trash2, ImageDown, ChevronDown, X, Share2 } from "lucide-react";
+import { PlusCircle, Trash2, ImageDown, X, Share2 } from "lucide-react";
 import { toPng } from "html-to-image";
 import axios from "../lib/axios";
 import { useUserStore } from "../stores/useUserStore";
@@ -13,6 +13,9 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
   
   const [generatedImage, setGeneratedImage] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  const [focusedProductIndex, setFocusedProductIndex] = useState(null);
 
   const [form, setForm] = useState({
     customerId: "",
@@ -104,21 +107,6 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
     }
   }, [checkingAuth]);
 
-  const handleCustomerSelect = (id) => {
-    if (!id) {
-      setForm((f) => ({ ...f, customerId: "", customerName: "", address: "", phone: "" }));
-      return;
-    }
-    const c = customers.find((x) => String(x._id || x.id) === String(id));
-    setForm((f) => ({
-      ...f,
-      customerId: id,
-      customerName: c?.name || f.customerName,
-      address: c?.direction || c?.address || f.address,
-      phone: c?.phoneNumber || c?.phone || f.phone,
-    }));
-  };
-
   const addProduct = () => setForm((f) => ({ ...f, items: [...f.items, { productId: "", quantity: 1, size: "", sale: 0 }] }));
   const removeProduct = (index) => setForm((f) => ({ ...f, items: f.items.filter((_, i) => i !== index) }));
 
@@ -177,7 +165,8 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
         const unitPriceAfterSale = price * (1 - (item.sale || 0) / 100);
         
         return {
-           productId: item.productId,
+           productId: item.productId || null,
+           name: item.tempName,
            quantity: item.quantity,
            size: item.size,
            price: unitPriceAfterSale 
@@ -354,29 +343,41 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
         <div className="grid sm:grid-cols-2 gap-4 mb-6">
           <div className="relative">
             <label className="block text-sm mb-1 font-medium text-gray-700">Khách hàng <span className="text-red-500">*</span></label>
-            <div className="relative">
-              <select
-                value={form.customerId}
-                onChange={(e) => handleCustomerSelect(e.target.value)}
-                className={selectClass}
-              >
-                <option value="">-- Chọn khách hàng --</option>
-                {customers.map((c) => (
-                  <option key={c._id || c.id} value={c._id || c.id}>
-                    {c.name} {c.phoneNumber ? `(${c.phoneNumber})` : ""}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-3 top-3 w-4 h-4 text-gray-500 pointer-events-none" />
-            </div>
-
             <input
               type="text"
-              placeholder="Hoặc nhập tên khách hàng"
               value={form.customerName}
-              onChange={(e) => setForm((f) => ({ ...f, customerName: e.target.value }))}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-2 text-base focus:ring-2 focus:ring-blue-500 outline-none"
+              onChange={(e) => {
+                setForm((f) => ({ ...f, customerName: e.target.value, customerId: "" }));
+                setShowCustomerDropdown(true);
+              }}
+              onFocus={() => setShowCustomerDropdown(true)}
+              onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
+              placeholder="Nhập tên khách hàng..."
+              className={selectClass}
             />
+            {showCustomerDropdown && form.customerName && (
+              <div className="absolute z-50 w-full bg-white border border-gray-200 shadow-lg max-h-48 overflow-y-auto mt-1 rounded-lg">
+                {customers.filter(c => c.name.toLowerCase().includes(form.customerName.toLowerCase()) || c.phoneNumber?.includes(form.customerName)).map(c => (
+                  <div
+                    key={c._id || c.id}
+                    onClick={() => {
+                      setForm((f) => ({
+                        ...f,
+                        customerId: c._id || c.id,
+                        customerName: c.name,
+                        phone: c.phoneNumber || c.phone || f.phone,
+                        address: c.direction || c.address || f.address,
+                      }));
+                      setShowCustomerDropdown(false);
+                    }}
+                    className="p-2 hover:bg-gray-100 cursor-pointer text-sm"
+                  >
+                    <div className="font-medium text-gray-800">{c.name}</div>
+                    {c.phoneNumber && <div className="text-xs text-gray-500">{c.phoneNumber}</div>}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           
           <div>
@@ -435,38 +436,54 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
                             {item.tempName}
                         </div>
                     ) : (
-                        <>
+                        <div className="relative">
                             <input 
-                                list="product-list-options"
+                                type="text"
                                 value={item.tempName !== undefined ? item.tempName : info.name}
                                 onChange={(e) => {
                                     const val = e.target.value;
-                                    const prod = products.find(p => p.name === val);
                                     setForm(f => {
                                         const newItems = [...f.items];
-                                        if (prod) {
-                                            newItems[i].productId = prod._id || prod.id;
-                                            newItems[i].tempName = prod.name;
-                                            newItems[i].tempPrice = prod.price;
-                                        } else {
-                                            newItems[i].productId = "";
-                                            newItems[i].tempName = val;
-                                        }
+                                        newItems[i].productId = "";
+                                        newItems[i].tempName = val;
                                         return { ...f, items: newItems };
                                     });
+                                    setFocusedProductIndex(i);
                                 }}
+                                onFocus={() => setFocusedProductIndex(i)}
+                                onBlur={() => setTimeout(() => setFocusedProductIndex(null), 200)}
                                 className={`${selectClass} py-1 text-sm bg-transparent`}
                                 placeholder="Tên sản phẩm..."
                             />
-                        </>
+                            {focusedProductIndex === i && (item.tempName !== undefined ? item.tempName : info.name) && (
+                                <div className="absolute z-50 w-full bg-white border border-gray-200 shadow-lg max-h-48 overflow-y-auto mt-1 rounded-lg">
+                                    {products.filter(p => p.name.toLowerCase().includes((item.tempName !== undefined ? item.tempName : info.name).toLowerCase())).map(p => (
+                                        <div
+                                            key={p._id || p.id}
+                                            onClick={() => {
+                                                setForm(f => {
+                                                    const newItems = [...f.items];
+                                                    newItems[i].productId = p._id || p.id;
+                                                    newItems[i].tempName = p.name;
+                                                    newItems[i].tempPrice = p.price;
+                                                    return { ...f, items: newItems };
+                                                });
+                                                setFocusedProductIndex(null);
+                                            }}
+                                            className="p-2 hover:bg-gray-100 cursor-pointer text-sm flex flex-col"
+                                        >
+                                            <span className="font-medium text-gray-800">{p.name}</span>
+                                            <span className="text-xs text-blue-600">{p.price?.toLocaleString()}₫</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     )}
                   </div>
-                  <div className="relative">
+                  <div>
                     <label className="sm:hidden text-xs text-gray-500 mb-1">Size</label>
-                    <select value={item.size} onChange={(e) => setForm((f) => { const newItems = [...f.items]; newItems[i].size = e.target.value; return { ...f, items: newItems }; })} className={`${selectClass} py-1 text-sm`}>
-                      <option value="">Size</option><option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option>
-                    </select>
-                    <ChevronDown className="absolute right-2 bottom-2 w-4 h-4 text-gray-500 pointer-events-none" />
+                    <input type="text" value={item.size} onChange={(e) => setForm((f) => { const newItems = [...f.items]; newItems[i].size = e.target.value; return { ...f, items: newItems }; })} className={`${selectClass} py-1 text-sm text-center`} placeholder="Size" />
                   </div>
                   <div><label className="sm:hidden text-xs text-gray-500 mb-1">SL</label><input type="number" min="1" value={item.quantity} onChange={(e) => setForm((f) => { const newItems = [...f.items]; newItems[i].quantity = Number(e.target.value); return { ...f, items: newItems }; })} className="w-full border border-gray-300 rounded px-2 py-1 text-center text-base" /></div>
                   <div><label className="sm:hidden text-xs text-gray-500 mb-1">Sale</label><input type="number" min="0" max="100" value={item.sale} onChange={(e) => setForm((f) => { const newItems = [...f.items]; newItems[i].sale = Number(e.target.value); return { ...f, items: newItems }; })} className="w-full border border-gray-300 rounded px-2 py-1 text-center text-red-600 font-medium text-base" /></div>
@@ -491,11 +508,6 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
               );
             })}
           </div>
-          <datalist id="product-list-options">
-            {products.map((p) => (
-                <option key={p._id || p.id} value={p.name} />
-            ))}
-          </datalist>
         </div>
 
         <div className="pt-6 mt-6 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-start gap-4">

@@ -6,7 +6,6 @@ import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import { useUserStore } from "../stores/useUserStore";
 
-const sizes = ["S", "M", "L", "XL"];
 const statuses = ["chưa giao", "đang giao", "đã giao", "đã hủy"];
 const paymentMethods = ["COD", "Chuyển khoản", "Tiền mặt"];
 
@@ -21,6 +20,9 @@ export default function OrdersManager() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [filterStatus, setFilterStatus] = useState("");
+
+  const [focusedCustomer, setFocusedCustomer] = useState(false);
+  const [focusedProductIndex, setFocusedProductIndex] = useState(null);
 
   const { checkingAuth, user } = useUserStore();
   const isAdmin = user?.role === "admin";
@@ -99,6 +101,7 @@ export default function OrdersManager() {
   function openCreate() {
     setEditing({
       customerId: "",
+      customerName: "",
       address: "",
       phone: "",
       items: [],
@@ -114,10 +117,12 @@ export default function OrdersManager() {
     const copy = {
       id: order._id ?? order.id,
       customerId: order.customerId?._id ?? order.customerId,
+      customerName: order.customerName ?? order.customerId?.name ?? "",
       address: order.address,
       phone: order.phone,
       items: (order.items || []).map((it) => ({
         productId: it.productId?._id ?? it.productId,
+        tempName: it.name ?? it.tempName ?? it.productId?.name ?? "",
         size: it.size,
         quantity: it.quantity,
         price: it.price,
@@ -134,7 +139,7 @@ export default function OrdersManager() {
   function addItem() {
     setEditing((p) => ({
       ...p,
-      items: [...(p.items || []), { productId: "", size: "M", quantity: 1, price: 0 }],
+      items: [...(p.items || []), { productId: "", tempName: "", size: "M", quantity: 1, price: 0 }],
     }));
   }
 
@@ -144,28 +149,6 @@ export default function OrdersManager() {
       items.splice(idx, 1);
       return { ...p, items };
     });
-  }
-
-  function onItemChange(idx, field, value) {
-    setEditing((p) => {
-      const items = [...(p.items || [])];
-      items[idx] = { ...(items[idx] || {}), [field]: field === "quantity" ? Number(value) : value };
-      if (field === "productId") {
-        const prod = products.find((x) => String(x._id ?? x.id) === String(value));
-        items[idx].price = prod ? prod.price : 0;
-      }
-      return { ...p, items };
-    });
-  }
-
-  function onCustomerSelect(id) {
-    const c = customers.find((x) => String(x._id ?? x.id) === String(id));
-    setEditing((p) => ({
-      ...p,
-      customerId: id,
-      address: c ? (c.direction || c.address) : p.address,
-      phone: c ? (c.phoneNumber || c.phone) : p.phone,
-    }));
   }
 
   function calcTotal(items) {
@@ -183,11 +166,16 @@ export default function OrdersManager() {
     e && e.preventDefault();
     try {
       const payload = {
-        customerId: editing.customerId,
+        customerId: editing.customerId || null,
+        customerName: editing.customerName,
+        address: editing.address,
+        phone: editing.phone,
         items: (editing.items || []).map((it) => ({
-          productId: it.productId,
+          productId: it.productId || null,
+          name: it.tempName,
           size: it.size,
           quantity: it.quantity,
+          price: it.price,
         })),
         status: editing.status,
         receivedDate: editing.receivedDate || null,
@@ -233,7 +221,7 @@ export default function OrdersManager() {
           const prod = products.find(
             (p) => String(p._id) === String(it.productId?._id ?? it.productId)
           );
-          return `${prod ? prod.name : it.productId?.name ?? "SP đã xóa"} (size ${it.size}, SL ${it.quantity})`;
+          return `${prod ? prod.name : it.name ?? it.tempName ?? "SP tự nhập"} (size ${it.size}, SL ${it.quantity})`;
         })
         .join("; ");
   
@@ -355,7 +343,7 @@ export default function OrdersManager() {
                                                     <ul className="list-disc ml-4">
                                                         {(o.items || []).map((it, i) => {
                                                             const prod = products.find(p => String(p._id) === String(it.productId?._id ?? it.productId));
-                                                            return <li key={i} className="truncate max-w-[150px]" title={prod?.name}>{prod ? prod.name : "SP đã xóa"}</li>;
+                                                            return <li key={i} className="truncate max-w-[150px]" title={prod?.name || it.name}>{prod ? prod.name : (it.name || "SP tự nhập")}</li>;
                                                         })}
                                                     </ul>
                                                 </td>
@@ -441,12 +429,43 @@ export default function OrdersManager() {
             </div>
             <form onSubmit={handleSave} className="space-y-5">
                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div>
+                  <div className="relative">
                     <label className="text-sm font-semibold text-gray-700 mb-1 block">Khách hàng</label>
-                    <select value={editing.customerId} onChange={(e) => onCustomerSelect(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-gray-50 focus:bg-white transition">
-                        <option value="">-- Khách lẻ / Vãng lai --</option>
-                        {customers.map(c => <option key={c._id} value={c._id}>{c.name} - {c.phoneNumber}</option>)}
-                    </select>
+                    <input 
+                        type="text"
+                        value={editing.customerName || ""}
+                        onChange={(e) => {
+                            setEditing({...editing, customerName: e.target.value, customerId: ""});
+                            setFocusedCustomer(true);
+                        }}
+                        onFocus={() => setFocusedCustomer(true)}
+                        onBlur={() => setTimeout(() => setFocusedCustomer(false), 200)}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-gray-50 focus:bg-white transition"
+                        placeholder="Nhập tên khách hàng..."
+                    />
+                    {focusedCustomer && editing.customerName && (
+                        <div className="absolute z-50 w-full bg-white border border-gray-200 shadow-lg max-h-48 overflow-y-auto mt-1 rounded-lg">
+                            {customers.filter(c => c.name.toLowerCase().includes((editing.customerName || "").toLowerCase()) || c.phoneNumber?.includes(editing.customerName)).map(c => (
+                                <div
+                                    key={c._id || c.id}
+                                    onClick={() => {
+                                        setEditing({
+                                            ...editing,
+                                            customerId: c._id || c.id,
+                                            customerName: c.name,
+                                            phone: c.phoneNumber || c.phone || editing.phone,
+                                            address: c.direction || c.address || editing.address
+                                        });
+                                        setFocusedCustomer(false);
+                                    }}
+                                    className="p-2 hover:bg-gray-100 cursor-pointer text-sm"
+                                >
+                                    <div className="font-medium text-gray-800">{c.name}</div>
+                                    {c.phoneNumber && <div className="text-xs text-gray-500">{c.phoneNumber}</div>}
+                                </div>
+                            ))}
+                        </div>
+                    )}
                   </div>
                   <div>
                     <label className="text-sm font-semibold text-gray-700 mb-1 block">Số điện thoại</label>
@@ -466,16 +485,51 @@ export default function OrdersManager() {
                   <div className="space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-100">
                      {editing.items.map((it, idx) => (
                         <div key={idx} className="flex gap-2 items-center bg-white p-2 rounded shadow-sm border border-gray-200">
-                            <select value={it.productId} onChange={(e) => onItemChange(idx, "productId", e.target.value)} className="flex-1 border-0 bg-transparent text-sm font-medium focus:ring-0">
-                                <option value="">-- Chọn sản phẩm --</option>
-                                {products.map(p => <option key={p._id} value={p._id}>{p.name} ({p.price?.toLocaleString()}đ)</option>)}
-                            </select>
+                            <div className="relative flex-1">
+                                <input 
+                                    type="text"
+                                    value={it.tempName || ""}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setEditing(p => {
+                                            const items = [...p.items];
+                                            items[idx] = { ...items[idx], tempName: val, productId: "" };
+                                            return { ...p, items };
+                                        });
+                                    }}
+                                    onFocus={() => setFocusedProductIndex(idx)}
+                                    onBlur={() => setTimeout(() => setFocusedProductIndex(null), 200)}
+                                    className="w-full border-0 bg-transparent px-2 py-1 text-sm outline-none font-medium"
+                                    placeholder="Nhập tên SP..."
+                                />
+                                {focusedProductIndex === idx && it.tempName && (
+                                    <div className="absolute z-50 w-full min-w-[200px] bg-white border border-gray-200 shadow-lg max-h-48 overflow-y-auto mt-1 rounded-lg">
+                                        {products.filter(p => p.name.toLowerCase().includes((it.tempName || "").toLowerCase())).map(p => (
+                                            <div
+                                                key={p._id || p.id}
+                                                onClick={() => {
+                                                    setEditing(prev => {
+                                                        const items = [...prev.items];
+                                                        items[idx] = { ...items[idx], productId: p._id || p.id, tempName: p.name, price: p.price };
+                                                        return { ...prev, items };
+                                                    });
+                                                    setFocusedProductIndex(null);
+                                                }}
+                                                className="p-2 hover:bg-gray-100 cursor-pointer text-sm"
+                                            >
+                                                <div className="font-medium text-gray-800">{p.name}</div>
+                                                <div className="text-xs text-blue-600">{p.price?.toLocaleString()}₫</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                             <div className="h-4 w-px bg-gray-300 mx-1"></div>
-                            <select value={it.size} onChange={(e) => onItemChange(idx, "size", e.target.value)} className="w-16 border-0 bg-transparent text-sm focus:ring-0">
-                                {sizes.map(s => <option key={s} value={s}>{s}</option>)}
-                            </select>
+                            <input type="text" value={it.size || ""} onChange={(e) => setEditing((p) => { const items = [...p.items]; items[idx].size = e.target.value; return { ...p, items }; })} className="w-16 border-0 bg-transparent text-center text-sm focus:ring-0" placeholder="Size" />
                             <div className="h-4 w-px bg-gray-300 mx-1"></div>
-                            <input type="number" min="1" value={it.quantity} onChange={(e) => onItemChange(idx, "quantity", e.target.value)} className="w-16 border-0 bg-transparent text-center text-sm font-bold focus:ring-0" placeholder="SL" />
+                            <input type="number" min="1" value={it.quantity} onChange={(e) => setEditing((p) => { const items = [...p.items]; items[idx].quantity = Number(e.target.value); return { ...p, items }; })} className="w-16 border-0 bg-transparent text-center text-sm font-bold focus:ring-0" placeholder="SL" />
+                            <div className="h-4 w-px bg-gray-300 mx-1"></div>
+                            <input type="number" value={it.price} onChange={(e) => setEditing((p) => { const items = [...p.items]; items[idx].price = Number(e.target.value); return { ...p, items }; })} className="w-24 border-0 bg-transparent text-right text-sm text-blue-600 focus:ring-0" placeholder="Giá" />
                             <div className="h-4 w-px bg-gray-300 mx-1"></div>
                             <button type="button" onClick={() => removeItem(idx)} className="text-gray-400 hover:text-red-500 p-1 transition"><Trash2 size={16}/></button>
                         </div>
