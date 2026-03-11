@@ -44,7 +44,16 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
         }));
 
         const today = new Date();
-        const deliverDate = new Date(today.setDate(today.getDate() + 3)).toLocaleDateString("vi-VN"); 
+        const d = String(today.getDate()).padStart(2, "0");
+        const m = String(today.getMonth() + 1).padStart(2, "0");
+        const y = today.getFullYear();
+        const currentDateStr = `${d}/${m}/${y}`;
+
+        const future = new Date(today.setDate(today.getDate() + 3));
+        const fd = String(future.getDate()).padStart(2, "0");
+        const fm = String(future.getMonth() + 1).padStart(2, "0");
+        const fy = future.getFullYear();
+        const deliverDateStr = `${fd}/${fm}/${fy}`;
         
         setForm({
             customerId: inputOrder.user || "", 
@@ -52,8 +61,8 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
             address: inputOrder.customerInfo?.address || "",
             phone: inputOrder.customerInfo?.phone || "",
             terms: inputOrder.note || "",
-            deliverDate: deliverDate, 
-            receivedDate: new Date().toLocaleDateString("vi-VN"), 
+            deliverDate: deliverDateStr, 
+            receivedDate: currentDateStr, 
             salePercent: 0,
             shipFee: inputOrder.shipFee || 30000, 
             items: mappedItems,
@@ -137,7 +146,8 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
 
   const convertToISO = (dateString) => {
     if (!dateString) return null;
-    const parts = dateString.split(/[\/\-\.]/); 
+    const cleaned = dateString.replace(/[^\d\/\-\.]/g, "");
+    const parts = cleaned.split(/[\/\-\.]/); 
     if (parts.length === 3) {
       let [d, m, y] = parts;
       d = d.padStart(2, "0");
@@ -148,8 +158,8 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
   };
 
   const saveOrderToSystem = async () => {
-    if (!form.customerId) {
-       toast.error("Vui lòng chọn khách hàng từ danh sách để lưu đơn!");
+    if (!form.customerId && !form.customerName) {
+       toast.error("Vui lòng chọn hoặc nhập tên khách hàng để lưu đơn!");
        return false;
     }
 
@@ -175,7 +185,7 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
       });
 
       const payload = {
-        customerId: form.customerId,
+        customerId: form.customerId || null,
         customerName: form.customerName,
         address: form.address,
         phone: form.phone,
@@ -207,7 +217,7 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
            });
        }
        if (img.decode) {
-           await img.decode().catch((e) => console.log("Lỗi decode ảnh (bỏ qua):", e));
+           await img.decode().catch((e) => console.log(e));
        }
     });
     await Promise.all(promises);
@@ -217,7 +227,7 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
     if (!printRef.current) return;
     setIsGenerating(true);
 
-    if (!inputOrder && form.customerId) {
+    if (!inputOrder) {
         const saved = await saveOrderToSystem();
         await new Promise(r => setTimeout(r, 200));
         if (!saved) {
