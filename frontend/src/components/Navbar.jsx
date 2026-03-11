@@ -347,13 +347,13 @@ const Navbar = () => {
       >
         <div className={`container mx-auto px-4 transition-all duration-500 ${isMobile ? (isScrolled ? "pt-[55px] pb-2" : "pt-2 pb-2") : (isScrolled ? "py-4" : "py-8")}`}>
           <div className={`flex flex-col sm:flex-row items-center pb-2 ${isMobile ? "gap-1 justify-center" : "justify-end"}`}>
-            <nav className={`flex flex-wrap items-center gap-4 mt-1 sm:mt-0 transition-colors duration-500 ${!isScrolled && isHome ? "text-white" : "text-gray-800"}`}>
+            <nav className={`flex items-center gap-2.5 sm:gap-4 mt-1 sm:mt-0 transition-colors duration-500 ${!isScrolled && isHome ? "text-white" : "text-gray-800"}`}>
               <Link to="/" className={`flex items-end pb-[2px] transition ${isHome && !isScrolled ? "text-white" : "text-black hover:text-blue-700"}`}>
-                <Home size={22} strokeWidth={2.2} />
+                <Home size={20} strokeWidth={2.2} />
               </Link>
               
               <Link to="/search" className={`flex items-end pb-[2px] transition ${isHome && !isScrolled ? "text-white hover:text-gray-200" : "text-black hover:text-blue-700"}`}>
-                <Search size={22} strokeWidth={2.2} />
+                <Search size={20} strokeWidth={2.2} />
               </Link>
               
               {user && (
@@ -362,7 +362,7 @@ const Navbar = () => {
                         onClick={() => setShowNotifications(!showNotifications)}
                         className={`transition flex items-end mb-0.5 relative ${isHome && !isScrolled ? "text-white hover:text-gray-200" : "text-black hover:text-blue-700"}`}
                     >
-                        <Bell size={20} />
+                        <Bell size={18} />
                         {unreadCount > 0 && (
                             <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full border border-white">
                                 {unreadCount}
@@ -378,7 +378,7 @@ const Navbar = () => {
                     {user.avatar ? (
                         <img src={user.avatar} alt="Avatar" className="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover border border-gray-200" />
                     ) : (
-                        <User size={20} />
+                        <User size={18} />
                     )}
                   </button>
                   {(!user.phoneNumber || !user.direction) && <span className="absolute -top-1 -left-1 w-2.5 h-2.5 bg-red-600 rounded-full border border-white" />}
@@ -387,36 +387,36 @@ const Navbar = () => {
               
               {user && (
                 <Link to="/cart" className={`relative group transition flex items-end mb-1.5 ${isHome && !isScrolled ? "text-white hover:text-gray-200" : "text-black hover:text-blue-700"}`}>
-                  <ShoppingCart size={18} className="mr-1" />
+                  <ShoppingCart size={18} className="mr-0.5 sm:mr-1" />
                   <span className="hidden sm:inline pt-1">Giỏ Hàng</span>
                   {cart.length > 0 && <span className="absolute -top-2 -left-3 bg-blue-600 text-white rounded-full px-2 py-0.5 text-xs">{cart.length}</span>}
                 </Link>
               )}
 
-              <div className="flex items-center gap-2 ml-1 sm:ml-2">
+              <div className="flex items-center gap-1.5 sm:gap-2 ml-0.5 sm:ml-2">
                 {isAdmin && (
                   <>
-                    <Link to="/secret-dashboard" className="bg-blue-700 hover:bg-blue-600 text-white px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-md flex items-center transition">
-                      <Lock className="inline-block sm:mr-1" size={16} /> <span className="hidden sm:inline">Dashboard</span>
+                    <Link to="/secret-dashboard" className="bg-blue-700 hover:bg-blue-600 text-white px-2 py-1.5 sm:px-4 sm:py-2 rounded-md flex items-center transition">
+                      <Lock className="inline-block sm:mr-1" size={14} /> <span className="hidden sm:inline text-sm">Dashboard</span>
                     </Link>
                     {tokenTimeLeft && (
-                      <div className={`flex items-center gap-1 px-2 py-1.5 sm:py-2 rounded-md text-xs font-mono border ${isHome && !isScrolled ? "bg-black/30 text-white border-white/20" : "bg-red-50 text-red-600 border-red-100"}`}>
-                        <Clock size={14} /> <span>{tokenTimeLeft}</span>
+                      <div className={`flex items-center gap-1 px-1.5 py-1.5 sm:px-2 sm:py-2 rounded-md text-[10px] sm:text-xs font-mono border ${isHome && !isScrolled ? "bg-black/30 text-white border-white/20" : "bg-red-50 text-red-600 border-red-100"}`}>
+                        <Clock size={12} className="hidden sm:block" /> <span>{tokenTimeLeft}</span>
                       </div>
                     )}
                   </>
                 )}
                 {user ? (
-                  <button onClick={logout} className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-md flex items-center transition">
-                    <LogOut size={16} /> <span className="hidden sm:inline sm:ml-2">Đăng Xuất</span>
+                  <button onClick={logout} className="bg-gray-700 hover:bg-gray-600 text-white px-2 py-1.5 sm:px-4 sm:py-2 rounded-md flex items-center transition">
+                    <LogOut size={14} /> <span className="hidden sm:inline sm:ml-2 text-sm">Đăng Xuất</span>
                   </button>
                 ) : (
                   <>
-                    <Link to="/signup" className="bg-gray-200 hover:bg-gray-300 text-black px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-md flex items-center transition">
-                      <UserPlus className="mr-1 sm:mr-2" size={16} /> <span className="hidden sm:inline">Đăng Ký</span>
+                    <Link to="/signup" className="bg-gray-200 hover:bg-gray-300 text-black px-2 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-md flex items-center transition">
+                      <UserPlus className="sm:mr-2" size={14} /> <span className="hidden sm:inline">Đăng Ký</span>
                     </Link>
-                    <Link to="/login" className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-md flex items-center transition">
-                      <LogIn className="mr-1 sm:mr-2" size={16} /> <span className="hidden sm:inline">Đăng Nhập</span>
+                    <Link to="/login" className="bg-gray-700 hover:bg-gray-600 text-white px-2 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-md flex items-center transition">
+                      <LogIn className="sm:mr-2" size={14} /> <span className="hidden sm:inline">Đăng Nhập</span>
                     </Link>
                   </>
                 )}
