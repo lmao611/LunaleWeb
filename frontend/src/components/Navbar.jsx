@@ -24,7 +24,6 @@ const Navbar = () => {
   const [editPhone, setEditPhone] = useState(user?.phoneNumber || "");
   const [editDirection, setEditDirection] = useState(user?.direction || "");
   
-  // State cho Avatar
   const [newAvatar, setNewAvatar] = useState(""); 
   const [avatarPreview, setAvatarPreview] = useState(user?.avatar || ""); 
   const fileInputRef = useRef(null);
@@ -117,7 +116,7 @@ const Navbar = () => {
       const res = await axios.get("/customer-orders/my-orders");
       setOrders(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
-      console.error("Lỗi tải đơn hàng:", error);
+      console.error(error);
       setOrders([]);
     } finally {
       setLoadingOrders(false);
@@ -211,14 +210,11 @@ const Navbar = () => {
                     navigate("/secret-dashboard"); 
                 }
             } catch (err) {
-                console.error("Không tìm thấy user để chat:", err);
+                console.error(err);
             }
         } else {
             openChat();
         }
-    } else {
-        // Nếu có logic xem chi tiết thông báo khác thì thêm vào đây
-        // setSelectedNotification(notif);
     }
   };
 
@@ -281,7 +277,6 @@ const Navbar = () => {
         alert("Thông tin đã được cập nhật");
       }
     } catch (err) {
-      console.error("Lỗi update profile:", err);
       alert(err.response?.data?.message || "Lỗi cập nhật. Vui lòng kiểm tra kết nối hoặc thử ảnh khác.");
     }
   };
@@ -357,11 +352,9 @@ const Navbar = () => {
                 <Home size={22} strokeWidth={2.2} />
               </Link>
               
-              {/* --- TÍNH NĂNG TÌM KIẾM MỚI --- */}
               <Link to="/search" className={`flex items-end pb-[2px] transition ${isHome && !isScrolled ? "text-white hover:text-gray-200" : "text-black hover:text-blue-700"}`}>
                 <Search size={22} strokeWidth={2.2} />
               </Link>
-              {/* --------------------------------- */}
               
               {user && (
                 <div className="relative">
@@ -399,32 +392,35 @@ const Navbar = () => {
                   {cart.length > 0 && <span className="absolute -top-2 -left-3 bg-blue-600 text-white rounded-full px-2 py-0.5 text-xs">{cart.length}</span>}
                 </Link>
               )}
-              {isAdmin && (
-                <div className="flex items-center gap-2">
-                  <Link to="/secret-dashboard" className="bg-blue-700 hover:bg-blue-600 text-white px-3 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-md flex items-center transition">
-                    <Lock className="inline-block mr-1" size={16} /> <span className="hidden sm:inline">Dashboard</span>
-                  </Link>
-                  {tokenTimeLeft && (
-                    <div className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-mono border ${isHome && !isScrolled ? "bg-black/30 text-white border-white/20" : "bg-red-50 text-red-600 border-red-100"}`}>
-                      <Clock size={12} /> <span>{tokenTimeLeft}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-              {user ? (
-                <button onClick={logout} className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-md flex items-center transition">
-                  <LogOut size={16} /> <span className="hidden sm:inline ml-2">Đăng Xuất</span>
-                </button>
-              ) : (
-                <>
-                  <Link to="/signup" className="bg-gray-200 hover:bg-gray-300 text-black px-3 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-md flex items-center transition">
-                    <UserPlus className="mr-2" size={16} /> Đăng Ký
-                  </Link>
-                  <Link to="/login" className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-md flex items-center transition">
-                    <LogIn className="mr-2" size={16} /> Đăng Nhập
-                  </Link>
-                </>
-              )}
+
+              <div className="flex items-center gap-2 ml-1 sm:ml-2">
+                {isAdmin && (
+                  <>
+                    <Link to="/secret-dashboard" className="bg-blue-700 hover:bg-blue-600 text-white px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-md flex items-center transition">
+                      <Lock className="inline-block sm:mr-1" size={16} /> <span className="hidden sm:inline">Dashboard</span>
+                    </Link>
+                    {tokenTimeLeft && (
+                      <div className={`flex items-center gap-1 px-2 py-1.5 sm:py-2 rounded-md text-xs font-mono border ${isHome && !isScrolled ? "bg-black/30 text-white border-white/20" : "bg-red-50 text-red-600 border-red-100"}`}>
+                        <Clock size={14} /> <span>{tokenTimeLeft}</span>
+                      </div>
+                    )}
+                  </>
+                )}
+                {user ? (
+                  <button onClick={logout} className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-md flex items-center transition">
+                    <LogOut size={16} /> <span className="hidden sm:inline sm:ml-2">Đăng Xuất</span>
+                  </button>
+                ) : (
+                  <>
+                    <Link to="/signup" className="bg-gray-200 hover:bg-gray-300 text-black px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-md flex items-center transition">
+                      <UserPlus className="mr-1 sm:mr-2" size={16} /> <span className="hidden sm:inline">Đăng Ký</span>
+                    </Link>
+                    <Link to="/login" className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-md flex items-center transition">
+                      <LogIn className="mr-1 sm:mr-2" size={16} /> <span className="hidden sm:inline">Đăng Nhập</span>
+                    </Link>
+                  </>
+                )}
+              </div>
             </nav>
           </div>
         </div>
