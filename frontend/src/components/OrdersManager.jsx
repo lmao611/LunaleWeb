@@ -404,22 +404,29 @@ export default function OrdersManager() {
         <div className="bg-white border-t p-3 overflow-x-auto custom-scrollbar">
              <div className="flex items-center gap-3 min-w-max pb-1">
                 <span className="text-xs font-bold text-gray-400 uppercase mr-2 tracking-wide sticky left-0 bg-white pl-1">Chọn tháng:</span>
-                {sortedMonthKeys.map(key => (
-                    <button
-                        key={key}
-                        onClick={() => setSelectedMonthKey(key)}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all flex items-center gap-2
-                            ${selectedMonthKey === key 
-                                ? "bg-blue-600 text-white border-blue-600 shadow-md transform -translate-y-0.5" 
-                                : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-white hover:border-blue-300 hover:text-blue-600"
-                            }`}
-                    >
-                        {key}
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${selectedMonthKey === key ? "bg-white/20 text-white" : "bg-gray-200 text-gray-500"}`}>
-                            {groupedOrders[key].length}
-                        </span>
-                    </button>
-                ))}
+                {sortedMonthKeys.map(key => {
+                    const monthTotal = groupedOrders[key].reduce((sum, o) => sum + (o.total || 0), 0);
+                    return (
+                        <div key={key} className="flex flex-col items-center gap-1">
+                            <button
+                                onClick={() => setSelectedMonthKey(key)}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all flex items-center gap-2
+                                    ${selectedMonthKey === key 
+                                        ? "bg-blue-600 text-white border-blue-600 shadow-md transform -translate-y-0.5" 
+                                        : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-white hover:border-blue-300 hover:text-blue-600"
+                                    }`}
+                            >
+                                {key}
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${selectedMonthKey === key ? "bg-white/20 text-white" : "bg-gray-200 text-gray-500"}`}>
+                                    {groupedOrders[key].length}
+                               </span>
+                            </button>
+                            <span className="bg-yellow-200 text-red-600 text-[10px] px-1.5 py-0.5 rounded font-bold">
+                                {monthTotal.toLocaleString()} ₫
+                            </span>
+                        </div>
+                    );
+                })}
                 {sortedMonthKeys.length === 0 && <span className="text-sm italic text-gray-400 px-2">Chưa có dữ liệu đơn hàng</span>}
              </div>
         </div>
