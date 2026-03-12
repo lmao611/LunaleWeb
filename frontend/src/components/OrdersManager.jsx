@@ -482,9 +482,9 @@ export default function OrdersManager() {
                      <label className="text-sm font-bold text-gray-800">Danh sách sản phẩm</label>
                      <button type="button" onClick={addItem} className="text-sm text-blue-600 font-bold hover:bg-blue-50 px-2 py-1 rounded transition flex items-center gap-1"><PlusCircle size={16}/> Thêm dòng</button>
                   </div>
-                  <div className="space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                  <div className="space-y-3 bg-gray-50 p-3 sm:p-4 rounded-xl border border-gray-100">
                      {editing.items.map((it, idx) => (
-                        <div key={idx} className="flex gap-2 items-center bg-white p-2 rounded shadow-sm border border-gray-200">
+                        <div key={idx} className="flex flex-col sm:flex-row gap-2 sm:items-center bg-white p-2 sm:p-2 rounded shadow-sm border border-gray-200">
                             <div className="relative flex-1">
                                 <input 
                                     type="text"
@@ -499,7 +499,7 @@ export default function OrdersManager() {
                                     }}
                                     onFocus={() => setFocusedProductIndex(idx)}
                                     onBlur={() => setTimeout(() => setFocusedProductIndex(null), 200)}
-                                    className="w-full border-0 bg-transparent px-2 py-1 text-sm outline-none font-medium"
+                                    className="w-full border border-gray-200 sm:border-0 bg-gray-50 sm:bg-transparent px-2 py-2 sm:py-1 text-sm outline-none font-medium rounded focus:bg-white transition"
                                     placeholder="Nhập tên SP..."
                                 />
                                 {focusedProductIndex === idx && it.tempName && (
@@ -524,14 +524,28 @@ export default function OrdersManager() {
                                     </div>
                                 )}
                             </div>
-                            <div className="h-4 w-px bg-gray-300 mx-1"></div>
-                            <input type="text" value={it.size || ""} onChange={(e) => setEditing((p) => { const items = [...p.items]; items[idx].size = e.target.value; return { ...p, items }; })} className="w-16 border-0 bg-transparent text-center text-sm focus:ring-0" placeholder="Size" />
-                            <div className="h-4 w-px bg-gray-300 mx-1"></div>
-                            <input type="number" min="1" value={it.quantity} onChange={(e) => setEditing((p) => { const items = [...p.items]; items[idx].quantity = Number(e.target.value); return { ...p, items }; })} className="w-16 border-0 bg-transparent text-center text-sm font-bold focus:ring-0" placeholder="SL" />
-                            <div className="h-4 w-px bg-gray-300 mx-1"></div>
-                            <input type="number" value={it.price} onChange={(e) => setEditing((p) => { const items = [...p.items]; items[idx].price = Number(e.target.value); return { ...p, items }; })} className="w-24 border-0 bg-transparent text-right text-sm text-blue-600 focus:ring-0" placeholder="Giá" />
-                            <div className="h-4 w-px bg-gray-300 mx-1"></div>
-                            <button type="button" onClick={() => removeItem(idx)} className="text-gray-400 hover:text-red-500 p-1 transition"><Trash2 size={16}/></button>
+                            <div className="flex items-center gap-1.5 w-full sm:w-auto mt-1 sm:mt-0">
+                                <div className="flex items-center flex-1 sm:flex-none border border-gray-200 sm:border-0 rounded bg-gray-50 sm:bg-transparent p-1.5 sm:p-0">
+                                    <span className="text-xs text-gray-400 sm:hidden mr-2 ml-1">Size</span>
+                                    <select 
+                                        value={it.size || "M"} 
+                                        onChange={(e) => setEditing((p) => { const items = [...p.items]; items[idx].size = e.target.value; return { ...p, items }; })} 
+                                        className="w-12 sm:w-[70px] border-0 bg-transparent text-center text-sm focus:ring-0 outline-none"
+                                    >
+                                        <option value="S">S</option>
+                                        <option value="M">M</option>
+                                        <option value="L">L</option>
+                                        <option value="XL">XL</option>
+                                    </select>
+                                    <div className="h-4 w-px bg-gray-300 mx-1 sm:mx-1"></div>
+                                    <span className="text-xs text-gray-400 sm:hidden mr-2">SL</span>
+                                    <input type="number" min="1" value={it.quantity} onChange={(e) => setEditing((p) => { const items = [...p.items]; items[idx].quantity = Number(e.target.value); return { ...p, items }; })} className="w-12 sm:w-16 border-0 bg-transparent text-center text-sm font-bold focus:ring-0" placeholder="SL" />
+                                    <div className="h-4 w-px bg-gray-300 mx-1 sm:mx-1"></div>
+                                    <span className="text-xs text-gray-400 sm:hidden mr-2">Giá</span>
+                                    <input type="number" value={it.price} onChange={(e) => setEditing((p) => { const items = [...p.items]; items[idx].price = Number(e.target.value); return { ...p, items }; })} className="flex-1 sm:w-24 border-0 bg-transparent text-right text-sm text-blue-600 focus:ring-0" placeholder="Giá" />
+                                </div>
+                                <button type="button" onClick={() => removeItem(idx)} className="text-gray-400 hover:text-red-500 p-2.5 sm:p-1 border border-gray-200 sm:border-0 rounded bg-gray-50 sm:bg-transparent transition"><Trash2 size={16}/></button>
+                            </div>
                         </div>
                      ))}
                      {editing.items.length === 0 && <p className="text-center text-sm text-gray-400 py-2">Chưa có sản phẩm nào. Nhấn "Thêm dòng" để bắt đầu.</p>}

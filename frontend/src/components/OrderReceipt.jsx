@@ -107,7 +107,7 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
     }
   }, [checkingAuth]);
 
-  const addProduct = () => setForm((f) => ({ ...f, items: [...f.items, { productId: "", quantity: 1, size: "", sale: 0 }] }));
+  const addProduct = () => setForm((f) => ({ ...f, items: [...f.items, { productId: "", quantity: 1, size: "M", sale: 0 }] }));
   const removeProduct = (index) => setForm((f) => ({ ...f, items: f.items.filter((_, i) => i !== index) }));
 
   const getProductInfo = (item) => {
@@ -413,7 +413,7 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
             </button>
           </div>
           {form.items.length === 0 && <p className="text-gray-500 italic text-center py-4 border border-dashed rounded-lg bg-gray-50">Chưa có sản phẩm nào.</p>}
-          <div className="hidden sm:grid sm:grid-cols-7 gap-3 text-sm font-semibold text-gray-600 mb-2 px-1">
+          <div className="hidden md:grid md:grid-cols-7 gap-3 text-sm font-semibold text-gray-600 mb-2 px-1">
             <span>Tên sản phẩm</span>
             <span>Size</span>
             <span>SL</span>
@@ -422,15 +422,15 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
             <span className="text-right">Thành tiền</span>
             <span className="text-center">Xóa</span>
           </div>
-          <div className="space-y-4 sm:space-y-2">
+          <div className="space-y-4 md:space-y-2">
             {form.items.map((item, i) => {
               const info = getProductInfo(item);
               const salePrice = calcSubtotal(item);
 
               return (
-                <div key={i} className="grid grid-cols-1 sm:grid-cols-7 gap-3 border rounded-lg p-3 items-center bg-gray-50 sm:bg-white shadow-sm sm:shadow-none">
+                <div key={i} className="grid grid-cols-1 md:grid-cols-7 gap-3 border rounded-lg p-3 items-center bg-gray-50 md:bg-white shadow-sm md:shadow-none">
                   <div className="relative">
-                    <label className="sm:hidden text-xs text-gray-500 mb-1">Sản phẩm</label>
+                    <label className="md:hidden text-xs text-gray-500 mb-1">Sản phẩm</label>
                     {inputOrder && item.tempName && !item.productId ? (
                         <div className="font-medium text-sm text-gray-800 p-2 bg-gray-100 rounded border border-gray-200 truncate" title={item.tempName}>
                             {item.tempName}
@@ -482,13 +482,23 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
                     )}
                   </div>
                   <div>
-                    <label className="sm:hidden text-xs text-gray-500 mb-1">Size</label>
-                    <input type="text" value={item.size} onChange={(e) => setForm((f) => { const newItems = [...f.items]; newItems[i].size = e.target.value; return { ...f, items: newItems }; })} className={`${selectClass} py-1 text-sm text-center`} placeholder="Size" />
+                    <label className="md:hidden text-xs text-gray-500 mb-1">Size</label>
+                    <select 
+                        value={item.size} 
+                        onChange={(e) => setForm((f) => { const newItems = [...f.items]; newItems[i].size = e.target.value; return { ...f, items: newItems }; })} 
+                        className={`${selectClass} py-1 text-sm text-center px-1`}
+                    >
+                        <option value="">Size</option>
+                        <option value="S">S</option>
+                        <option value="M">M</option>
+                        <option value="L">L</option>
+                        <option value="XL">XL</option>
+                    </select>
                   </div>
-                  <div><label className="sm:hidden text-xs text-gray-500 mb-1">SL</label><input type="number" min="1" value={item.quantity} onChange={(e) => setForm((f) => { const newItems = [...f.items]; newItems[i].quantity = Number(e.target.value); return { ...f, items: newItems }; })} className="w-full border border-gray-300 rounded px-2 py-1 text-center text-base" /></div>
-                  <div><label className="sm:hidden text-xs text-gray-500 mb-1">Sale</label><input type="number" min="0" max="100" value={item.sale} onChange={(e) => setForm((f) => { const newItems = [...f.items]; newItems[i].sale = Number(e.target.value); return { ...f, items: newItems }; })} className="w-full border border-gray-300 rounded px-2 py-1 text-center text-red-600 font-medium text-base" /></div>
-                  <div className="flex justify-between sm:block text-right">
-                    <span className="sm:hidden text-sm text-gray-500">Giá gốc:</span>
+                  <div><label className="md:hidden text-xs text-gray-500 mb-1">SL</label><input type="number" min="1" value={item.quantity} onChange={(e) => setForm((f) => { const newItems = [...f.items]; newItems[i].quantity = Number(e.target.value); return { ...f, items: newItems }; })} className="w-full border border-gray-300 rounded px-2 py-1 text-center text-base" /></div>
+                  <div><label className="md:hidden text-xs text-gray-500 mb-1">Sale</label><input type="number" min="0" max="100" value={item.sale} onChange={(e) => setForm((f) => { const newItems = [...f.items]; newItems[i].sale = Number(e.target.value); return { ...f, items: newItems }; })} className="w-full border border-gray-300 rounded px-2 py-1 text-center text-red-600 font-medium text-base" /></div>
+                  <div className="flex justify-between md:block text-right">
+                    <span className="md:hidden text-sm text-gray-500">Giá gốc:</span>
                     <input
                         type="number"
                         value={info.price}
@@ -499,28 +509,28 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
                                 return { ...f, items: newItems };
                             });
                         }}
-                        className="w-full sm:w-24 border border-gray-300 rounded px-2 py-1 text-right text-gray-600 text-base"
+                        className="w-full md:w-24 border border-gray-300 rounded px-2 py-1 text-right text-gray-600 text-base"
                     />
                   </div>
-                  <div className="flex justify-between sm:block text-right"><span className="sm:hidden text-sm text-gray-500">Thành tiền:</span><span className="font-bold text-blue-700">{salePrice.toLocaleString()}₫</span></div>
-                  <div className="flex justify-center sm:justify-center mt-2 sm:mt-0"><button onClick={() => removeProduct(i)} className="bg-red-100 hover:bg-red-200 p-2 rounded-full text-red-600 transition"><Trash2 className="w-4 h-4" /></button></div>
+                  <div className="flex justify-between md:block text-right"><span className="md:hidden text-sm text-gray-500">Thành tiền:</span><span className="font-bold text-blue-700">{salePrice.toLocaleString()}₫</span></div>
+                  <div className="flex justify-center md:justify-center mt-2 md:mt-0"><button onClick={() => removeProduct(i)} className="bg-red-100 hover:bg-red-200 p-2 rounded-full text-red-600 transition"><Trash2 className="w-4 h-4" /></button></div>
                 </div>
               );
             })}
           </div>
         </div>
 
-        <div className="pt-6 mt-6 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-start gap-4">
-          <div className="w-full sm:w-40 order-2 sm:order-1 mt-4 sm:mt-0">
+        <div className="pt-6 mt-6 border-t border-gray-100 flex flex-col md:flex-row justify-between items-start gap-4">
+          <div className="w-full md:w-40 order-2 md:order-1 mt-4 md:mt-0">
             <label className="block text-sm mb-1 font-medium text-gray-700">Phí ship (₫)</label>
             <input type="number" value={form.shipFee} onChange={(e) => setForm((f) => ({ ...f, shipFee: Number(e.target.value) }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base focus:ring-2 focus:ring-blue-500 outline-none" />
           </div>
           
-          <div className="w-full sm:w-auto order-1 sm:order-2 space-y-3 bg-white">
-            <div className="flex justify-between sm:justify-end items-center"><span className="text-sm text-gray-600 sm:mr-4">Thành tiền:</span><span className="font-medium text-right sm:w-24">{calcTotal().toLocaleString()}₫</span></div>
-            <div className="flex justify-between sm:justify-end items-center"><span className="text-sm text-gray-600 sm:mr-4">Phí ship:</span><span className="font-medium text-right sm:w-24">+{(form.shipFee || 0).toLocaleString()}₫</span></div>
-            <div className="flex justify-between sm:justify-end items-center border-t pt-3 mt-2">
-                <span className="text-lg font-bold text-blue-700 sm:mr-3">Tổng cộng:</span>
+          <div className="w-full md:w-auto order-1 md:order-2 space-y-3 bg-white">
+            <div className="flex justify-between md:justify-end items-center"><span className="text-sm text-gray-600 md:mr-4">Thành tiền:</span><span className="font-medium text-right md:w-24">{calcTotal().toLocaleString()}₫</span></div>
+            <div className="flex justify-between md:justify-end items-center"><span className="text-sm text-gray-600 md:mr-4">Phí ship:</span><span className="font-medium text-right md:w-24">+{(form.shipFee || 0).toLocaleString()}₫</span></div>
+            <div className="flex justify-between md:justify-end items-center border-t pt-3 mt-2">
+                <span className="text-lg font-bold text-blue-700 md:mr-3">Tổng cộng:</span>
                 <input
                     type="number"
                     value={totalWithShip}
