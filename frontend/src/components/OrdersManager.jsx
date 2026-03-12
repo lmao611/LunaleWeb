@@ -109,6 +109,7 @@ export default function OrdersManager() {
       receivedDate: "",
       deliverDate: "",
       paymentMethod: "COD",
+      shipFee: 25000,
     });
     setShowModal(true);
   }
@@ -131,6 +132,7 @@ export default function OrdersManager() {
       receivedDate: order.receivedDate ? order.receivedDate.split("T")[0] : "",
       deliverDate: order.deliverDate ? order.deliverDate.split("T")[0] : "",
       paymentMethod: order.paymentMethod || "COD",
+      shipFee: order.shipFee || 0,
     };
     setEditing(copy);
     setShowModal(true);
@@ -151,9 +153,11 @@ export default function OrdersManager() {
     });
   }
 
-  function calcTotal(items) {
-    if (!items || !items.length) return 0;
-    return items.reduce((acc, it) => acc + Number(it.price || 0) * Number(it.quantity || 0), 0);
+  function calcTotal(items, shipFee) {
+    const itemsTotal = items && items.length 
+        ? items.reduce((acc, it) => acc + Number(it.price || 0) * Number(it.quantity || 0), 0)
+        : 0;
+    return itemsTotal + Number(shipFee || 0);
   }
 
   function formatDate(dateStr) {
@@ -181,6 +185,7 @@ export default function OrdersManager() {
         receivedDate: editing.receivedDate || null,
         deliverDate: editing.deliverDate || null,
         paymentMethod: editing.paymentMethod,
+        shipFee: Number(editing.shipFee || 0),
       };
       if (editing.id) {
         await axios.put(`/orders/${editing.id}`, payload);
@@ -211,7 +216,7 @@ export default function OrdersManager() {
   
     const headers = [
       "STT", "Trạng thái", "Ngày nhận", "Ngày giao", "Khách hàng",
-      "Địa chỉ", "SĐT", "Sản phẩm", "Tổng tiền", "Thanh toán",
+      "Địa chỉ", "SĐT", "Sản phẩm", "Phí ship", "Tổng tiền", "Thanh toán",
     ];
     worksheet.addRow(headers);
   
@@ -234,6 +239,7 @@ export default function OrdersManager() {
         o.address,
         o.phone,
         itemsStr,
+        (o.shipFee || 0).toLocaleString() + " ₫",
         (o.total || 0).toLocaleString() + " ₫",
         o.paymentMethod,
       ]);
@@ -311,6 +317,7 @@ export default function OrdersManager() {
                                         <th className="px-4 py-2 text-left whitespace-nowrap">Sản phẩm</th>
                                         <th className="px-4 py-2 text-left whitespace-nowrap">Số lượng</th>
                                         <th className="px-4 py-2 text-left whitespace-nowrap">Size</th>
+                                        <th className="px-4 py-2 text-left whitespace-nowrap">Phí ship</th>
                                         <th className="px-4 py-2 text-left whitespace-nowrap">Tổng</th>
                                         <th className="px-4 py-2 text-left whitespace-nowrap">Thanh toán</th>
                                         <th className="px-4 py-2 text-left whitespace-nowrap">Hành động</th>
@@ -354,6 +361,10 @@ export default function OrdersManager() {
 
                                                 <td className="px-4 py-2 align-top">
                                                     <ul>{(o.items || []).map((it, i) => <li key={i}>{it.size}</li>)}</ul>
+                                                </td>
+
+                                                <td className="px-4 py-2 align-top text-gray-600 whitespace-nowrap">
+                                                    {(o.shipFee || 0).toLocaleString()} ₫
                                                 </td>
 
                                                 <td className="px-4 py-2 align-top font-semibold text-gray-900 whitespace-nowrap">
@@ -484,8 +495,8 @@ export default function OrdersManager() {
                   </div>
                   <div className="space-y-3 bg-gray-50 p-3 sm:p-4 rounded-xl border border-gray-100">
                      {editing.items.map((it, idx) => (
-                        <div key={idx} className="flex flex-col sm:flex-row gap-2 sm:items-center bg-white p-2 sm:p-2 rounded shadow-sm border border-gray-200">
-                            <div className="relative flex-1">
+                        <div key={idx} className="flex flex-col gap-2 bg-white p-3 rounded shadow-sm border border-gray-200">
+                            <div className="relative w-full">
                                 <input 
                                     type="text"
                                     value={it.tempName || ""}
@@ -499,7 +510,7 @@ export default function OrdersManager() {
                                     }}
                                     onFocus={() => setFocusedProductIndex(idx)}
                                     onBlur={() => setTimeout(() => setFocusedProductIndex(null), 200)}
-                                    className="w-full border border-gray-200 sm:border-0 bg-gray-50 sm:bg-transparent px-2 py-2 sm:py-1 text-sm outline-none font-medium rounded focus:bg-white transition"
+                                    className="w-full border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none font-medium rounded focus:bg-white focus:border-blue-300 transition"
                                     placeholder="Nhập tên SP..."
                                 />
                                 {focusedProductIndex === idx && it.tempName && (
@@ -524,27 +535,46 @@ export default function OrdersManager() {
                                     </div>
                                 )}
                             </div>
-                            <div className="flex items-center gap-1.5 w-full sm:w-auto mt-1 sm:mt-0">
-                                <div className="flex items-center flex-1 sm:flex-none border border-gray-200 sm:border-0 rounded bg-gray-50 sm:bg-transparent p-1.5 sm:p-0">
-                                    <span className="text-xs text-gray-400 sm:hidden mr-2 ml-1">Size</span>
-                                    <select 
-                                        value={it.size || "M"} 
-                                        onChange={(e) => setEditing((p) => { const items = [...p.items]; items[idx].size = e.target.value; return { ...p, items }; })} 
-                                        className="w-12 sm:w-[70px] border-0 bg-transparent text-center text-sm focus:ring-0 outline-none"
-                                    >
-                                        <option value="S">S</option>
-                                        <option value="M">M</option>
-                                        <option value="L">L</option>
-                                        <option value="XL">XL</option>
-                                    </select>
-                                    <div className="h-4 w-px bg-gray-300 mx-1 sm:mx-1"></div>
-                                    <span className="text-xs text-gray-400 sm:hidden mr-2">SL</span>
-                                    <input type="number" min="1" value={it.quantity} onChange={(e) => setEditing((p) => { const items = [...p.items]; items[idx].quantity = Number(e.target.value); return { ...p, items }; })} className="w-12 sm:w-16 border-0 bg-transparent text-center text-sm font-bold focus:ring-0" placeholder="SL" />
-                                    <div className="h-4 w-px bg-gray-300 mx-1 sm:mx-1"></div>
-                                    <span className="text-xs text-gray-400 sm:hidden mr-2">Giá</span>
-                                    <input type="number" value={it.price} onChange={(e) => setEditing((p) => { const items = [...p.items]; items[idx].price = Number(e.target.value); return { ...p, items }; })} className="flex-1 sm:w-24 border-0 bg-transparent text-right text-sm text-blue-600 focus:ring-0" placeholder="Giá" />
+
+                            <div className="flex items-center gap-2 w-full">
+                                <div className="flex items-center flex-1 border border-gray-200 rounded bg-gray-50 overflow-hidden divide-x divide-gray-200">
+                                    <div className="flex items-center px-2 py-1.5 flex-shrink-0">
+                                        <span className="text-xs text-gray-500 mr-1.5">Size</span>
+                                        <select 
+                                            value={it.size || "M"} 
+                                            onChange={(e) => setEditing((p) => { const items = [...p.items]; items[idx].size = e.target.value; return { ...p, items }; })} 
+                                            className="bg-transparent text-sm focus:ring-0 outline-none font-medium text-gray-700"
+                                        >
+                                            <option value="S">S</option>
+                                            <option value="M">M</option>
+                                            <option value="L">L</option>
+                                            <option value="XL">XL</option>
+                                        </select>
+                                    </div>
+                                    <div className="flex items-center px-2 py-1.5 flex-shrink-0">
+                                        <span className="text-xs text-gray-500 mr-1.5">SL</span>
+                                        <input 
+                                            type="number" 
+                                            min="1" 
+                                            value={it.quantity} 
+                                            onChange={(e) => setEditing((p) => { const items = [...p.items]; items[idx].quantity = Number(e.target.value); return { ...p, items }; })} 
+                                            className="w-12 border-0 bg-transparent text-center text-sm font-bold focus:ring-0 text-gray-800 p-0" 
+                                        />
+                                    </div>
+                                    <div className="flex items-center px-2 py-1.5 flex-1">
+                                        <span className="text-xs text-gray-500 mr-1.5">Giá</span>
+                                        <input 
+                                            type="number" 
+                                            value={it.price} 
+                                            onChange={(e) => setEditing((p) => { const items = [...p.items]; items[idx].price = Number(e.target.value); return { ...p, items }; })} 
+                                            className="w-full border-0 bg-transparent text-right text-sm font-semibold text-blue-600 focus:ring-0 p-0" 
+                                            placeholder="Giá" 
+                                        />
+                                    </div>
                                 </div>
-                                <button type="button" onClick={() => removeItem(idx)} className="text-gray-400 hover:text-red-500 p-2.5 sm:p-1 border border-gray-200 sm:border-0 rounded bg-gray-50 sm:bg-transparent transition"><Trash2 size={16}/></button>
+                                <button type="button" onClick={() => removeItem(idx)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2.5 border border-gray-200 rounded transition bg-gray-50 flex-shrink-0">
+                                    <Trash2 size={16}/>
+                                </button>
                             </div>
                         </div>
                      ))}
@@ -552,22 +582,47 @@ export default function OrdersManager() {
                   </div>
                </div>
 
-               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 border-t pt-5 border-dashed">
-                  <div>
-                      <label className="text-xs text-gray-500 font-bold uppercase mb-1 block">Trạng thái</label>
-                      <select value={editing.status} onChange={(e) => setEditing({...editing, status: e.target.value})} className="w-full border border-gray-300 rounded px-2 py-2 text-sm font-medium">
-                          {statuses.map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
+               <div className="grid grid-cols-2 gap-4 border-t pt-5 border-dashed">
+                  <div className="col-span-2 md:col-span-1 grid grid-cols-2 gap-4">
+                      <div>
+                          <label className="text-xs text-gray-500 font-bold uppercase mb-1 block">Trạng thái</label>
+                          <select value={editing.status} onChange={(e) => setEditing({...editing, status: e.target.value})} className="w-full border border-gray-300 rounded px-2 py-2 text-sm font-medium">
+                              {statuses.map(s => <option key={s} value={s}>{s}</option>)}
+                          </select>
+                      </div>
+                      <div>
+                          <label className="text-xs text-gray-500 font-bold uppercase mb-1 block">Thanh toán</label>
+                          <select value={editing.paymentMethod} onChange={(e) => setEditing({...editing, paymentMethod: e.target.value})} className="w-full border border-gray-300 rounded px-2 py-2 text-sm">
+                              {paymentMethods.map(m => <option key={m} value={m}>{m}</option>)}
+                          </select>
+                      </div>
                   </div>
-                  <div>
-                      <label className="text-xs text-gray-500 font-bold uppercase mb-1 block">Thanh toán</label>
-                      <select value={editing.paymentMethod} onChange={(e) => setEditing({...editing, paymentMethod: e.target.value})} className="w-full border border-gray-300 rounded px-2 py-2 text-sm">
-                          {paymentMethods.map(m => <option key={m} value={m}>{m}</option>)}
-                      </select>
-                  </div>
-                  <div className="md:col-span-2 text-right">
-                      <span className="block text-xs text-gray-500 uppercase font-bold mb-1">Tổng tiền đơn hàng</span>
-                      <span className="text-3xl font-bold text-blue-700 tracking-tight">{calcTotal(editing.items).toLocaleString()} ₫</span>
+
+                  <div className="col-span-2 md:col-span-1 space-y-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                      <div className="flex justify-between items-center text-sm">
+                          <span className="text-gray-600 font-medium">Tạm tính SP:</span>
+                          <span className="font-semibold text-gray-800">
+                              {(editing.items && editing.items.length ? editing.items.reduce((acc, it) => acc + Number(it.price || 0) * Number(it.quantity || 0), 0) : 0).toLocaleString()} ₫
+                          </span>
+                      </div>
+                      <div className="flex justify-between items-center text-sm">
+                          <label className="text-gray-600 font-medium whitespace-nowrap mr-2">Phí ship:</label>
+                          <div className="relative">
+                              <input 
+                                  type="number" 
+                                  value={editing.shipFee} 
+                                  onChange={(e) => setEditing({...editing, shipFee: e.target.value})} 
+                                  className="w-24 text-right border border-gray-300 rounded px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
+                              />
+                              <span className="absolute right-2 top-1.5 text-gray-400 text-xs pointer-events-none hidden">₫</span>
+                          </div>
+                      </div>
+                      <div className="flex justify-between items-end border-t border-dashed pt-2 mt-1">
+                          <span className="block text-xs text-gray-500 uppercase font-bold mb-0.5">Tổng thanh toán</span>
+                          <span className="text-2xl font-extrabold text-blue-700 tracking-tight leading-none">
+                              {calcTotal(editing.items, editing.shipFee).toLocaleString()} ₫
+                          </span>
+                      </div>
                   </div>
                </div>
 
