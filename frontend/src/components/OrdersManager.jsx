@@ -115,6 +115,11 @@ export default function OrdersManager() {
   }
 
   function openEdit(order) {
+    const itemsTotal = (order.items || []).reduce((acc, it) => acc + (Number(it.price || 0) * Number(it.quantity || 0)), 0);
+    const savedTotal = order.total || order.totalAmount || itemsTotal;
+    let currentShipFee = order.shipFee !== undefined ? order.shipFee : (savedTotal - itemsTotal);
+    if (currentShipFee < 0) currentShipFee = 0;
+
     const copy = {
       id: order._id ?? order.id,
       customerId: order.customerId?._id ?? order.customerId,
@@ -132,7 +137,7 @@ export default function OrdersManager() {
       receivedDate: order.receivedDate ? order.receivedDate.split("T")[0] : "",
       deliverDate: order.deliverDate ? order.deliverDate.split("T")[0] : "",
       paymentMethod: order.paymentMethod || "COD",
-      shipFee: order.shipFee || 0,
+      shipFee: currentShipFee,
     };
     setEditing(copy);
     setShowModal(true);
@@ -221,6 +226,11 @@ export default function OrdersManager() {
     worksheet.addRow(headers);
   
     currentMonthOrders.forEach((o, idx) => {
+      const itemsTotal = (o.items || []).reduce((acc, it) => acc + (Number(it.price || 0) * Number(it.quantity || 0)), 0);
+      const savedTotal = o.total || o.totalAmount || itemsTotal;
+      let displayShipFee = o.shipFee !== undefined ? o.shipFee : (savedTotal - itemsTotal);
+      if (displayShipFee < 0) displayShipFee = 0;
+
       const itemsStr = (o.items || [])
         .map((it) => {
           const prod = products.find(
@@ -239,8 +249,8 @@ export default function OrdersManager() {
         o.address,
         o.phone,
         itemsStr,
-        (o.shipFee || 0).toLocaleString() + " ₫",
-        (o.total || 0).toLocaleString() + " ₫",
+        displayShipFee.toLocaleString() + " ₫",
+        savedTotal.toLocaleString() + " ₫",
         o.paymentMethod,
       ]);
     });
@@ -329,6 +339,11 @@ export default function OrdersManager() {
                                             : o.status === "đang giao" ? "bg-yellow-100 text-yellow-700"
                                             : o.status === "đã hủy" ? "bg-gray-100 text-gray-500 line-through"
                                             : "bg-green-100 text-green-700";
+
+                                        const itemsTotal = (o.items || []).reduce((acc, it) => acc + (Number(it.price || 0) * Number(it.quantity || 0)), 0);
+                                        const savedTotal = o.total || o.totalAmount || itemsTotal;
+                                        let displayShipFee = o.shipFee !== undefined ? o.shipFee : (savedTotal - itemsTotal);
+                                        if (displayShipFee < 0) displayShipFee = 0;
                                         
                                         return (
                                             <tr key={o._id ?? o.id} className="odd:bg-white even:bg-gray-50 hover:bg-gray-100 transition">
@@ -364,11 +379,11 @@ export default function OrdersManager() {
                                                 </td>
 
                                                 <td className="px-4 py-2 align-top text-gray-600 whitespace-nowrap">
-                                                    {(o.shipFee || 0).toLocaleString()} ₫
+                                                    {displayShipFee.toLocaleString()} ₫
                                                 </td>
 
                                                 <td className="px-4 py-2 align-top font-semibold text-gray-900 whitespace-nowrap">
-                                                    {(o.total || 0).toLocaleString()} ₫
+                                                    {savedTotal.toLocaleString()} ₫
                                                 </td>
                                                 <td className="px-4 py-2 align-top whitespace-nowrap">{o.paymentMethod}</td>
 
@@ -404,7 +419,7 @@ export default function OrdersManager() {
              <div className="flex items-center gap-3 min-w-max pb-1">
                 <span className="text-xs font-bold text-gray-400 uppercase mr-2 tracking-wide sticky left-0 bg-white pl-1">Chọn tháng:</span>
                 {sortedMonthKeys.map(key => {
-                    const monthTotal = groupedOrders[key].reduce((sum, o) => sum + (o.total || 0), 0);
+                    const monthTotal = groupedOrders[key].reduce((sum, o) => sum + (o.total || o.totalAmount || 0), 0);
                     return (
                         <div key={key} className="flex flex-col items-center gap-1">
                             <button
@@ -614,7 +629,6 @@ export default function OrdersManager() {
                                   onChange={(e) => setEditing({...editing, shipFee: e.target.value})} 
                                   className="w-24 text-right border border-gray-300 rounded px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
                               />
-                              <span className="absolute right-2 top-1.5 text-gray-400 text-xs pointer-events-none hidden">₫</span>
                           </div>
                       </div>
                       <div className="flex justify-between items-end border-t border-dashed pt-2 mt-1">
