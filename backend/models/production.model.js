@@ -1,12 +1,20 @@
 import mongoose from "mongoose";
 
+const sizeSchema = {
+  total: { type: Number, default: 0 },
+  S: { type: Number, default: 0 },
+  M: { type: Number, default: 0 },
+  L: { type: Number, default: 0 },
+  XL: { type: Number, default: 0 }
+};
+
 const inventorySchema = new mongoose.Schema({
-  tonDauKy: { type: Number, default: 0 },
+  tonDauKy: sizeSchema,
   ngayNhap: { type: String, default: "" },
-  nhapTrongKy: { type: Number, default: 0 },
+  nhapTrongKy: sizeSchema,
   ngayXuat: { type: String, default: "" },
-  xuatTrongKy: { type: Number, default: 0 },
-  tonCuoiKy: { type: Number, default: 0 }
+  xuatTrongKy: sizeSchema,
+  tonCuoiKy: sizeSchema
 });
 
 const batchItemSchema = new mongoose.Schema({

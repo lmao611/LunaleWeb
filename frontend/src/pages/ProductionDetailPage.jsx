@@ -37,24 +37,77 @@ const ProductionDetailPage = () => {
   const calculateInventory = (currentData) => {
     let newData = [...currentData];
     for (let i = 0; i < newData.length; i++) {
-      let tonDau = i === 0 ? Number(newData[i].tonDauKy) || 0 : Number(newData[i - 1].tonCuoiKy) || 0;
-      let nhap = Number(newData[i].nhapTrongKy) || 0;
-      let xuat = Number(newData[i].xuatTrongKy) || 0;
-      newData[i].tonCuoiKy = tonDau + nhap - xuat;
+      const prevTonCuoi = i === 0
+        ? {
+            S: Number(newData[i].tonDauKy?.S) || 0,
+            M: Number(newData[i].tonDauKy?.M) || 0,
+            L: Number(newData[i].tonDauKy?.L) || 0,
+            XL: Number(newData[i].tonDauKy?.XL) || 0
+          }
+        : {
+            S: Number(newData[i-1].tonCuoiKy?.S) || 0,
+            M: Number(newData[i-1].tonCuoiKy?.M) || 0,
+            L: Number(newData[i-1].tonCuoiKy?.L) || 0,
+            XL: Number(newData[i-1].tonCuoiKy?.XL) || 0
+          };
+
+      if (i > 0) {
+        newData[i].tonDauKy = { ...prevTonCuoi, total: prevTonCuoi.S + prevTonCuoi.M + prevTonCuoi.L + prevTonCuoi.XL };
+      } else {
+        newData[i].tonDauKy.total = (Number(newData[i].tonDauKy?.S) || 0) + (Number(newData[i].tonDauKy?.M) || 0) + (Number(newData[i].tonDauKy?.L) || 0) + (Number(newData[i].tonDauKy?.XL) || 0);
+      }
+
+      const nhap = {
+        S: Number(newData[i].nhapTrongKy?.S) || 0,
+        M: Number(newData[i].nhapTrongKy?.M) || 0,
+        L: Number(newData[i].nhapTrongKy?.L) || 0,
+        XL: Number(newData[i].nhapTrongKy?.XL) || 0
+      };
+      newData[i].nhapTrongKy.total = nhap.S + nhap.M + nhap.L + nhap.XL;
+
+      const xuat = {
+        S: Number(newData[i].xuatTrongKy?.S) || 0,
+        M: Number(newData[i].xuatTrongKy?.M) || 0,
+        L: Number(newData[i].xuatTrongKy?.L) || 0,
+        XL: Number(newData[i].xuatTrongKy?.XL) || 0
+      };
+      newData[i].xuatTrongKy.total = xuat.S + xuat.M + xuat.L + xuat.XL;
+
+      newData[i].tonCuoiKy = {
+        S: prevTonCuoi.S + nhap.S - xuat.S,
+        M: prevTonCuoi.M + nhap.M - xuat.M,
+        L: prevTonCuoi.L + nhap.L - xuat.L,
+        XL: prevTonCuoi.XL + nhap.XL - xuat.XL,
+      };
+      newData[i].tonCuoiKy.total = newData[i].tonCuoiKy.S + newData[i].tonCuoiKy.M + newData[i].tonCuoiKy.L + newData[i].tonCuoiKy.XL;
     }
     return newData;
   };
 
-  const handleInventoryChange = (index, field, value) => {
+  const handleInventoryChange = (index, category, field, value) => {
     const newData = [...inventory];
-    newData[index][field] = value;
+    if (field) {
+      if (!newData[index][category]) {
+        newData[index][category] = { total: 0, S: 0, M: 0, L: 0, XL: 0 };
+      }
+      newData[index][category][field] = value;
+    } else {
+      newData[index][category] = value;
+    }
     setInventory(calculateInventory(newData));
   };
 
   const addInventoryRow = () => {
     setInventory(prev => [
       ...prev,
-      { tonDauKy: 0, ngayNhap: "", nhapTrongKy: 0, ngayXuat: "", xuatTrongKy: 0, tonCuoiKy: 0 }
+      {
+        tonDauKy: { total: 0, S: 0, M: 0, L: 0, XL: 0 },
+        ngayNhap: "",
+        nhapTrongKy: { total: 0, S: 0, M: 0, L: 0, XL: 0 },
+        ngayXuat: "",
+        xuatTrongKy: { total: 0, S: 0, M: 0, L: 0, XL: 0 },
+        tonCuoiKy: { total: 0, S: 0, M: 0, L: 0, XL: 0 }
+      }
     ]);
   };
 
@@ -87,25 +140,44 @@ const ProductionDetailPage = () => {
   };
 
   const formatCurrency = (amount) => {
-    if (!amount) return "0 ₫";
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+    if (!amount) return "";
+    return new Intl.NumberFormat('vi-VN').format(amount);
   };
 
-  if (loading) return <div className="min-h-screen bg-black text-teal-400 p-8 pt-24 text-center">Đang tải...</div>;
-  if (!product) return <div className="min-h-screen bg-black text-teal-400 p-8 pt-24 text-center">Không tìm thấy sản phẩm</div>;
+  if (loading) return <div className="min-h-screen bg-[#FDFBF7] text-gray-900 p-8 pt-24 text-center">Đang tải...</div>;
+  if (!product) return <div className="min-h-screen bg-[#FDFBF7] text-gray-900 p-8 pt-24 text-center">Không tìm thấy sản phẩm</div>;
 
   const getProductName = () => {
     if (!product.name) return "SẢN PHẨM";
     return product.name.split(" ")[0].toUpperCase();
   };
 
+  const SizeInputs = ({ row, index, category, isReadOnly }) => (
+    <>
+      <td className="border border-black p-0 min-w-[40px] bg-gray-100 font-bold">
+        {row[category]?.total || 0}
+      </td>
+      {['S', 'M', 'L', 'XL'].map(size => (
+        <td key={size} className="border border-black p-0 min-w-[40px]">
+          <input
+            type="number"
+            value={row[category]?.[size] || ""}
+            onChange={(e) => handleInventoryChange(index, category, size, e.target.value)}
+            disabled={isReadOnly}
+            className="w-full h-full text-center bg-transparent outline-none py-2 disabled:bg-transparent"
+          />
+        </td>
+      ))}
+    </>
+  );
+
   return (
-    <div className="min-h-screen bg-black text-teal-400 p-4 pt-24 text-sm font-mono pb-20">
-      <div className="max-w-[1600px] mx-auto">
+    <div className="min-h-screen bg-[#FDFBF7] text-gray-900 p-4 pt-24 text-sm pb-20">
+      <div className="max-w-[1800px] mx-auto">
         <div className="flex justify-between items-center mb-6">
           <button
             onClick={() => navigate("/admin/production")}
-            className="flex items-center text-teal-500 hover:text-teal-300 transition-colors"
+            className="flex items-center text-blue-600 hover:text-blue-800 transition-colors font-semibold"
           >
             <ArrowLeft className="mr-2" size={20} />
             Quay lại
@@ -114,97 +186,83 @@ const ProductionDetailPage = () => {
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="flex items-center bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-md font-bold transition-colors disabled:opacity-50 shadow-[0_0_10px_rgba(16,185,129,0.4)]"
+            className="flex items-center bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-bold transition-colors disabled:opacity-50 shadow-md"
           >
             <Save className="mr-2" size={20} />
             {isSaving ? "ĐANG LƯU..." : "LƯU THAY ĐỔI"}
           </button>
         </div>
 
-        <h1 className="text-3xl font-bold mb-8 text-center uppercase tracking-widest text-emerald-400">
+        <h1 className="text-3xl font-bold mb-8 text-center uppercase tracking-widest text-black">
           CHI TIẾT SẢN XUẤT - {product.name}
         </h1>
 
-        <div className="flex flex-col xl:flex-row gap-8">
-          <div className="flex-1 flex flex-col gap-6">
+        <div className="flex flex-col 2xl:flex-row gap-8 items-start">
+          <div className="w-full 2xl:w-1/2 flex flex-col gap-6 min-w-0">
             <div className="flex flex-col sm:flex-row gap-4">
-              <div className="w-full sm:w-56 border border-teal-600 bg-gray-900 flex flex-col items-center justify-center p-4 rounded-md shadow-[0_0_15px_rgba(20,184,166,0.2)]">
-                <span className="font-bold text-center uppercase mb-3 text-emerald-300 tracking-wider">ẢNH {getProductName()}</span>
+              <div className="w-full sm:w-48 border-2 border-black bg-white flex flex-col items-center justify-center p-2 shadow-sm shrink-0">
+                <span className="font-bold text-center uppercase mb-2">ẢNH {getProductName()}</span>
                 <img 
-                  src={product.image || product.thumbnail} 
+                  src={product.thumbnail || product.image} 
                   alt={product.name}
-                  className="w-full object-contain rounded border border-teal-800"
+                  loading="lazy"
+                  className="w-full object-contain"
                 />
               </div>
 
-              <div className="flex-1 overflow-x-auto rounded-md border border-teal-600 shadow-[0_0_15px_rgba(20,184,166,0.1)]">
-                <table className="w-full border-collapse text-center min-w-[600px] bg-gray-900">
+              <div className="flex-1 overflow-x-auto shadow-sm min-w-0">
+                <table className="w-full border-collapse text-center border-2 border-black bg-white text-xs whitespace-nowrap">
                   <thead>
                     <tr>
-                      <th className="border border-teal-700 p-3 bg-teal-900/60 text-emerald-300 w-24">TỒN ĐẦU KỲ</th>
-                      <th className="border border-teal-700 p-3 bg-emerald-900/50 text-emerald-300 w-32">NGÀY NHẬP</th>
-                      <th className="border border-teal-700 p-3 bg-emerald-900/50 text-emerald-300 w-32">NHẬP TRONG KỲ</th>
-                      <th className="border border-teal-700 p-3 bg-cyan-900/50 text-emerald-300 w-32">NGÀY XUẤT</th>
-                      <th className="border border-teal-700 p-3 bg-cyan-900/50 text-emerald-300 w-32">XUẤT TRONG KỲ</th>
-                      <th className="border border-teal-700 p-3 bg-teal-900/60 text-emerald-300 w-32">TỒN CUỐI KỲ</th>
+                      <th className="border border-black p-2 bg-[#8FAADC]" colSpan="5">TỒN ĐẦU KỲ</th>
+                      <th className="border border-black p-2 bg-[#A9D08E]" rowSpan="2">NGÀY NHẬP</th>
+                      <th className="border border-black p-2 bg-[#A9D08E]" colSpan="5">NHẬP TRONG KỲ</th>
+                      <th className="border border-black p-2 bg-[#F4B084]" rowSpan="2">NGÀY XUẤT</th>
+                      <th className="border border-black p-2 bg-[#F4B084]" colSpan="5">XUẤT TRONG KỲ</th>
+                      <th className="border border-black p-2 bg-[#8FAADC]" colSpan="5">TỒN CUỐI KỲ</th>
+                    </tr>
+                    <tr>
+                      {['TỒNG', 'S', 'M', 'L', 'XL'].map((h, i) => <th key={`td-${i}`} className="border border-black p-1 bg-gray-100">{h}</th>)}
+                      {['TỒNG', 'S', 'M', 'L', 'XL'].map((h, i) => <th key={`n-${i}`} className="border border-black p-1 bg-gray-100">{h}</th>)}
+                      {['TỒNG', 'S', 'M', 'L', 'XL'].map((h, i) => <th key={`x-${i}`} className="border border-black p-1 bg-gray-100">{h}</th>)}
+                      {['TỒNG', 'S', 'M', 'L', 'XL'].map((h, i) => <th key={`tc-${i}`} className="border border-black p-1 bg-gray-100">{h}</th>)}
                     </tr>
                   </thead>
                   <tbody>
                     {inventory.map((row, index) => (
-                      <tr key={index} className="hover:bg-gray-800 transition-colors">
-                        <td className="border border-teal-700 p-0">
-                          {index === 0 ? (
-                            <input 
-                              type="number" 
-                              value={row.tonDauKy} 
-                              onChange={(e) => handleInventoryChange(index, "tonDauKy", e.target.value)}
-                              className="w-full h-full text-center bg-transparent outline-none font-bold text-yellow-400 py-3"
-                            />
-                          ) : null}
-                        </td>
-                        <td className="border border-teal-700 p-0">
+                      <tr key={index} className="hover:bg-gray-50 transition-colors">
+                        <SizeInputs row={row} index={index} category="tonDauKy" isReadOnly={index !== 0} />
+                        
+                        <td className="border border-black p-0 min-w-[110px]">
                           <input 
                             type="date" 
                             value={row.ngayNhap || ""} 
-                            onChange={(e) => handleInventoryChange(index, "ngayNhap", e.target.value)}
-                            className="w-full h-full text-center bg-transparent outline-none text-teal-200 py-3 [color-scheme:dark]"
+                            onChange={(e) => handleInventoryChange(index, "ngayNhap", null, e.target.value)}
+                            className="w-full h-full text-center bg-transparent outline-none py-2 text-xs"
                           />
                         </td>
-                        <td className="border border-teal-700 p-0">
-                          <input 
-                            type="number" 
-                            value={row.nhapTrongKy || ""} 
-                            onChange={(e) => handleInventoryChange(index, "nhapTrongKy", e.target.value)}
-                            className="w-full h-full text-center bg-transparent outline-none text-teal-200 py-3"
-                          />
-                        </td>
-                        <td className="border border-teal-700 p-0">
+                        
+                        <SizeInputs row={row} index={index} category="nhapTrongKy" isReadOnly={false} />
+                        
+                        <td className="border border-black p-0 min-w-[110px]">
                           <input 
                             type="date" 
                             value={row.ngayXuat || ""} 
-                            onChange={(e) => handleInventoryChange(index, "ngayXuat", e.target.value)}
-                            className="w-full h-full text-center bg-transparent outline-none text-teal-200 py-3 [color-scheme:dark]"
+                            onChange={(e) => handleInventoryChange(index, "ngayXuat", null, e.target.value)}
+                            className="w-full h-full text-center bg-transparent outline-none py-2 text-xs"
                           />
                         </td>
-                        <td className="border border-teal-700 p-0">
-                          <input 
-                            type="number" 
-                            value={row.xuatTrongKy || ""} 
-                            onChange={(e) => handleInventoryChange(index, "xuatTrongKy", e.target.value)}
-                            className="w-full h-full text-center bg-transparent outline-none text-teal-200 py-3"
-                          />
-                        </td>
-                        <td className="border border-teal-700 p-3 font-bold text-emerald-400 bg-gray-900">
-                          {row.tonCuoiKy}
-                        </td>
+                        
+                        <SizeInputs row={row} index={index} category="xuatTrongKy" isReadOnly={false} />
+                        <SizeInputs row={row} index={index} category="tonCuoiKy" isReadOnly={true} />
                       </tr>
                     ))}
                   </tbody>
                 </table>
-                <div className="bg-gray-900 p-2 border-t border-teal-700">
+                <div className="bg-white p-2 border-t-0 border-2 border-black">
                   <button 
                     onClick={addInventoryRow}
-                    className="flex items-center text-teal-500 hover:text-emerald-400 text-sm font-semibold transition-colors"
+                    className="flex items-center text-blue-600 hover:text-blue-800 text-sm font-semibold transition-colors"
                   >
                     <Plus size={16} className="mr-1" /> Thêm dòng xuất/nhập
                   </button>
@@ -212,97 +270,97 @@ const ProductionDetailPage = () => {
               </div>
             </div>
 
-            <div className="space-y-3 max-w-[800px]">
-              <div className="flex items-stretch border border-teal-700 rounded overflow-hidden">
-                <div className="bg-emerald-900/60 p-3 font-semibold min-w-[180px] text-center flex items-center justify-center border-r border-teal-700 text-emerald-300">
+            <div className="space-y-3 w-full border-2 border-black bg-white text-xs">
+              <div className="flex items-stretch border-b border-black">
+                <div className="bg-[#B4C6E7] p-2 font-semibold min-w-[120px] sm:min-w-[150px] text-center flex items-center justify-center border-r border-black">
                   Nếu Nhập (Ngày nhập)
                 </div>
-                <div className="bg-gray-900 p-3 flex-1 font-semibold flex items-center justify-center text-center text-teal-500/80">
-                  TỒN CUỐI KỲ = NHẬP TRONG KỲ TRƯỚC ĐÓ + TỒN CUỐI KỲ TRƯỚC ĐÓ - XUẤT TRONG KỲ
+                <div className="bg-[#D9E1F2] p-2 flex-1 font-semibold flex items-center justify-center text-center">
+                  TỒN CUỐI KỲ = NHẬP TRONG KỲ + TỒN CUỐI KỲ TRƯỚC ĐÓ - XUẤT TRONG KỲ
                 </div>
               </div>
-              <div className="flex items-stretch border border-teal-700 rounded overflow-hidden">
-                <div className="bg-emerald-900/60 p-3 font-semibold min-w-[180px] text-center flex items-center justify-center border-r border-teal-700 text-emerald-300">
+              <div className="flex items-stretch border-b border-black">
+                <div className="bg-[#A9D08E] p-2 font-semibold min-w-[120px] sm:min-w-[150px] text-center flex items-center justify-center border-r border-black">
                   Nếu Xuất (Ngày Xuất)
                 </div>
-                <div className="bg-gray-900 p-3 flex-1 font-semibold flex items-center justify-center text-center text-teal-500/80">
+                <div className="bg-[#D9E1F2] p-2 flex-1 font-semibold flex items-center justify-center text-center">
                   TỒN CUỐI KỲ = TỒN CUỐI KỲ TRƯỚC ĐÓ - XUẤT TRONG KỲ
                 </div>
               </div>
-              <div className="flex items-stretch border border-teal-700 rounded overflow-hidden">
-                <div className="bg-emerald-900/60 p-3 font-semibold min-w-[180px] text-center flex items-center justify-center border-r border-teal-700 text-emerald-300">
-                  Nếu Vừa Nhập Và Xuất
+              <div className="flex items-stretch">
+                <div className="bg-[#00B0F0] p-2 font-semibold min-w-[120px] sm:min-w-[150px] text-center flex items-center justify-center border-r border-black">
+                  Cả Nhập Và Xuất
                 </div>
-                <div className="bg-gray-900 p-3 flex-1 font-semibold flex items-center justify-center text-center text-teal-500/80">
-                  TỒN CUỐI KỲ = TỒN CUỐI KỲ TRƯỚC ĐÓ + NHẬP TRONG KỲ TRƯỚC ĐÓ - XUẤT TRONG KỲ TRƯỚC ĐÓ
+                <div className="bg-[#D9E1F2] p-2 flex-1 font-semibold flex items-center justify-center text-center">
+                  TỒN CUỐI KỲ = TỒN KỲ TRƯỚC + NHẬP TRONG KỲ - XUẤT TRONG KỲ
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="flex-1 flex flex-col gap-8">
+          <div className="w-full 2xl:w-1/2 flex flex-col gap-6 min-w-0">
             {batches.map((batch, batchIndex) => {
               const batchTotal = batch.items.reduce((sum, item) => sum + (Number(item.soLuong) * Number(item.gia) || 0), 0);
               
               return (
-                <div key={batchIndex} className="overflow-x-auto rounded-md border border-teal-600 shadow-[0_0_15px_rgba(20,184,166,0.1)]">
-                  <table className="w-full border-collapse text-center min-w-[600px] bg-gray-900">
+                <div key={batchIndex} className="overflow-x-auto shadow-sm min-w-0">
+                  <table className="w-full border-collapse text-center border-2 border-black bg-white whitespace-nowrap">
                     <thead>
                       <tr>
-                        <th className="border border-teal-700 p-3 bg-yellow-900/40 text-yellow-500 uppercase w-48 tracking-wider">
+                        <th className="border border-black p-3 bg-[#FFC000] text-red-600 uppercase w-48 font-bold">
                           {product.name} ĐỢT {batchIndex + 1}
                         </th>
-                        <th className="border border-teal-700 p-3 bg-teal-900/40 text-emerald-300 w-32">NGUỒN NHẬP</th>
-                        <th className="border border-teal-700 p-3 bg-teal-900/40 text-emerald-300 w-32">NGÀY NHẬP</th>
-                        <th className="border border-teal-700 p-3 bg-teal-900/40 text-emerald-300 w-32">SỐ LƯỢNG (MÉT)</th>
-                        <th className="border border-teal-700 p-3 bg-teal-900/40 text-emerald-300 w-32">GIÁ</th>
-                        <th className="border border-teal-700 p-3 bg-teal-900/40 text-emerald-300 w-40">TỔNG</th>
+                        <th className="border border-black p-3 bg-[#FFC000] w-32 font-bold">NGUỒN NHẬP</th>
+                        <th className="border border-black p-3 bg-[#FFC000] w-32 font-bold">NGÀY NHẬP</th>
+                        <th className="border border-black p-3 bg-[#FFC000] w-32 font-bold">SỐ LƯỢNG (MÉT)</th>
+                        <th className="border border-black p-3 bg-[#FFC000] w-32 font-bold">GIÁ</th>
+                        <th className="border border-black p-3 bg-[#FFC000] w-40 font-bold">TỔNG</th>
                       </tr>
                     </thead>
                     <tbody>
                       {batch.items.map((item, itemIndex) => (
-                        <tr key={itemIndex} className="hover:bg-gray-800 transition-colors">
-                          <td className="border border-teal-700 p-3 font-semibold text-emerald-200">{item.name}</td>
-                          <td className="border border-teal-700 p-0">
+                        <tr key={itemIndex} className="hover:bg-gray-50 transition-colors">
+                          <td className="border border-black p-2 font-semibold">{item.name}</td>
+                          <td className="border border-black p-0">
                             <input 
                               type="text" 
                               value={item.nguonNhap || ""} 
                               onChange={(e) => handleBatchItemChange(batchIndex, itemIndex, "nguonNhap", e.target.value)}
-                              className="w-full h-full text-center bg-transparent outline-none text-teal-200 py-3"
+                              className="w-full h-full text-center bg-transparent outline-none py-2"
                             />
                           </td>
-                          <td className="border border-teal-700 p-0">
+                          <td className="border border-black p-0">
                             <input 
                               type="date" 
                               value={item.ngayNhap || ""} 
                               onChange={(e) => handleBatchItemChange(batchIndex, itemIndex, "ngayNhap", e.target.value)}
-                              className="w-full h-full text-center bg-transparent outline-none text-teal-200 py-3 [color-scheme:dark]"
+                              className="w-full h-full text-center bg-transparent outline-none py-2"
                             />
                           </td>
-                          <td className="border border-teal-700 p-0">
+                          <td className="border border-black p-0">
                             <input 
                               type="number" 
                               value={item.soLuong || ""} 
                               onChange={(e) => handleBatchItemChange(batchIndex, itemIndex, "soLuong", e.target.value)}
-                              className="w-full h-full text-center bg-transparent outline-none text-teal-200 py-3"
+                              className="w-full h-full text-center bg-transparent outline-none py-2"
                             />
                           </td>
-                          <td className="border border-teal-700 p-0">
+                          <td className="border border-black p-0">
                             <input 
                               type="number" 
                               value={item.gia || ""} 
                               onChange={(e) => handleBatchItemChange(batchIndex, itemIndex, "gia", e.target.value)}
-                              className="w-full h-full text-center bg-transparent outline-none text-teal-200 py-3"
+                              className="w-full h-full text-center bg-transparent outline-none py-2"
                             />
                           </td>
-                          <td className="border border-teal-700 p-3 text-emerald-400">
+                          <td className="border border-black p-2 font-medium">
                             {formatCurrency(Number(item.soLuong) * Number(item.gia) || 0)}
                           </td>
                         </tr>
                       ))}
-                      <tr className="bg-teal-950/50 font-bold">
-                        <td colSpan="5" className="border border-teal-700 p-4 text-center uppercase tracking-widest text-emerald-300">Tổng Cộng</td>
-                        <td className="border border-teal-700 p-4 text-yellow-400 text-lg">{formatCurrency(batchTotal)}</td>
+                      <tr className="bg-[#FFC000] font-bold">
+                        <td colSpan="5" className="border border-black p-3 text-right uppercase pr-6">Tổng Cộng</td>
+                        <td className="border border-black p-3 text-red-600 text-lg">{formatCurrency(batchTotal)} ₫</td>
                       </tr>
                     </tbody>
                   </table>
@@ -312,7 +370,7 @@ const ProductionDetailPage = () => {
             
             <button 
               onClick={addBatch}
-              className="bg-teal-800/50 border border-teal-500 text-emerald-300 p-4 font-bold hover:bg-teal-700/60 hover:text-emerald-100 transition-all rounded-md self-center px-24 mt-2 shadow-[0_0_15px_rgba(20,184,166,0.2)]"
+              className="bg-[#A9D08E] border-2 border-black text-black p-3 font-bold hover:bg-[#96c179] transition-all rounded-sm self-center px-12 sm:px-24 mt-2 shadow-sm"
             >
               THÊM ĐỢT MỚI ( + )
             </button>

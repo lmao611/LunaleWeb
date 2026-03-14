@@ -1,5 +1,7 @@
 import Production from "../models/production.model.js";
 
+const defaultSizes = { total: 0, S: 0, M: 0, L: 0, XL: 0 };
+
 export const getProduction = async (req, res) => {
   try {
     const { productId } = req.params;
@@ -8,7 +10,14 @@ export const getProduction = async (req, res) => {
     if (!production) {
       production = {
         product: productId,
-        inventory: [{ tonDauKy: 0, ngayNhap: "", nhapTrongKy: 0, ngayXuat: "", xuatTrongKy: 0, tonCuoiKy: 0 }],
+        inventory: [{
+          tonDauKy: { ...defaultSizes },
+          ngayNhap: "",
+          nhapTrongKy: { ...defaultSizes },
+          ngayXuat: "",
+          xuatTrongKy: { ...defaultSizes },
+          tonCuoiKy: { ...defaultSizes }
+        }],
         batches: [{
           items: [
             { name: "Vải Chính", nguonNhap: "", ngayNhap: "", soLuong: 0, gia: 0 },
