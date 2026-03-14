@@ -4,6 +4,45 @@ import { useProductStore } from "../stores/useProductStore";
 import { useProductionStore } from "../stores/useProductionStore";
 import { ArrowLeft, Plus, Save } from "lucide-react";
 
+const MaskedDateInput = ({ value, onChange, className }) => {
+  const handleChange = (e) => {
+    let input = e.target.value.replace(/\D/g, "");
+    if (input.length > 8) input = input.substring(0, 8);
+    
+    let formatted = input;
+    if (input.length > 4) {
+      formatted = `${input.substring(0, 2)}/${input.substring(2, 4)}/${input.substring(4)}`;
+    } else if (input.length > 2) {
+      formatted = `${input.substring(0, 2)}/${input.substring(2)}`;
+    }
+    onChange(formatted);
+  };
+
+  const handleBlur = (e) => {
+    if (!e.target.value || e.target.value.trim() === "") {
+      onChange("-");
+    }
+  };
+
+  const handleFocus = () => {
+    if (value === "-") {
+      onChange("");
+    }
+  };
+
+  return (
+    <input
+      type="text"
+      value={value}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      onFocus={handleFocus}
+      placeholder="-"
+      className={className}
+    />
+  );
+};
+
 const ProductionDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -93,7 +132,6 @@ const ProductionDetailPage = () => {
       newData[index][category][field] = value;
     } else {
       newData[index][category] = value;
-      // Đồng bộ ngày nhập/xuất tự động
       if (category === "ngayNhap") {
         newData[index].ngayXuat = value;
       } else if (category === "ngayXuat") {
@@ -108,9 +146,9 @@ const ProductionDetailPage = () => {
       ...prev,
       {
         tonDauKy: { total: 0, S: 0, M: 0, L: 0, XL: 0 },
-        ngayNhap: "",
+        ngayNhap: "-",
         nhapTrongKy: { total: 0, S: 0, M: 0, L: 0, XL: 0 },
-        ngayXuat: "",
+        ngayXuat: "-",
         xuatTrongKy: { total: 0, S: 0, M: 0, L: 0, XL: 0 },
         tonCuoiKy: { total: 0, S: 0, M: 0, L: 0, XL: 0 }
       }
@@ -128,12 +166,12 @@ const ProductionDetailPage = () => {
       ...prev,
       {
         items: [
-          { name: "Vải Chính", nguonNhap: "", ngayNhap: "", soLuong: 0, gia: 0 },
-          { name: "Vải Lót", nguonNhap: "", ngayNhap: "", soLuong: 0, gia: 0 },
-          { name: "Gọng", nguonNhap: "", ngayNhap: "", soLuong: 0, gia: 0 },
-          { name: "Ép Keo", nguonNhap: "", ngayNhap: "", soLuong: 0, gia: 0 },
-          { name: "Cắt", nguonNhap: "", ngayNhap: "", soLuong: 0, gia: 0 },
-          { name: "Gia công", nguonNhap: "", ngayNhap: "", soLuong: 0, gia: 0 }
+          { name: "Vải Chính", nguonNhap: "", ngayNhap: "-", soLuong: 0, gia: 0 },
+          { name: "Vải Lót", nguonNhap: "", ngayNhap: "-", soLuong: 0, gia: 0 },
+          { name: "Gọng", nguonNhap: "", ngayNhap: "-", soLuong: 0, gia: 0 },
+          { name: "Ép Keo", nguonNhap: "", ngayNhap: "-", soLuong: 0, gia: 0 },
+          { name: "Cắt", nguonNhap: "", ngayNhap: "-", soLuong: 0, gia: 0 },
+          { name: "Gia công", nguonNhap: "", ngayNhap: "-", soLuong: 0, gia: 0 }
         ]
       }
     ]);
@@ -243,24 +281,20 @@ const ProductionDetailPage = () => {
                       <tr key={index} className="hover:bg-gray-50 transition-colors">
                         <SizeInputs row={row} index={index} category="tonDauKy" isReadOnly={index !== 0} />
                         
-                        <td className="border border-black p-0 min-w-[100px]">
-                          <input 
-                            type="text" 
-                            value={row.ngayNhap || ""} 
-                            placeholder="-"
-                            onChange={(e) => handleInventoryChange(index, "ngayNhap", null, e.target.value)}
+                        <td className="border border-black p-0 min-w-[110px]">
+                          <MaskedDateInput 
+                            value={row.ngayNhap || "-"} 
+                            onChange={(val) => handleInventoryChange(index, "ngayNhap", null, val)}
                             className="w-full h-full text-center bg-transparent outline-none py-2 text-xs"
                           />
                         </td>
                         
                         <SizeInputs row={row} index={index} category="nhapTrongKy" isReadOnly={false} />
                         
-                        <td className="border border-black p-0 min-w-[100px]">
-                          <input 
-                            type="text" 
-                            value={row.ngayXuat || ""} 
-                            placeholder="-"
-                            onChange={(e) => handleInventoryChange(index, "ngayXuat", null, e.target.value)}
+                        <td className="border border-black p-0 min-w-[110px]">
+                          <MaskedDateInput 
+                            value={row.ngayXuat || "-"} 
+                            onChange={(val) => handleInventoryChange(index, "ngayXuat", null, val)}
                             className="w-full h-full text-center bg-transparent outline-none py-2 text-xs"
                           />
                         </td>
@@ -316,11 +350,9 @@ const ProductionDetailPage = () => {
                             />
                           </td>
                           <td className="border border-black p-0">
-                            <input 
-                              type="text" 
-                              value={item.ngayNhap || ""} 
-                              placeholder="dd/mm/yyyy"
-                              onChange={(e) => handleBatchItemChange(batchIndex, itemIndex, "ngayNhap", e.target.value)}
+                            <MaskedDateInput 
+                              value={item.ngayNhap || "-"} 
+                              onChange={(val) => handleBatchItemChange(batchIndex, itemIndex, "ngayNhap", val)}
                               className="w-full h-full text-center bg-transparent outline-none py-2"
                             />
                           </td>
