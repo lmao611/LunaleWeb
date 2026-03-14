@@ -93,6 +93,11 @@ const ProductionDetailPage = () => {
       newData[index][category][field] = value;
     } else {
       newData[index][category] = value;
+      if (category === "ngayNhap") {
+        newData[index].ngayXuat = value;
+      } else if (category === "ngayXuat") {
+        newData[index].ngayNhap = value;
+      }
     }
     setInventory(calculateInventory(newData));
   };
@@ -140,36 +145,40 @@ const ProductionDetailPage = () => {
   };
 
   const formatCurrency = (amount) => {
-    if (!amount) return "";
+    if (!amount) return "-";
     return new Intl.NumberFormat('vi-VN').format(amount);
   };
 
   if (loading) return <div className="min-h-screen bg-[#FDFBF7] text-gray-900 p-8 pt-24 text-center">Đang tải...</div>;
   if (!product) return <div className="min-h-screen bg-[#FDFBF7] text-gray-900 p-8 pt-24 text-center">Không tìm thấy sản phẩm</div>;
 
-  const getProductName = () => {
-    if (!product.name) return "SẢN PHẨM";
-    return product.name.split(" ")[0].toUpperCase();
-  };
-
-  const SizeInputs = ({ row, index, category, isReadOnly }) => (
-    <>
-      <td className="border border-black p-0 min-w-[40px] bg-gray-100 font-bold">
-        {row[category]?.total || 0}
-      </td>
-      {['S', 'M', 'L', 'XL'].map(size => (
-        <td key={size} className="border border-black p-0 min-w-[40px]">
-          <input
-            type="number"
-            value={row[category]?.[size] || ""}
-            onChange={(e) => handleInventoryChange(index, category, size, e.target.value)}
-            disabled={isReadOnly}
-            className="w-full h-full text-center bg-transparent outline-none py-2 disabled:bg-transparent"
-          />
+  const SizeInputs = ({ row, index, category, isReadOnly }) => {
+    const total = row[category]?.total || 0;
+    const isTonCuoiKy = category === "tonCuoiKy";
+    
+    return (
+      <>
+        <td className={`border border-black p-0 min-w-[40px] bg-gray-100 font-bold ${isTonCuoiKy ? 'text-red-600' : ''}`}>
+          {total === 0 ? "-" : total}
         </td>
-      ))}
-    </>
-  );
+        {['S', 'M', 'L', 'XL'].map(size => {
+          const val = row[category]?.[size];
+          return (
+            <td key={size} className="border border-black p-0 min-w-[40px]">
+              <input
+                type="number"
+                value={val || ""}
+                placeholder="-"
+                onChange={(e) => handleInventoryChange(index, category, size, e.target.value)}
+                disabled={isReadOnly}
+                className="w-full h-full text-center bg-transparent outline-none py-2 disabled:bg-transparent"
+              />
+            </td>
+          );
+        })}
+      </>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] text-gray-900 p-4 pt-24 text-sm pb-20">
@@ -201,7 +210,7 @@ const ProductionDetailPage = () => {
           <div className="w-full 2xl:w-1/2 flex flex-col gap-6 min-w-0">
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="w-full sm:w-48 border-2 border-black bg-white flex flex-col items-center justify-center p-2 shadow-sm shrink-0">
-                <span className="font-bold text-center uppercase mb-2">ẢNH {getProductName()}</span>
+                <span className="font-bold text-center uppercase mb-2 text-base">{product.name}</span>
                 <img 
                   src={product.thumbnail || product.image} 
                   alt={product.name}
@@ -222,10 +231,10 @@ const ProductionDetailPage = () => {
                       <th className="border border-black p-2 bg-[#8FAADC]" colSpan="5">TỒN CUỐI KỲ</th>
                     </tr>
                     <tr>
-                      {['TỒNG', 'S', 'M', 'L', 'XL'].map((h, i) => <th key={`td-${i}`} className="border border-black p-1 bg-gray-100">{h}</th>)}
-                      {['TỒNG', 'S', 'M', 'L', 'XL'].map((h, i) => <th key={`n-${i}`} className="border border-black p-1 bg-gray-100">{h}</th>)}
-                      {['TỒNG', 'S', 'M', 'L', 'XL'].map((h, i) => <th key={`x-${i}`} className="border border-black p-1 bg-gray-100">{h}</th>)}
-                      {['TỒNG', 'S', 'M', 'L', 'XL'].map((h, i) => <th key={`tc-${i}`} className="border border-black p-1 bg-gray-100">{h}</th>)}
+                      {['Tổng', 'S', 'M', 'L', 'XL'].map((h, i) => <th key={`td-${i}`} className="border border-black p-1 bg-gray-100">{h}</th>)}
+                      {['Tổng', 'S', 'M', 'L', 'XL'].map((h, i) => <th key={`n-${i}`} className="border border-black p-1 bg-gray-100">{h}</th>)}
+                      {['Tổng', 'S', 'M', 'L', 'XL'].map((h, i) => <th key={`x-${i}`} className="border border-black p-1 bg-gray-100">{h}</th>)}
+                      {['Tổng', 'S', 'M', 'L', 'XL'].map((h, i) => <th key={`tc-${i}`} className="border border-black p-1 bg-gray-100">{h}</th>)}
                     </tr>
                   </thead>
                   <tbody>
@@ -269,33 +278,6 @@ const ProductionDetailPage = () => {
                 </div>
               </div>
             </div>
-
-            <div className="space-y-3 w-full border-2 border-black bg-white text-xs">
-              <div className="flex items-stretch border-b border-black">
-                <div className="bg-[#B4C6E7] p-2 font-semibold min-w-[120px] sm:min-w-[150px] text-center flex items-center justify-center border-r border-black">
-                  Nếu Nhập (Ngày nhập)
-                </div>
-                <div className="bg-[#D9E1F2] p-2 flex-1 font-semibold flex items-center justify-center text-center">
-                  TỒN CUỐI KỲ = NHẬP TRONG KỲ + TỒN CUỐI KỲ TRƯỚC ĐÓ - XUẤT TRONG KỲ
-                </div>
-              </div>
-              <div className="flex items-stretch border-b border-black">
-                <div className="bg-[#A9D08E] p-2 font-semibold min-w-[120px] sm:min-w-[150px] text-center flex items-center justify-center border-r border-black">
-                  Nếu Xuất (Ngày Xuất)
-                </div>
-                <div className="bg-[#D9E1F2] p-2 flex-1 font-semibold flex items-center justify-center text-center">
-                  TỒN CUỐI KỲ = TỒN CUỐI KỲ TRƯỚC ĐÓ - XUẤT TRONG KỲ
-                </div>
-              </div>
-              <div className="flex items-stretch">
-                <div className="bg-[#00B0F0] p-2 font-semibold min-w-[120px] sm:min-w-[150px] text-center flex items-center justify-center border-r border-black">
-                  Cả Nhập Và Xuất
-                </div>
-                <div className="bg-[#D9E1F2] p-2 flex-1 font-semibold flex items-center justify-center text-center">
-                  TỒN CUỐI KỲ = TỒN KỲ TRƯỚC + NHẬP TRONG KỲ - XUẤT TRONG KỲ
-                </div>
-              </div>
-            </div>
           </div>
 
           <div className="w-full 2xl:w-1/2 flex flex-col gap-6 min-w-0">
@@ -325,6 +307,7 @@ const ProductionDetailPage = () => {
                             <input 
                               type="text" 
                               value={item.nguonNhap || ""} 
+                              placeholder="-"
                               onChange={(e) => handleBatchItemChange(batchIndex, itemIndex, "nguonNhap", e.target.value)}
                               className="w-full h-full text-center bg-transparent outline-none py-2"
                             />
@@ -341,6 +324,7 @@ const ProductionDetailPage = () => {
                             <input 
                               type="number" 
                               value={item.soLuong || ""} 
+                              placeholder="-"
                               onChange={(e) => handleBatchItemChange(batchIndex, itemIndex, "soLuong", e.target.value)}
                               className="w-full h-full text-center bg-transparent outline-none py-2"
                             />
@@ -349,6 +333,7 @@ const ProductionDetailPage = () => {
                             <input 
                               type="number" 
                               value={item.gia || ""} 
+                              placeholder="-"
                               onChange={(e) => handleBatchItemChange(batchIndex, itemIndex, "gia", e.target.value)}
                               className="w-full h-full text-center bg-transparent outline-none py-2"
                             />
