@@ -9,7 +9,7 @@ export const useProductionStore = create((set) => ({
   fetchProduction: async (productId) => {
     set({ loading: true });
     try {
-      const res = await axios.get(`/production/${productId}`);
+      const res = await axios.get(`/api/production/${productId}`);
       set({ productionData: res.data, loading: false });
       return res.data;
     } catch (error) {
@@ -18,16 +18,20 @@ export const useProductionStore = create((set) => ({
     }
   },
 
-  saveProduction: async (productId, data) => {
+  saveProduction: async (productId, data, showToast = true) => {
     set({ loading: true });
     try {
-      const res = await axios.post(`/production/${productId}`, data);
+      const res = await axios.post(`/api/production/${productId}`, data);
       set({ productionData: res.data, loading: false });
-      toast.success("Đã lưu dữ liệu sản xuất!");
+      if (showToast) {
+        toast.success("Đã lưu dữ liệu sản xuất!");
+      }
       return res.data;
     } catch (error) {
       set({ loading: false });
-      toast.error("Lỗi khi lưu dữ liệu!");
+      if (showToast) {
+        toast.error("Lỗi khi lưu dữ liệu!");
+      }
       return null;
     }
   }

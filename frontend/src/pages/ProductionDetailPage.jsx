@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useProductStore } from "../stores/useProductStore";
 import { useProductionStore } from "../stores/useProductionStore";
-import { ArrowLeft, Plus, Save } from "lucide-react";
+import { ArrowLeft, Plus, Check, Loader2 } from "lucide-react";
 
 const MaskedDateInput = ({ value, onChange, className }) => {
   const handleChange = (e) => {
@@ -51,10 +51,13 @@ const ProductionDetailPage = () => {
   
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState("saved");
 
   const [inventory, setInventory] = useState([]);
   const [batches, setBatches] = useState([]);
+
+  const initialLoadRef = useRef(true);
+  const timeoutRef = useRef(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -72,6 +75,25 @@ const ProductionDetailPage = () => {
     };
     loadData();
   }, [id, fetchProductById, fetchProduction]);
+
+  useEffect(() => {
+    if (initialLoadRef.current) {
+      if (!loading && product) {
+        initialLoadRef.current = false;
+      }
+      return;
+    }
+
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+    setSaveStatus("saving");
+    timeoutRef.current = setTimeout(async () => {
+      await saveProduction(id, { inventory, batches }, false);
+      setSaveStatus("saved");
+    }, 1500);
+
+    return () => clearTimeout(timeoutRef.current);
+  }, [inventory, batches, id, saveProduction, loading, product]);
 
   const calculateInventory = (currentData) => {
     let newData = [...currentData];
@@ -177,12 +199,6 @@ const ProductionDetailPage = () => {
     ]);
   };
 
-  const handleSave = async () => {
-    setIsSaving(true);
-    await saveProduction(id, { inventory, batches });
-    setIsSaving(false);
-  };
-
   const formatCurrency = (amount) => {
     if (!amount) return "-";
     return new Intl.NumberFormat('vi-VN').format(amount);
@@ -231,14 +247,17 @@ const ProductionDetailPage = () => {
             Quay lại
           </button>
           
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="flex items-center bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-bold transition-colors disabled:opacity-50 shadow-md"
-          >
-            <Save className="mr-2" size={20} />
-            {isSaving ? "ĐANG LƯU..." : "LƯU THAY ĐỔI"}
-          </button>
+          <div className="flex items-center gap-2 text-sm font-medium">
+            {saveStatus === "saving" ? (
+              <span className="flex items-center text-blue-600 bg-blue-50 px-4 py-2 rounded-md">
+                <Loader2 className="mr-2 animate-spin" size={16} /> Đang lưu...
+              </span>
+            ) : (
+              <span className="flex items-center text-emerald-600 bg-emerald-50 px-4 py-2 rounded-md">
+                <Check className="mr-2" size={16} /> Đã lưu tự động
+              </span>
+            )}
+          </div>
         </div>
 
         <h1 className="text-3xl font-bold mb-8 text-center uppercase tracking-widest text-black">
