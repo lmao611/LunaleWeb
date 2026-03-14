@@ -191,7 +191,7 @@ const ProductionDetailPage = () => {
   if (loading) return <div className="min-h-screen bg-[#FDFBF7] text-gray-900 p-8 pt-24 text-center">Đang tải...</div>;
   if (!product) return <div className="min-h-screen bg-[#FDFBF7] text-gray-900 p-8 pt-24 text-center">Không tìm thấy sản phẩm</div>;
 
-  const SizeInputs = ({ row, index, category, isReadOnly }) => {
+  const renderSizeInputs = (row, index, category, isReadOnly) => {
     const total = row[category]?.total || 0;
     const isTonCuoiKy = category === "tonCuoiKy";
     
@@ -279,7 +279,7 @@ const ProductionDetailPage = () => {
                   <tbody>
                     {inventory.map((row, index) => (
                       <tr key={index} className="hover:bg-gray-50 transition-colors">
-                        <SizeInputs row={row} index={index} category="tonDauKy" isReadOnly={index !== 0} />
+                        {renderSizeInputs(row, index, "tonDauKy", index !== 0)}
                         
                         <td className="border border-black p-0 min-w-[110px]">
                           <MaskedDateInput 
@@ -289,7 +289,7 @@ const ProductionDetailPage = () => {
                           />
                         </td>
                         
-                        <SizeInputs row={row} index={index} category="nhapTrongKy" isReadOnly={false} />
+                        {renderSizeInputs(row, index, "nhapTrongKy", false)}
                         
                         <td className="border border-black p-0 min-w-[110px]">
                           <MaskedDateInput 
@@ -299,8 +299,8 @@ const ProductionDetailPage = () => {
                           />
                         </td>
                         
-                        <SizeInputs row={row} index={index} category="xuatTrongKy" isReadOnly={false} />
-                        <SizeInputs row={row} index={index} category="tonCuoiKy" isReadOnly={true} />
+                        {renderSizeInputs(row, index, "xuatTrongKy", false)}
+                        {renderSizeInputs(row, index, "tonCuoiKy", true)}
                       </tr>
                     ))}
                   </tbody>
