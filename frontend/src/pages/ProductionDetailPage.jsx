@@ -4,29 +4,6 @@ import { useProductStore } from "../stores/useProductStore";
 import { useProductionStore } from "../stores/useProductionStore";
 import { ArrowLeft, Plus, Save } from "lucide-react";
 
-const CustomDateInput = ({ value, onChange, className }) => {
-  const [type, setType] = useState("text");
-
-  const formatDate = (dateStr) => {
-    if (!dateStr) return "";
-    const parts = dateStr.split('-');
-    if (parts.length !== 3) return dateStr;
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
-  };
-
-  return (
-    <input
-      type={type}
-      value={type === "text" ? formatDate(value) : value}
-      placeholder="-"
-      onFocus={() => setType("date")}
-      onBlur={() => setType("text")}
-      onChange={onChange}
-      className={className}
-    />
-  );
-};
-
 const ProductionDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -116,6 +93,7 @@ const ProductionDetailPage = () => {
       newData[index][category][field] = value;
     } else {
       newData[index][category] = value;
+      // Đồng bộ ngày nhập/xuất tự động
       if (category === "ngayNhap") {
         newData[index].ngayXuat = value;
       } else if (category === "ngayXuat") {
@@ -265,9 +243,11 @@ const ProductionDetailPage = () => {
                       <tr key={index} className="hover:bg-gray-50 transition-colors">
                         <SizeInputs row={row} index={index} category="tonDauKy" isReadOnly={index !== 0} />
                         
-                        <td className="border border-black p-0 min-w-[110px]">
-                          <CustomDateInput 
+                        <td className="border border-black p-0 min-w-[100px]">
+                          <input 
+                            type="text" 
                             value={row.ngayNhap || ""} 
+                            placeholder="-"
                             onChange={(e) => handleInventoryChange(index, "ngayNhap", null, e.target.value)}
                             className="w-full h-full text-center bg-transparent outline-none py-2 text-xs"
                           />
@@ -275,9 +255,11 @@ const ProductionDetailPage = () => {
                         
                         <SizeInputs row={row} index={index} category="nhapTrongKy" isReadOnly={false} />
                         
-                        <td className="border border-black p-0 min-w-[110px]">
-                          <CustomDateInput 
+                        <td className="border border-black p-0 min-w-[100px]">
+                          <input 
+                            type="text" 
                             value={row.ngayXuat || ""} 
+                            placeholder="-"
                             onChange={(e) => handleInventoryChange(index, "ngayXuat", null, e.target.value)}
                             className="w-full h-full text-center bg-transparent outline-none py-2 text-xs"
                           />
@@ -334,8 +316,10 @@ const ProductionDetailPage = () => {
                             />
                           </td>
                           <td className="border border-black p-0">
-                            <CustomDateInput 
+                            <input 
+                              type="text" 
                               value={item.ngayNhap || ""} 
+                              placeholder="dd/mm/yyyy"
                               onChange={(e) => handleBatchItemChange(batchIndex, itemIndex, "ngayNhap", e.target.value)}
                               className="w-full h-full text-center bg-transparent outline-none py-2"
                             />
