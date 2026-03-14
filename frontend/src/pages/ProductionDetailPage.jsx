@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useProductStore } from "../stores/useProductStore";
 import { useProductionStore } from "../stores/useProductionStore";
-import { ArrowLeft, Plus, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, Plus, Check, Loader2, Trash2 } from "lucide-react";
 
 const MaskedDateInput = ({ value, onChange, className }) => {
   const handleChange = (e) => {
@@ -177,6 +177,12 @@ const ProductionDetailPage = () => {
     ]);
   };
 
+  const removeInventoryRow = (indexToRemove) => {
+    if (indexToRemove === 0) return;
+    const newInventory = inventory.filter((_, idx) => idx !== indexToRemove);
+    setInventory(calculateInventory(newInventory));
+  };
+
   const handleBatchItemChange = (batchIndex, itemIndex, field, value) => {
     const newBatches = [...batches];
     newBatches[batchIndex].items[itemIndex][field] = value;
@@ -184,19 +190,50 @@ const ProductionDetailPage = () => {
   };
 
   const addBatch = () => {
-    setBatches(prev => [
-      ...prev,
-      {
-        items: [
-          { name: "Vải Chính", nguonNhap: "", ngayNhap: "-", soLuong: 0, gia: 0 },
-          { name: "Vải Lót", nguonNhap: "", ngayNhap: "-", soLuong: 0, gia: 0 },
-          { name: "Gọng", nguonNhap: "", ngayNhap: "-", soLuong: 0, gia: 0 },
-          { name: "Ép Keo", nguonNhap: "", ngayNhap: "-", soLuong: 0, gia: 0 },
-          { name: "Cắt", nguonNhap: "", ngayNhap: "-", soLuong: 0, gia: 0 },
-          { name: "Gia công", nguonNhap: "", ngayNhap: "-", soLuong: 0, gia: 0 }
-        ]
+    setBatches(prev => {
+      if (prev.length === 0) {
+        return [{ items: [] }]; 
       }
-    ]);
+      const lastBatch = prev[prev.length - 1];
+      const newItems = lastBatch.items.map(item => ({
+        name: item.name,
+        nguonNhap: "",
+        ngayNhap: "-",
+        soLuong: 0,
+        gia: 0
+      }));
+      return [...prev, { items: newItems }];
+    });
+  };
+
+  const removeBatch = (batchIndex) => {
+    const newBatches = [...batches];
+    newBatches.splice(batchIndex, 1);
+    setBatches(newBatches);
+  };
+
+  const addBatchItem = (batchIndex) => {
+    const newBatches = [...batches];
+    newBatches[batchIndex].items.push({
+      name: "",
+      nguonNhap: "",
+      ngayNhap: "-",
+      soLuong: 0,
+      gia: 0
+    });
+    setBatches(newBatches);
+  };
+
+  const removeBatchItem = (batchIndex, itemIndex) => {
+    const newBatches = [...batches];
+    newBatches[batchIndex].items.splice(itemIndex, 1);
+    setBatches(newBatches);
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    await saveProduction(id, { inventory, batches });
+    setIsSaving(false);
   };
 
   const formatCurrency = (amount) => {
@@ -287,6 +324,7 @@ const ProductionDetailPage = () => {
                       <th className="border border-black p-2 bg-[#F4B084]" rowSpan="2">NGÀY XUẤT</th>
                       <th className="border border-black p-2 bg-[#F4B084]" colSpan="5">XUẤT TRONG KỲ</th>
                       <th className="border border-black p-2 bg-[#8FAADC]" colSpan="5">TỒN CUỐI KỲ</th>
+                      <th className="border border-black p-2 bg-red-100" rowSpan="2">Xóa</th>
                     </tr>
                     <tr>
                       {['Tổng', 'S', 'M', 'L', 'XL'].map((h, i) => <th key={`td-${i}`} className="border border-black p-1 bg-gray-100">{h}</th>)}
@@ -320,6 +358,18 @@ const ProductionDetailPage = () => {
                         
                         {renderSizeInputs(row, index, "xuatTrongKy", false)}
                         {renderSizeInputs(row, index, "tonCuoiKy", true)}
+                        
+                        <td className="border border-black p-0 align-middle">
+                          {index > 0 && (
+                            <button
+                              onClick={() => removeInventoryRow(index)}
+                              className="text-red-500 hover:text-red-700 w-full h-full flex items-center justify-center py-2"
+                              title="Xóa hàng này"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -341,7 +391,17 @@ const ProductionDetailPage = () => {
               const batchTotal = batch.items.reduce((sum, item) => sum + (Number(item.soLuong) * Number(item.gia) || 0), 0);
               
               return (
-                <div key={batchIndex} className="overflow-x-auto shadow-sm min-w-0">
+                <div key={batchIndex} className="overflow-x-auto shadow-sm min-w-0 relative">
+                  <div className="flex justify-between items-end mb-1">
+                    <span className="text-xs font-semibold text-gray-500">Bảng đợt {batchIndex + 1}</span>
+                    <button 
+                      onClick={() => removeBatch(batchIndex)} 
+                      className="text-red-500 hover:text-red-700 text-xs font-semibold flex items-center transition-colors"
+                    >
+                      <Trash2 size={12} className="mr-1"/> Xóa đợt này
+                    </button>
+                  </div>
+                  
                   <table className="w-full border-collapse text-center border-2 border-black bg-white whitespace-nowrap">
                     <thead>
                       <tr>
@@ -353,12 +413,21 @@ const ProductionDetailPage = () => {
                         <th className="border border-black p-3 bg-[#FFC000] w-32 font-bold">SỐ LƯỢNG (MÉT)</th>
                         <th className="border border-black p-3 bg-[#FFC000] w-32 font-bold">GIÁ</th>
                         <th className="border border-black p-3 bg-[#FFC000] w-40 font-bold">TỔNG</th>
+                        <th className="border border-black p-3 bg-[#FFC000] w-10 font-bold">Xóa</th>
                       </tr>
                     </thead>
                     <tbody>
                       {batch.items.map((item, itemIndex) => (
                         <tr key={itemIndex} className="hover:bg-gray-50 transition-colors">
-                          <td className="border border-black p-2 font-semibold">{item.name}</td>
+                          <td className="border border-black p-0">
+                            <input 
+                              type="text" 
+                              value={item.name || ""} 
+                              placeholder="Tên nguyên liệu"
+                              onChange={(e) => handleBatchItemChange(batchIndex, itemIndex, "name", e.target.value)}
+                              className="w-full h-full text-center bg-transparent outline-none py-2 font-semibold"
+                            />
+                          </td>
                           <td className="border border-black p-0">
                             <input 
                               type="text" 
@@ -396,11 +465,29 @@ const ProductionDetailPage = () => {
                           <td className="border border-black p-2 font-medium">
                             {formatCurrency(Number(item.soLuong) * Number(item.gia) || 0)}
                           </td>
+                          <td className="border border-black p-0 align-middle">
+                            <button
+                              onClick={() => removeBatchItem(batchIndex, itemIndex)}
+                              className="text-red-500 hover:text-red-700 w-full h-full flex items-center justify-center py-2"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </td>
                         </tr>
                       ))}
+                      <tr className="bg-gray-50">
+                        <td colSpan="7" className="border border-black p-2">
+                          <button 
+                            onClick={() => addBatchItem(batchIndex)}
+                            className="flex items-center text-blue-600 hover:text-blue-800 text-sm font-semibold transition-colors mx-auto"
+                          >
+                            <Plus size={16} className="mr-1" /> Thêm nguyên liệu
+                          </button>
+                        </td>
+                      </tr>
                       <tr className="bg-[#FFC000] font-bold">
                         <td colSpan="5" className="border border-black p-3 text-right uppercase pr-6">Tổng Cộng</td>
-                        <td className="border border-black p-3 text-red-600 text-lg">{formatCurrency(batchTotal)} ₫</td>
+                        <td colSpan="2" className="border border-black p-3 text-red-600 text-lg text-left">{formatCurrency(batchTotal)} ₫</td>
                       </tr>
                     </tbody>
                   </table>
