@@ -23,13 +23,15 @@ import { useCollectionStore } from "./stores/useCollectionStore";
 import { useProductStore } from "./stores/useProductStore";
 import ChatPopup from "./components/ChatPopup";
 
+import ProductionPage from "./pages/ProductionPage";
+import ProductionDetailPage from "./pages/ProductionDetailPage";
+
 function App() {
   const { user, checkAuth, checkingAuth } = useUserStore();
   const { getCartItems } = useCartStore();
   
   const { fetchCollections } = useCollectionStore();
   
-  // ✅ TỐI ƯU HÓA: Chỉ lấy function, không lấy toàn bộ state để tránh App re-render khi search loading
   const fetchFeaturedProducts = useProductStore((state) => state.fetchFeaturedProducts);
 
   const [isForceLoadingDone, setIsForceLoadingDone] = useState(false);
@@ -80,6 +82,18 @@ function App() {
             path="/secret-dashboard"
             element={
               (user?.role === "admin" || user?.role === "controller") ? <AdminPage /> : <Navigate to="/login" />
+            }
+          />
+          <Route
+            path="/admin/production"
+            element={
+              (user?.role === "admin" || user?.role === "controller") ? <ProductionPage /> : <Navigate to="/login" />
+            }
+          />
+          <Route
+            path="/admin/production/:id"
+            element={
+              (user?.role === "admin" || user?.role === "controller") ? <ProductionDetailPage /> : <Navigate to="/login" />
             }
           />
           <Route path="/category/:category" element={<CategoryPage />} />

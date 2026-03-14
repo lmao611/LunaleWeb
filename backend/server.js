@@ -19,6 +19,7 @@ import userRoutes from "./routes/user.routes.js";
 import customerOrderRoutes from "./routes/customerOrder.routes.js";
 import notificationRoutes from "./routes/notification.route.js";
 import messageRoutes from "./routes/message.route.js";
+import productionRoutes from "./routes/production.routes.js";
 
 dotenv.config();
 const PORT = process.env.PORT || 5000;
@@ -76,6 +77,7 @@ app.use("/api/orders", ordersRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/customer-orders", customerOrderRoutes);
+app.use("/api/production", productionRoutes);
 
 app.get("/", (req, res) => {
   res.send("API Lunale is running");

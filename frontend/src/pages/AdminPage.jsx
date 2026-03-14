@@ -6,10 +6,12 @@ import {
   FileText,
   ClipboardList,
   Bell,
-  MessageSquare, // Icon tin nhắn
+  MessageSquare,
+  Factory
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
 import CreateProductForm from "../components/CreateProductForm";
 import ProductsList from "../components/ProductsList";
@@ -36,12 +38,14 @@ const tabs = [
   { id: "notifications", label: "Gửi Thông Báo", icon: Bell },
   { id: "messages", label: "Tin nhắn khách", icon: MessageSquare }, 
   { id: "receipt", label: "Phiếu đặt hàng", icon: FileText },
+  { id: "production", label: "Quản lí sản xuất", icon: Factory },
 ];
 
 const AdminPage = () => {
   const [activeTab, setActiveTab] = useState("create");
   const { fetchAllProducts } = useProductStore();
   const { user } = useUserStore();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchAllProducts();
@@ -52,22 +56,19 @@ const AdminPage = () => {
   };
 
   const visibleTabs = tabs.filter((tab) => {
-    // 1. Controller: Thấy tất cả
     if (user?.role === "controller") return true;
     
-    // 2. Admin: Ẩn "orders" (Q.Lý Vận Chuyển)
-    // Lưu ý: Các tab 'products' và 'collectionsList' trong code render phía dưới cũng đang chỉ dành cho controller, 
-    // nên tôi loại chúng khỏi danh sách tabs của Admin luôn để đỡ bị hiện tab trống.
     if (user?.role === "admin") {
       return [
         "create", 
         "collections", 
         "banner", 
-        "customer_orders", // Đơn Khách Đặt (Vẫn hiện)
+        "customer_orders",
         "notifications", 
         "messages", 
         "receipt",
-        "orders"
+        "orders",
+        "production"
       ].includes(tab.id);
     }
     
@@ -89,7 +90,13 @@ const AdminPage = () => {
           {visibleTabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                if (tab.id === "production") {
+                  navigate("/admin/production");
+                } else {
+                  setActiveTab(tab.id);
+                }
+              }}
               className={`flex items-center px-4 py-2 rounded-lg font-medium border transition-all duration-200
                 ${
                   activeTab === tab.id
@@ -134,7 +141,6 @@ const AdminPage = () => {
             </motion.div>
           )}
 
-          {/* CHỈ HIỂN THỊ NẾU TAB 'orders' CÓ TRONG visibleTabs */}
           {activeTab === "orders" && visibleTabs.some(t => t.id === "orders") && (
             <motion.div key="orders" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
               <OrdersManager />
