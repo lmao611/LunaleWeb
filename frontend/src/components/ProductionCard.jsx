@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { optimizeUrl } from "../lib/cloudinary";
 
@@ -6,21 +6,8 @@ const ProductionCard = ({ product }) => {
   const cardRef = useRef(null);
   const glareRef = useRef(null);
   const navigate = useNavigate();
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [hasError, setHasError] = useState(false);
 
   const PLACEHOLDER_IMAGE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
-
-  const getImageUrl = () => {
-    if (hasError) return PLACEHOLDER_IMAGE;
-    const src = product.thumbnail || product.image;
-    if (!src) return PLACEHOLDER_IMAGE;
-    try {
-      return optimizeUrl(src, 400);
-    } catch {
-      return src;
-    }
-  };
 
   const handleMouseMove = (e) => {
     if (window.innerWidth < 1024) return;
@@ -55,30 +42,23 @@ const ProductionCard = ({ product }) => {
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       onClick={() => navigate(`/admin/production/${product._id}`)}
-      className="relative overflow-hidden rounded-xl shadow-md transform-gpu will-change-transform hover:shadow-2xl transition-transform duration-300 ease-out bg-white w-full h-[240px] sm:h-[300px] lg:h-[380px] cursor-pointer group"
+      className="relative overflow-hidden rounded-xl shadow-md transform-gpu will-change-transform hover:shadow-2xl transition-transform duration-300 ease-out bg-white w-[160px] sm:w-[200px] lg:w-[260px] cursor-pointer group block"
     >
       <div ref={glareRef} className="pointer-events-none absolute inset-0 rounded-xl z-20 transition-opacity duration-300" />
 
-      <div className="w-full h-full overflow-hidden relative bg-gray-100">
-        {!isLoaded && !hasError && (
-          <div className="absolute inset-0 bg-gray-200 animate-pulse" />
-        )}
+      {/* Copy class height chuẩn xác của ProductCard */}
+      <div className="w-full overflow-hidden h-[240px] sm:h-[300px] lg:h-[380px]">
         <img
-          src={getImageUrl()}
+          src={product.image ? optimizeUrl(product.image, 400) : PLACEHOLDER_IMAGE}
           alt={product.name}
-          onLoad={() => setIsLoaded(true)}
-          onError={(e) => {
-            setHasError(true);
-            setIsLoaded(true);
-            e.target.src = PLACEHOLDER_IMAGE;
-          }}
-          className={`w-full h-full object-cover transition-opacity duration-500 group-hover:scale-110 ${isLoaded ? "opacity-100" : "opacity-0"}`}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           loading="lazy"
+          onError={(e) => { e.target.onerror = null; e.target.src = PLACEHOLDER_IMAGE; }}
         />
       </div>
 
-      <div className="absolute bottom-0 left-0 right-0 lg:translate-y-full lg:group-hover:translate-y-0 transition-transform duration-500 ease-in-out bg-gradient-to-t from-gray-900/90 via-gray-900/50 to-transparent z-30 px-2 py-2 sm:p-3 flex items-end h-1/3">
-        <h5 className="font-semibold text-white truncate text-sm sm:text-base mb-1 text-center w-full uppercase tracking-wider">
+      <div className="absolute bottom-0 left-0 right-0 lg:translate-y-full lg:group-hover:translate-y-0 transition-transform duration-500 ease-in-out bg-gradient-to-t from-gray-900/90 via-gray-900/50 to-transparent z-30 px-2 py-1.5 sm:p-3 flex items-end h-1/3">
+        <h5 className="font-semibold text-white truncate text-[10.5px] sm:text-sm mb-0 sm:mb-0.5 leading-tight w-full text-center uppercase tracking-wider">
           {product.name}
         </h5>
       </div>

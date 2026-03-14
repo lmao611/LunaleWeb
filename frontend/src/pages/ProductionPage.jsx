@@ -26,30 +26,17 @@ const ProductionPage = () => {
     fetchAllProducts();
   }, [fetchAllProducts]);
 
-  // Reset page về 1 khi đổi bộ lọc hoặc tìm kiếm
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, selectedCategory]);
 
-  // Lọc sản phẩm
   const filteredProducts = products?.filter((product) => {
-    // 1. Loại bỏ Feedback
     if (product.category?.toLowerCase() === "feedback") return false;
-    
-    // 2. Lọc theo Category
-    if (selectedCategory !== "all" && product.category?.toLowerCase() !== selectedCategory) {
-      return false;
-    }
-
-    // 3. Lọc theo từ khóa tìm kiếm
-    if (searchTerm && !product.name?.toLowerCase().includes(searchTerm.toLowerCase())) {
-      return false;
-    }
-
+    if (selectedCategory !== "all" && product.category?.toLowerCase() !== selectedCategory) return false;
+    if (searchTerm && !product.name?.toLowerCase().includes(searchTerm.toLowerCase())) return false;
     return true;
   }) || [];
 
-  // Logic phân trang
   const totalCards = filteredProducts.length;
   const totalPages = Math.ceil(totalCards / cardsPerPage);
   const startIndex = (currentPage - 1) * cardsPerPage;
@@ -69,12 +56,7 @@ const ProductionPage = () => {
 
   const cardVariants = {
     hidden: { opacity: 0, y: 20, scale: 0.97 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      transition: { duration: 0.4, ease: "easeOut" },
-    },
+    visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.4, ease: "easeOut" } },
   };
 
   return (
@@ -92,7 +74,6 @@ const ProductionPage = () => {
           Danh Sách Sản Xuất
         </h1>
 
-        {/* Tab Phân loại Category */}
         <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-8">
           {categories.map((cat) => (
             <button
@@ -109,7 +90,6 @@ const ProductionPage = () => {
           ))}
         </div>
 
-        {/* Thanh tìm kiếm */}
         <div className="relative max-w-xl mx-auto mb-12">
           <input
             type="text"
@@ -129,7 +109,23 @@ const ProductionPage = () => {
           <>
             <div className="flex justify-center">
               <motion.div
-                className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-10 justify-items-center w-full md:max-w-[750px] lg:max-w-none"
+                className="
+                  grid
+                  grid-cols-2
+                  sm:grid-cols-2
+                  md:grid-cols-3
+                  lg:grid-cols-4
+                  gap-x-8 gap-y-10
+                  justify-items-center
+                  w-fit
+                  px-3
+                  sm:px-4
+                  md:px-6
+                  lg:px-0
+                  mx-auto
+                  md:max-w-[750px]
+                  lg:max-w-none
+                "
                 variants={containerVariants}
                 initial="hidden"
                 whileInView="visible"
@@ -139,21 +135,30 @@ const ProductionPage = () => {
                   <motion.div
                     key={product._id}
                     variants={cardVariants}
-                    className="w-[160px] sm:w-[200px] md:w-[230px] lg:w-[270px] flex justify-center"
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, amount: 0.2 }}
+                    className="w-full flex justify-center"
                   >
-                    <ProductionCard product={product} />
+                    <div className="w-[160px] sm:w-[200px] md:w-[230px] lg:w-[270px] flex justify-center">
+                      <ProductionCard
+                        product={{
+                          ...product,
+                          image: product.image || "/placeholder.png",
+                        }}
+                      />
+                    </div>
                   </motion.div>
                 ))}
               </motion.div>
             </div>
 
-            {/* Phân trang (Pagination) */}
             {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-2 mt-12 flex-wrap">
+              <div className="flex justify-center items-center gap-2 mt-10 flex-wrap">
                 <button
                   onClick={() => goToPage(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="px-3 py-1 rounded-md bg-gray-200 text-black hover:bg-gray-300 disabled:opacity-50 transition-colors"
+                  className="px-3 py-1 rounded-md bg-gray-200 text-black hover:bg-gray-300 disabled:opacity-50"
                 >
                   &lt;
                 </button>
@@ -162,7 +167,7 @@ const ProductionPage = () => {
                   <button
                     key={page}
                     onClick={() => goToPage(page)}
-                    className={`px-3 py-1 rounded-md transition-colors ${
+                    className={`px-3 py-1 rounded-md ${
                       currentPage === page
                         ? "bg-black text-white"
                         : "bg-gray-200 text-black hover:bg-gray-300"
@@ -175,7 +180,7 @@ const ProductionPage = () => {
                 <button
                   onClick={() => goToPage(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className="px-3 py-1 rounded-md bg-gray-200 text-black hover:bg-gray-300 disabled:opacity-50 transition-colors"
+                  className="px-3 py-1 rounded-md bg-gray-200 text-black hover:bg-gray-300 disabled:opacity-50"
                 >
                   &gt;
                 </button>
