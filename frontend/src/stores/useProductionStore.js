@@ -4,7 +4,17 @@ import toast from "react-hot-toast";
 
 export const useProductionStore = create((set) => ({
   productionData: null,
+  allProductions: [],
   loading: false,
+
+  fetchAllProductions: async () => {
+    try {
+      const res = await axios.get("/production");
+      set({ allProductions: res.data });
+    } catch (error) {
+      console.error(error);
+    }
+  },
 
   fetchProduction: async (productId) => {
     set({ loading: true });

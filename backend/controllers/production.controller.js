@@ -2,6 +2,15 @@ import Production from "../models/production.model.js";
 
 const defaultSizes = { total: 0, S: 0, M: 0, L: 0, XL: 0 };
 
+export const getAllProductions = async (req, res) => {
+  try {
+    const productions = await Production.find({});
+    res.status(200).json(productions);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export const getProduction = async (req, res) => {
   try {
     const { productId } = req.params;

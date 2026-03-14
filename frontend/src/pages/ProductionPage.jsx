@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useProductStore } from "../stores/useProductStore";
+import { useProductionStore } from "../stores/useProductionStore";
 import ProductionCard from "../components/ProductionCard";
 import { ArrowLeft, Search } from "lucide-react";
 
@@ -15,7 +16,8 @@ const categories = [
 
 const ProductionPage = () => {
   const navigate = useNavigate();
-  const { fetchAllProducts, products, loading } = useProductStore();
+  const { fetchAllProducts, products, loading: productLoading } = useProductStore();
+  const { fetchAllProductions, allProductions } = useProductionStore();
   
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -24,7 +26,8 @@ const ProductionPage = () => {
 
   useEffect(() => {
     fetchAllProducts();
-  }, [fetchAllProducts]);
+    fetchAllProductions();
+  }, [fetchAllProducts, fetchAllProductions]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -49,6 +52,17 @@ const ProductionPage = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const getFinalInventory = (productId) => {
+    const prodData = allProductions?.find(p => p.product === productId);
+    if (!prodData || !prodData.inventory || prodData.inventory.length === 0) {
+      return { total: 0, S: 0, M: 0, L: 0, XL: 0 };
+    }
+    const lastRow = prodData.inventory[prodData.inventory.length - 1];
+    return lastRow.tonCuoiKy || { total: 0, S: 0, M: 0, L: 0, XL: 0 };
+  };
+
+  const formatSize = (val) => (val === 0 || !val) ? "-" : val;
+
   const containerVariants = {
     hidden: {},
     visible: { transition: { staggerChildren: 0.08 } },
@@ -61,7 +75,7 @@ const ProductionPage = () => {
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] text-gray-900 pt-24 pb-12">
-      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
         <button
           onClick={() => navigate("/secret-dashboard")}
           className="flex items-center text-blue-600 hover:text-blue-800 mb-6 transition-colors font-semibold"
@@ -70,38 +84,77 @@ const ProductionPage = () => {
           Quay lại Admin
         </button>
 
-        <h1 className="text-4xl font-bold mb-8 text-center uppercase tracking-wider text-black">
-          Danh Sách Sản Xuất
-        </h1>
+        <div className="flex flex-col lg:flex-row gap-8 mb-12 items-start">
+          <div className="w-full lg:w-1/2 xl:w-7/12 flex flex-col items-center lg:items-start">
+            <h1 className="text-4xl font-bold mb-8 text-center lg:text-left uppercase tracking-wider text-black w-full">
+              Danh Sách Sản Xuất
+            </h1>
 
-        <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-8">
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              className={`px-4 py-2 rounded-full font-medium transition-all duration-200 text-sm sm:text-base border ${
-                selectedCategory === cat.id
-                  ? "bg-black text-white border-black shadow-md scale-105"
-                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100 hover:border-gray-400"
-              }`}
-            >
-              {cat.label}
-            </button>
-          ))}
+            <div className="flex flex-wrap justify-center lg:justify-start gap-2 sm:gap-4 mb-8 w-full">
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`px-4 py-2 rounded-full font-medium transition-all duration-200 text-sm sm:text-base border ${
+                    selectedCategory === cat.id
+                      ? "bg-black text-white border-black shadow-md scale-105"
+                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100 hover:border-gray-400"
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="relative w-full max-w-xl lg:max-w-full">
+              <input
+                type="text"
+                placeholder="Tìm kiếm sản phẩm cần sản xuất..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full py-3 pl-12 pr-4 bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-black shadow-sm"
+              />
+              <Search className="absolute left-4 top-3.5 text-gray-400" size={20} />
+            </div>
+          </div>
+
+          <div className="w-full lg:w-1/2 xl:w-5/12 bg-white border-2 border-black shadow-sm flex flex-col h-[320px]">
+            <div className="overflow-auto flex-1">
+              <table className="w-full text-center text-xs whitespace-nowrap border-collapse">
+                <thead className="sticky top-0 z-10">
+                  <tr className="bg-[#8FAADC]">
+                    <th className="border-b-2 border-r border-black p-2 text-center align-middle w-1/3" rowSpan="2">Sản Phẩm</th>
+                    <th className="border-b-2 border-black p-2 text-center" colSpan="5">TỒN CUỐI KỲ</th>
+                  </tr>
+                  <tr className="bg-gray-100">
+                    <th className="border-b-2 border-r border-black p-1 text-center w-12">Tổng</th>
+                    <th className="border-b-2 border-r border-black p-1 text-center w-10">S</th>
+                    <th className="border-b-2 border-r border-black p-1 text-center w-10">M</th>
+                    <th className="border-b-2 border-r border-black p-1 text-center w-10">L</th>
+                    <th className="border-b-2 border-black p-1 text-center w-10">XL</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredProducts.map(p => {
+                    const inv = getFinalInventory(p._id);
+                    return (
+                      <tr key={p._id} className="border-b border-gray-300 hover:bg-gray-50">
+                        <td className="border-r border-black p-2 text-left font-semibold truncate max-w-[150px] cursor-pointer hover:text-blue-600" title={p.name} onClick={() => navigate(`/admin/production/${p._id}`)}>{p.name}</td>
+                        <td className="border-r border-black p-2 text-red-600 font-bold">{formatSize(inv.total)}</td>
+                        <td className="border-r border-black p-2">{formatSize(inv.S)}</td>
+                        <td className="border-r border-black p-2">{formatSize(inv.M)}</td>
+                        <td className="border-r border-black p-2">{formatSize(inv.L)}</td>
+                        <td className="p-2">{formatSize(inv.XL)}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
 
-        <div className="relative max-w-xl mx-auto mb-12">
-          <input
-            type="text"
-            placeholder="Tìm kiếm sản phẩm cần sản xuất..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full py-3 pl-12 pr-4 bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-black shadow-sm"
-          />
-          <Search className="absolute left-4 top-3.5 text-gray-400" size={20} />
-        </div>
-
-        {loading ? (
+        {productLoading ? (
           <h2 className="text-center text-gray-600 text-xl">Đang tải dữ liệu...</h2>
         ) : totalCards === 0 ? (
           <h2 className="text-center text-gray-600 text-xl">Không tìm thấy sản phẩm nào.</h2>
@@ -109,23 +162,7 @@ const ProductionPage = () => {
           <>
             <div className="flex justify-center">
               <motion.div
-                className="
-                  grid
-                  grid-cols-2
-                  sm:grid-cols-2
-                  md:grid-cols-3
-                  lg:grid-cols-4
-                  gap-x-8 gap-y-10
-                  justify-items-center
-                  w-fit
-                  px-3
-                  sm:px-4
-                  md:px-6
-                  lg:px-0
-                  mx-auto
-                  md:max-w-[750px]
-                  lg:max-w-none
-                "
+                className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-8 gap-y-10 justify-items-center w-fit px-3 sm:px-4 md:px-6 lg:px-0 mx-auto"
                 variants={containerVariants}
                 initial="hidden"
                 whileInView="visible"
@@ -140,7 +177,7 @@ const ProductionPage = () => {
                     viewport={{ once: true, amount: 0.2 }}
                     className="w-full flex justify-center"
                   >
-                    <div className="w-[160px] sm:w-[200px] md:w-[230px] lg:w-[270px] flex justify-center">
+                    <div className="w-[160px] sm:w-[200px] lg:w-[260px] flex justify-center">
                       <ProductionCard
                         product={{
                           ...product,
