@@ -206,7 +206,7 @@ const LoginPage = () => {
             Chưa có tài khoản?{" "}
             <Link
               to="/signup"
-              className="font-medium text-shadow-blue-600 hover:text-cyan-500 inline-flex items-center"
+              className="font-medium text-blue-500 hover:text-cyan-500 inline-flex items-center"
             >
               Đăng ký ngay
               <ArrowRight className="ml-1 h-4 w-4" />
