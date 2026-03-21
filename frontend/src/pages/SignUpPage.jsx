@@ -30,7 +30,7 @@ const SignUpPage = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
       >
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-blue-700">
+        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
           Tạo tài khoản
         </h2>
       </motion.div>
@@ -59,7 +59,7 @@ const SignUpPage = () => {
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="block w-full px-3 py-2 pl-10 bg-white border border-gray-300 rounded-md placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm"
+                  className="block w-full px-3 py-2 pl-10 bg-white border border-gray-300 rounded-md placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-gray-900 focus:border-gray-900 sm:text-sm"
                   placeholder="John Doe"
                 />
               </div>
@@ -80,7 +80,7 @@ const SignUpPage = () => {
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="block w-full px-3 py-2 pl-10 bg-white border border-gray-300 rounded-md placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm"
+                  className="block w-full px-3 py-2 pl-10 bg-white border border-gray-300 rounded-md placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-gray-900 focus:border-gray-900 sm:text-sm"
                   placeholder="you@example.com"
                 />
               </div>
@@ -101,7 +101,7 @@ const SignUpPage = () => {
                   required
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="block w-full px-3 py-2 pl-10 bg-white border border-gray-300 rounded-md placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm"
+                  className="block w-full px-3 py-2 pl-10 bg-white border border-gray-300 rounded-md placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-gray-900 focus:border-gray-900 sm:text-sm"
                   placeholder="••••••••"
                 />
               </div>
@@ -124,7 +124,7 @@ const SignUpPage = () => {
                   onChange={(e) =>
                     setFormData({ ...formData, confirmPassword: e.target.value })
                   }
-                  className="block w-full px-3 py-2 pl-10 bg-white border border-gray-300 rounded-md placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm"
+                  className="block w-full px-3 py-2 pl-10 bg-white border border-gray-300 rounded-md placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-gray-900 focus:border-gray-900 sm:text-sm"
                   placeholder="••••••••"
                 />
               </div>
@@ -134,7 +134,7 @@ const SignUpPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex justify-center py-2 px-4 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600 transition disabled:opacity-50"
+              className="w-full flex justify-center py-2 px-4 rounded-md text-sm font-medium text-white bg-gray-900 hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 transition disabled:opacity-50"
             >
               {loading ? (
                 <>
@@ -155,7 +155,7 @@ const SignUpPage = () => {
             Đã có tài khoản?{" "}
             <Link
               to="/login"
-              className="font-medium text-blue-600 hover:text-blue-500 inline-flex items-center"
+              className="font-medium text-gray-900 hover:text-gray-900 inline-flex items-center"
             >
               Đăng nhập
               <ArrowRight className="ml-1 h-4 w-4" />

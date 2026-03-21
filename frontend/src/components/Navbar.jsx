@@ -125,7 +125,7 @@ const Navbar = () => {
       updateTimer();
       const interval = setInterval(updateTimer, 1000);
       return () => clearInterval(interval);
-    } catch (error) { console.error(error); }
+    } catch (error) {}
   }, [isAdmin, logout, navigate]);
 
   const fetchMyOrders = async () => {
@@ -134,7 +134,6 @@ const Navbar = () => {
       const res = await axios.get("/customer-orders/my-orders");
       setOrders(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
-      console.error(error);
       setOrders([]);
     } finally {
       setLoadingOrders(false);
@@ -227,9 +226,7 @@ const Navbar = () => {
                     setSelectedUser(sender);
                     navigate("/secret-dashboard"); 
                 }
-            } catch (err) {
-                console.error(err);
-            }
+            } catch (err) {}
         } else {
             openChat();
         }
@@ -414,20 +411,20 @@ const Navbar = () => {
               <div className="flex items-center gap-1.5 sm:gap-2 ml-0.5 sm:ml-2">
                 {isAdmin && (
                   <>
-                    <Link to="/secret-dashboard" className="bg-blue-700 hover:bg-blue-600 text-white px-2 py-1.5 sm:px-4 sm:py-2 rounded-md flex items-center transition">
-                      <Lock className="inline-block sm:mr-1" size={14} /> <span className="hidden sm:inline text-sm">Dashboard</span>
+                    <Link to="/secret-dashboard" className="bg-blue-700 hover:bg-blue-600 text-white px-2 py-1.5 sm:px-3 sm:py-2 rounded-md flex items-center transition" title="Dashboard">
+                      <Lock size={14} />
                     </Link>
                     {tokenTimeLeft && tokenSecondsLeft <= 3600 && (
-                      <div className={`flex items-center gap-1 px-1.5 py-1.5 sm:px-2 sm:py-2 rounded-md text-[10px] sm:text-xs font-mono border ${isHome && !isScrolled ? "bg-black/30 text-white border-white/20" : "bg-red-50 text-red-600 border-red-100"}`}>
+                      <div className={`flex items-center gap-1 px-1.5 py-1.5 sm:px-2 sm:py-2 rounded-md text-[10px] sm:text-xs font-mono border ${isHome && !isScrolled ? "bg-black/30 text-white border-white/20" : "bg-red-50 text-red-600 border-red-100"}`} title="Token Hết Hạn">
                         <Clock size={12} className="hidden sm:block" /> <span>{tokenTimeLeft}</span>
                       </div>
                     )}
                   </>
                 )}
                 {user ? (
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <button onClick={logout} className="bg-gray-700 hover:bg-gray-600 text-white px-2 py-1.5 sm:px-4 sm:py-2 rounded-md flex items-center transition">
-                      <LogOut size={14} /> <span className="hidden sm:inline sm:ml-2 text-sm">Đăng Xuất</span>
+                  <>
+                    <button onClick={logout} className="bg-gray-700 hover:bg-gray-600 text-white px-2 py-1.5 sm:px-3 sm:py-2 rounded-md flex items-center transition" title="Đăng Xuất">
+                      <LogOut size={14} /> <span className={`${isAdmin ? "hidden" : "hidden sm:inline sm:ml-2 text-sm"}`}>Đăng Xuất</span>
                     </button>
                     {isAdmin && (
                       <div className={`flex items-center gap-1 px-2 py-1.5 sm:px-3 sm:py-2 rounded-md border ${isHome && !isScrolled ? "bg-black/30 text-white border-white/20" : "bg-white text-gray-700 border-gray-200 shadow-sm"}`} title="Lượt truy cập">
@@ -435,17 +432,16 @@ const Navbar = () => {
                         <span className="text-xs sm:text-sm font-bold">{visitorCount}</span>
                       </div>
                     )}
-                  </div>
+                  </>
                 ) : (
-                  <div className="flex items-center gap-3 ml-2 sm:gap-4">
-                    <Link to="/signup" className={`text-xs sm:text-sm font-semibold transition whitespace-nowrap hover:-translate-y-0.5 ${isHome && !isScrolled ? "text-white hover:text-gray-300" : "text-black hover:text-blue-700"}`}>
-                      Đăng Ký
+                  <>
+                    <Link to="/signup" className="bg-gray-200 hover:bg-gray-300 text-black px-2 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-md flex items-center transition">
+                      <UserPlus className="sm:mr-2" size={14} /> <span className="hidden sm:inline">Đăng Ký</span>
                     </Link>
-                    <span className={isHome && !isScrolled ? "text-white/50" : "text-gray-300"}>|</span>
-                    <Link to="/login" className={`text-xs sm:text-sm font-semibold transition whitespace-nowrap hover:-translate-y-0.5 ${isHome && !isScrolled ? "text-white hover:text-gray-300" : "text-black hover:text-blue-700"}`}>
-                      Đăng Nhập
+                    <Link to="/login" className="bg-gray-700 hover:bg-gray-600 text-white px-2 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-md flex items-center transition">
+                      <LogIn className="sm:mr-2" size={14} /> <span className="hidden sm:inline">Đăng Nhập</span>
                     </Link>
-                  </div>
+                  </>
                 )}
               </div>
             </nav>
