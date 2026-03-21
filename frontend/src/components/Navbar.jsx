@@ -1,4 +1,4 @@
-import { ShoppingCart, UserPlus, LogIn, LogOut, Lock, Home, User, X, Clock, Package, History, Edit2, Save, XCircle, ChevronLeft, MapPin, Phone, CreditCard, Bell, Trash2, Camera, Search, Eye } from "lucide-react";
+import { ShoppingCart, UserPlus, LogIn, LogOut, Lock, Home, User, X, Clock, Package, History, Edit2, Save, XCircle, ChevronLeft, MapPin, CreditCard, Bell, Camera, Search, Eye } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useUserStore } from "../stores/useUserStore";
 import { useCartStore } from "../stores/useCartStore";
@@ -42,7 +42,10 @@ const Navbar = () => {
   
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showNotifications, setShowNotifications] = useState(false);
+  
   const [visitorCount, setVisitorCount] = useState(0);
+  const [visitorsData, setVisitorsData] = useState([]);
+  const [showVisitorsList, setShowVisitorsList] = useState(false);
 
   useEffect(() => {
     if (!socket) return;
@@ -50,10 +53,10 @@ const Navbar = () => {
         addRealtimeNotification(data);
     };
     socket.on("newNotification", handleNewNotification);
-    socket.on("visitorCountUpdate", (count) => setVisitorCount(count));
+    socket.on("dailyVisitorUpdate", (count) => setVisitorCount(count));
     return () => {
         socket.off("newNotification", handleNewNotification);
-        socket.off("visitorCountUpdate");
+        socket.off("dailyVisitorUpdate");
     };
   }, [socket, addRealtimeNotification]);
 
@@ -62,6 +65,37 @@ const Navbar = () => {
         fetchNotifications();
     }
   }, [user, fetchNotifications]);
+
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+        try {
+            if (isAdmin) {
+                const res = await axios.get("/analytics/daily");
+                setVisitorCount(res.data.count);
+                setVisitorsData(res.data.visitors);
+            } else {
+                const res = await axios.post("/analytics/track", {
+                    name: user?.name || "Khách vãng lai",
+                    email: user?.email || ""
+                });
+                setVisitorCount(res.data.count);
+            }
+        } catch (error) {}
+    };
+    fetchAnalytics();
+  }, [isAdmin, user]);
+
+  useEffect(() => {
+    if (showVisitorsList && isAdmin) {
+        const refreshData = async () => {
+            try {
+                const res = await axios.get("/analytics/daily");
+                setVisitorsData(res.data.visitors);
+            } catch (error) {}
+        };
+        refreshData();
+    }
+  }, [showVisitorsList, isAdmin]);
 
   useEffect(() => {
     if (showUserBox && user) {
@@ -421,16 +455,21 @@ const Navbar = () => {
                     )}
                   </>
                 )}
+                
                 {user ? (
                   <>
                     <button onClick={logout} className="bg-gray-700 hover:bg-gray-600 text-white px-2 py-1.5 sm:px-3 sm:py-2 rounded-md flex items-center transition whitespace-nowrap" title="Đăng Xuất">
-                      <LogOut size={14} className={isAdmin ? "" : "mr-1"} /> <span className={`${isAdmin ? "hidden" : "text-xs sm:text-sm font-medium"}`}>Đăng Xuất</span>
+                      <LogOut size={14} className={isAdmin ? "" : "mr-1"} /> <span className={isAdmin ? "hidden" : "text-xs sm:text-sm font-medium"}>Đăng Xuất</span>
                     </button>
                     {isAdmin && (
-                      <div className={`flex items-center gap-1 px-2 py-1.5 sm:px-3 sm:py-2 rounded-md border ${isHome && !isScrolled ? "bg-black/30 text-white border-white/20" : "bg-white text-gray-700 border-gray-200 shadow-sm"}`} title="Lượt truy cập">
+                      <button 
+                        onClick={() => setShowVisitorsList(true)}
+                        className={`flex items-center gap-1 px-2 py-1.5 sm:px-3 sm:py-2 rounded-md border hover:bg-opacity-80 transition ${isHome && !isScrolled ? "bg-black/30 text-white border-white/20 hover:bg-black/40" : "bg-white text-gray-700 border-gray-200 shadow-sm hover:bg-gray-50"}`} 
+                        title="Xem danh sách truy cập"
+                      >
                         <Eye size={16} />
                         <span className="text-xs sm:text-sm font-bold">{visitorCount}</span>
-                      </div>
+                      </button>
                     )}
                   </>
                 ) : (
@@ -448,6 +487,38 @@ const Navbar = () => {
           </div>
         </div>
       </motion.header>
+
+      <AnimatePresence>
+        {showVisitorsList && isAdmin && (
+            <>
+                <div className="fixed inset-0 z-[190]" onClick={() => setShowVisitorsList(false)}></div>
+                <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="fixed top-[65px] right-2 sm:right-20 z-[200] w-[90vw] sm:w-80 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden"
+                >
+                    <div className="p-3 border-b bg-gray-50 flex justify-between items-center">
+                        <h3 className="font-semibold text-gray-700">Truy cập hôm nay</h3>
+                        <span className="text-xs text-blue-600 font-bold">{visitorCount} lượt</span>
+                    </div>
+                    <div className="max-h-[60vh] overflow-y-auto">
+                        {visitorsData.length === 0 ? (
+                            <div className="p-8 text-center text-gray-500 text-sm">Chưa có ai truy cập</div>
+                        ) : (
+                            visitorsData.map((v, i) => (
+                                <div key={i} className="p-3 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition">
+                                    <p className="font-medium text-gray-800 text-sm">{v.name}</p>
+                                    {v.email && <p className="text-xs text-gray-500">{v.email}</p>}
+                                    <p className="text-[11px] text-gray-400 mt-1">IP: {v.ip} • {new Date(v.time).toLocaleTimeString("vi-VN")}</p>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </motion.div>
+            </>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {showNotifications && (
