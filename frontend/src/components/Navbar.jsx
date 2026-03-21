@@ -1,4 +1,4 @@
-import { ShoppingCart, UserPlus, LogIn, LogOut, Lock, Home, User, X, Clock, Package, History, Edit2, Save, XCircle, ChevronLeft, MapPin, Phone, CreditCard, Bell, Trash2, Camera, Search } from "lucide-react";
+import { ShoppingCart, UserPlus, LogIn, LogOut, Lock, Home, User, X, Clock, Package, History, Edit2, Save, XCircle, ChevronLeft, MapPin, Phone, CreditCard, Bell, Trash2, Camera, Search, Eye } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useUserStore } from "../stores/useUserStore";
 import { useCartStore } from "../stores/useCartStore";
@@ -31,6 +31,7 @@ const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
   const [tokenTimeLeft, setTokenTimeLeft] = useState(null);
+  const [tokenSecondsLeft, setTokenSecondsLeft] = useState(null);
 
   const [activeTab, setActiveTab] = useState("profile");
   const [orders, setOrders] = useState([]); 
@@ -41,6 +42,7 @@ const Navbar = () => {
   
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [visitorCount, setVisitorCount] = useState(0);
 
   useEffect(() => {
     if (!socket) return;
@@ -48,7 +50,11 @@ const Navbar = () => {
         addRealtimeNotification(data);
     };
     socket.on("newNotification", handleNewNotification);
-    return () => socket.off("newNotification", handleNewNotification);
+    socket.on("visitorCountUpdate", (count) => setVisitorCount(count));
+    return () => {
+        socket.off("newNotification", handleNewNotification);
+        socket.off("visitorCountUpdate");
+    };
   }, [socket, addRealtimeNotification]);
 
   useEffect(() => {
@@ -94,21 +100,33 @@ const Navbar = () => {
     try {
       const payload = JSON.parse(atob(token.split(".")[1]));
       if (!payload.exp) return;
+      
       const updateTimer = () => {
         const now = Math.floor(Date.now() / 1000);
         const timeLeft = payload.exp - now;
-        if (timeLeft <= 0) setTokenTimeLeft("Expired");
-        else {
-          const m = Math.floor(timeLeft / 60);
+        
+        if (timeLeft <= 0) {
+          logout();
+          navigate("/login");
+        } else {
+          setTokenSecondsLeft(timeLeft);
+          const h = Math.floor(timeLeft / 3600);
+          const m = Math.floor((timeLeft % 3600) / 60);
           const s = timeLeft % 60;
-          setTokenTimeLeft(`${m}:${s < 10 ? "0" : ""}${s}`);
+          
+          if (h > 0) {
+              setTokenTimeLeft(`${h}:${m < 10 ? "0" : ""}${m}:${s < 10 ? "0" : ""}${s}`);
+          } else {
+              setTokenTimeLeft(`${m}:${s < 10 ? "0" : ""}${s}`);
+          }
         }
       };
+      
       updateTimer();
       const interval = setInterval(updateTimer, 1000);
       return () => clearInterval(interval);
     } catch (error) { console.error(error); }
-  }, [isAdmin]);
+  }, [isAdmin, logout, navigate]);
 
   const fetchMyOrders = async () => {
     setLoadingOrders(true);
@@ -399,7 +417,7 @@ const Navbar = () => {
                     <Link to="/secret-dashboard" className="bg-blue-700 hover:bg-blue-600 text-white px-2 py-1.5 sm:px-4 sm:py-2 rounded-md flex items-center transition">
                       <Lock className="inline-block sm:mr-1" size={14} /> <span className="hidden sm:inline text-sm">Dashboard</span>
                     </Link>
-                    {tokenTimeLeft && (
+                    {tokenTimeLeft && tokenSecondsLeft <= 3600 && (
                       <div className={`flex items-center gap-1 px-1.5 py-1.5 sm:px-2 sm:py-2 rounded-md text-[10px] sm:text-xs font-mono border ${isHome && !isScrolled ? "bg-black/30 text-white border-white/20" : "bg-red-50 text-red-600 border-red-100"}`}>
                         <Clock size={12} className="hidden sm:block" /> <span>{tokenTimeLeft}</span>
                       </div>
@@ -407,18 +425,27 @@ const Navbar = () => {
                   </>
                 )}
                 {user ? (
-                  <button onClick={logout} className="bg-gray-700 hover:bg-gray-600 text-white px-2 py-1.5 sm:px-4 sm:py-2 rounded-md flex items-center transition">
-                    <LogOut size={14} /> <span className="hidden sm:inline sm:ml-2 text-sm">Đăng Xuất</span>
-                  </button>
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <button onClick={logout} className="bg-gray-700 hover:bg-gray-600 text-white px-2 py-1.5 sm:px-4 sm:py-2 rounded-md flex items-center transition">
+                      <LogOut size={14} /> <span className="hidden sm:inline sm:ml-2 text-sm">Đăng Xuất</span>
+                    </button>
+                    {isAdmin && (
+                      <div className={`flex items-center gap-1 px-2 py-1.5 sm:px-3 sm:py-2 rounded-md border ${isHome && !isScrolled ? "bg-black/30 text-white border-white/20" : "bg-white text-gray-700 border-gray-200 shadow-sm"}`} title="Lượt truy cập">
+                        <Eye size={16} />
+                        <span className="text-xs sm:text-sm font-bold">{visitorCount}</span>
+                      </div>
+                    )}
+                  </div>
                 ) : (
-                  <>
-                    <Link to="/signup" className="bg-gray-200 hover:bg-gray-300 text-black px-2 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-md flex items-center transition">
-                      <UserPlus className="sm:mr-2" size={14} /> <span className="hidden sm:inline">Đăng Ký</span>
+                  <div className="flex items-center gap-3 ml-2 sm:gap-4">
+                    <Link to="/signup" className={`text-xs sm:text-sm font-semibold transition whitespace-nowrap hover:-translate-y-0.5 ${isHome && !isScrolled ? "text-white hover:text-gray-300" : "text-black hover:text-blue-700"}`}>
+                      Đăng Ký
                     </Link>
-                    <Link to="/login" className="bg-gray-700 hover:bg-gray-600 text-white px-2 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-md flex items-center transition">
-                      <LogIn className="sm:mr-2" size={14} /> <span className="hidden sm:inline">Đăng Nhập</span>
+                    <span className={isHome && !isScrolled ? "text-white/50" : "text-gray-300"}>|</span>
+                    <Link to="/login" className={`text-xs sm:text-sm font-semibold transition whitespace-nowrap hover:-translate-y-0.5 ${isHome && !isScrolled ? "text-white hover:text-gray-300" : "text-black hover:text-blue-700"}`}>
+                      Đăng Nhập
                     </Link>
-                  </>
+                  </div>
                 )}
               </div>
             </nav>

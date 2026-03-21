@@ -35,6 +35,8 @@ const ProductionPage = () => {
 
   const filteredProducts = products?.filter((product) => {
     if (product.category?.toLowerCase() === "feedback") return false;
+    if (product.category?.toLowerCase() === "sale") return false;
+    if (product.isSale) return false;
     if (selectedCategory !== "all" && product.category?.toLowerCase() !== selectedCategory) return false;
     if (searchTerm && !product.name?.toLowerCase().includes(searchTerm.toLowerCase())) return false;
     return true;

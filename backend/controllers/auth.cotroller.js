@@ -3,10 +3,10 @@ import User from "../models/user.model.js";
 import jwt from "jsonwebtoken";
 import fetch from "node-fetch";
 import cloudinary from "../lib/cloudinary.js"; 
-import { io } from "../lib/socket.js"; // Import thêm socket IO
+import { io } from "../lib/socket.js";
 
 const generateTokens = (userId) => {
-    const accessToken = jwt.sign({ userId }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "1h" });
+    const accessToken = jwt.sign({ userId }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "3h" });
     const refreshToken = jwt.sign({ userId }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
     return { accessToken, refreshToken };
 };
@@ -30,7 +30,7 @@ const setCookies = (res, accessToken, refreshToken) => {
 
     res.cookie("accessToken", accessToken, {
         ...options,
-        maxAge: 60 * 60 * 1000,
+        maxAge: 3 * 60 * 60 * 1000,
     });
 
     res.cookie("refreshToken", refreshToken, {
@@ -79,7 +79,7 @@ export const facebookLogin = async (req, res) => {
             },
         });
     } catch (error) {
-        console.log("Error in facebookLogin:", error.message);
+        console.log(error.message);
         res.status(500).json({ message: "Server error", error: error.message });
     }
 };
@@ -111,7 +111,7 @@ export const signup = async (req, res) => {
             message: "User created successfully",
         });
     } catch (error) {
-        console.log("Error in signup controller:", error.message);
+        console.log(error.message);
         res.status(500).json({ message: error.message });
     }
 };
@@ -142,7 +142,7 @@ export const login = async (req, res) => {
             res.status(401).json({ message: "Mật khẩu hoặc tên tài khoản không đúng" });
         }
     } catch (error) {
-        console.log("Error in login controller:", error.message);
+        console.log(error.message);
         res.status(500).json({ message: error.message });
     }
 };
@@ -155,7 +155,7 @@ export const logout = async (req, res) => {
                 const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
                 await redis.del(`refresh_token:${decoded.userId}`);
             } catch (err) {
-                console.log("Token invalid during logout, ignoring redis deletion");
+                console.log(err.message);
             }
         }
 
@@ -165,7 +165,7 @@ export const logout = async (req, res) => {
         
         res.json({ message: "Logged out successfully" });
     } catch (error) {
-        console.log("Error in logout controller:", error.message);
+        console.log(error.message);
         res.status(500).json({ message: "Server error", error: error.message });
     }
 };
@@ -196,7 +196,7 @@ export const refreshToken = async (req, res) => {
 
         res.json({ message: "Token refreshed successfully", accessToken });
     } catch (error) {
-        console.log("Error in refreshToken:", error.message);
+        console.log(error.message);
         res.status(500).json({ message: "Server error", error: error.message });
     }
 };
@@ -209,7 +209,6 @@ export const getProfile = async (req, res) => {
     }
 };
 
-// --- HÀM CẬP NHẬT: THÊM LOGIC SOCKET IO EMIT ---
 export const updateProfile = async (req, res) => {
     try {
         const { name, email, phoneNumber, direction, avatar } = req.body;
@@ -217,7 +216,6 @@ export const updateProfile = async (req, res) => {
 
         let updatedData = { name, email, phoneNumber, direction };
 
-        // 1. Upload ảnh lên Cloudinary
         if (avatar) {
             try {
                 const uploadResponse = await cloudinary.uploader.upload(avatar, {
@@ -225,24 +223,22 @@ export const updateProfile = async (req, res) => {
                 });
                 updatedData.avatar = uploadResponse.secure_url;
             } catch (uploadError) {
-                console.error("Cloudinary upload failed:", uploadError);
+                console.error(uploadError.message);
                 return res.status(500).json({ message: "Lỗi tải ảnh lên server" });
             }
         }
 
-        // 2. Cập nhật vào DB
         const user = await User.findByIdAndUpdate(
             userId,
             updatedData,
-            { new: true } // Trả về data mới nhất
+            { new: true }
         ).select("-password");
 
-        // 3. QUAN TRỌNG: Bắn tín hiệu cho AdminChat và Navbar biết
         io.emit("userProfileUpdated", user);
 
         res.json(user);
     } catch (error) {
-        console.error("Error in updateProfile:", error.message);
+        console.error(error.message);
         res.status(500).json({ message: "Server error", error: error.message });
     }
 };
@@ -252,7 +248,7 @@ export const getAllUsers = async (req, res) => {
         const users = await User.find({}).select("-password");
         res.json(users);
     } catch (error) {
-        console.log("Error in getAllUsers controller", error.message);
+        console.log(error.message);
         res.status(500).json({ message: "Server error", error: error.message });
     }
 };
