@@ -412,7 +412,7 @@ const Navbar = () => {
                 {isAdmin && (
                   <>
                     <Link to="/secret-dashboard" className="bg-blue-700 hover:bg-blue-600 text-white px-2 py-1.5 sm:px-3 sm:py-2 rounded-md flex items-center transition" title="Dashboard">
-                      <Lock size={14} />
+                      <Lock size={14} className="mr-1" /> <span className="text-xs sm:text-sm font-bold">ADMIN</span>
                     </Link>
                     {tokenTimeLeft && tokenSecondsLeft <= 3600 && (
                       <div className={`flex items-center gap-1 px-1.5 py-1.5 sm:px-2 sm:py-2 rounded-md text-[10px] sm:text-xs font-mono border ${isHome && !isScrolled ? "bg-black/30 text-white border-white/20" : "bg-red-50 text-red-600 border-red-100"}`} title="Token Hết Hạn">
@@ -423,8 +423,8 @@ const Navbar = () => {
                 )}
                 {user ? (
                   <>
-                    <button onClick={logout} className="bg-gray-700 hover:bg-gray-600 text-white px-2 py-1.5 sm:px-3 sm:py-2 rounded-md flex items-center transition" title="Đăng Xuất">
-                      <LogOut size={14} /> <span className={`${isAdmin ? "hidden" : "hidden sm:inline sm:ml-2 text-sm"}`}>Đăng Xuất</span>
+                    <button onClick={logout} className="bg-gray-700 hover:bg-gray-600 text-white px-2 py-1.5 sm:px-3 sm:py-2 rounded-md flex items-center transition whitespace-nowrap" title="Đăng Xuất">
+                      <LogOut size={14} className={isAdmin ? "" : "mr-1"} /> <span className={`${isAdmin ? "hidden" : "text-xs sm:text-sm font-medium"}`}>Đăng Xuất</span>
                     </button>
                     {isAdmin && (
                       <div className={`flex items-center gap-1 px-2 py-1.5 sm:px-3 sm:py-2 rounded-md border ${isHome && !isScrolled ? "bg-black/30 text-white border-white/20" : "bg-white text-gray-700 border-gray-200 shadow-sm"}`} title="Lượt truy cập">
@@ -435,11 +435,11 @@ const Navbar = () => {
                   </>
                 ) : (
                   <>
-                    <Link to="/signup" className="bg-gray-200 hover:bg-gray-300 text-black px-2 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-md flex items-center transition">
-                      <UserPlus className="sm:mr-2" size={14} /> <span className="hidden sm:inline">Đăng Ký</span>
+                    <Link to="/signup" className="bg-gray-200 hover:bg-gray-300 text-black px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium rounded-md flex items-center transition whitespace-nowrap">
+                      <UserPlus className="mr-1" size={14} /> <span>Đăng Ký</span>
                     </Link>
-                    <Link to="/login" className="bg-gray-700 hover:bg-gray-600 text-white px-2 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm rounded-md flex items-center transition">
-                      <LogIn className="sm:mr-2" size={14} /> <span className="hidden sm:inline">Đăng Nhập</span>
+                    <Link to="/login" className="bg-gray-700 hover:bg-gray-600 text-white px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium rounded-md flex items-center transition whitespace-nowrap">
+                      <LogIn className="mr-1" size={14} /> <span>Đăng Nhập</span>
                     </Link>
                   </>
                 )}
