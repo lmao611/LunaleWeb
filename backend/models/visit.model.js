@@ -10,7 +10,8 @@ const visitSchema = new mongoose.Schema({
             time: { type: Date, default: Date.now }
         }
     ],
-    createdAt: { type: Date, default: Date.now, expires: 259200 }
+    // Tự động xóa document sau 3 ngày (3 * 24 * 60 * 60 = 259200 giây)
+    createdAt: { type: Date, default: Date.now, expires: 259200 } 
 });
 
 export default mongoose.model("Visit", visitSchema);

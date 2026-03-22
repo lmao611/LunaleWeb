@@ -49,14 +49,17 @@ const Navbar = () => {
 
   useEffect(() => {
     if (!socket) return;
-    const handleNewNotification = (data) => {
-        addRealtimeNotification(data);
-    };
+    const handleNewNotification = (data) => addRealtimeNotification(data);
+    const handleDailyVisitorUpdate = (count) => setVisitorCount(count);
+    const handleVisitorsListUpdate = (list) => setVisitorsData(list);
+
     socket.on("newNotification", handleNewNotification);
-    socket.on("dailyVisitorUpdate", (count) => setVisitorCount(count));
+    socket.on("dailyVisitorUpdate", handleDailyVisitorUpdate);
+    socket.on("visitorsListUpdate", handleVisitorsListUpdate);
     return () => {
         socket.off("newNotification", handleNewNotification);
-        socket.off("dailyVisitorUpdate");
+        socket.off("dailyVisitorUpdate", handleDailyVisitorUpdate);
+        socket.off("visitorsListUpdate", handleVisitorsListUpdate);
     };
   }, [socket, addRealtimeNotification]);
 
@@ -74,8 +77,9 @@ const Navbar = () => {
                 setVisitorCount(res.data.count);
                 setVisitorsData(res.data.visitors);
             } else {
+                // Gửi request track lượt xem mỗi khi component mount hoặc khi user thay đổi (đăng nhập)
                 const res = await axios.post("/analytics/track", {
-                    name: user?.name || "Khách vãng lai",
+                    name: user?.name || "", 
                     email: user?.email || ""
                 });
                 setVisitorCount(res.data.count);
@@ -83,7 +87,7 @@ const Navbar = () => {
         } catch (error) {}
     };
     fetchAnalytics();
-  }, [isAdmin, user]);
+  }, [isAdmin, user]); // Phụ thuộc vào user để gọi lại API nếu khách vừa đăng nhập
 
   useEffect(() => {
     if (showVisitorsList && isAdmin) {
