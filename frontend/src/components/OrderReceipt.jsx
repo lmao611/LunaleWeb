@@ -174,7 +174,6 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
       });
 
       const payload = {
-        customerId: form.customerId || null,
         customerName: form.customerName,
         address: form.address,
         phone: form.phone,
@@ -185,6 +184,10 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
         paymentMethod: "COD", 
         shipFee: form.shipFee 
       };
+
+      if (form.customerId) {
+        payload.customerId = form.customerId;
+      }
 
       await axios.post("/orders", payload);
       toast.success("Đã lưu đơn hàng vào hệ thống!");

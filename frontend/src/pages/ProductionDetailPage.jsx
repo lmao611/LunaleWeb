@@ -230,12 +230,6 @@ const ProductionDetailPage = () => {
     setBatches(newBatches);
   };
 
-  const handleSave = async () => {
-    setIsSaving(true);
-    await saveProduction(id, { inventory, batches });
-    setIsSaving(false);
-  };
-
   const formatCurrency = (amount) => {
     if (!amount) return "-";
     return new Intl.NumberFormat('vi-VN').format(amount);
@@ -271,6 +265,10 @@ const ProductionDetailPage = () => {
       </>
     );
   };
+
+  const grandTotalBatches = batches.reduce((total, batch) => {
+    return total + batch.items.reduce((sum, item) => sum + (Number(item.soLuong) * Number(item.gia) || 0), 0);
+  }, 0);
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] text-gray-900 p-4 pt-24 text-sm pb-20">
@@ -455,10 +453,13 @@ const ProductionDetailPage = () => {
                           </td>
                           <td className="border border-black p-0">
                             <input 
-                              type="number" 
-                              value={item.gia || ""} 
+                              type="text" 
+                              value={item.gia ? new Intl.NumberFormat('vi-VN').format(item.gia) : ""} 
                               placeholder="-"
-                              onChange={(e) => handleBatchItemChange(batchIndex, itemIndex, "gia", e.target.value)}
+                              onChange={(e) => {
+                                const rawValue = e.target.value.replace(/\D/g, "");
+                                handleBatchItemChange(batchIndex, itemIndex, "gia", rawValue ? Number(rawValue) : 0);
+                              }}
                               className="w-full h-full text-center bg-transparent outline-none py-2"
                             />
                           </td>
@@ -495,12 +496,18 @@ const ProductionDetailPage = () => {
               );
             })}
             
-            <button 
-              onClick={addBatch}
-              className="bg-[#A9D08E] border-2 border-black text-black p-3 font-bold hover:bg-[#96c179] transition-all rounded-sm self-center px-12 sm:px-24 mt-2 shadow-sm"
-            >
-              THÊM ĐỢT MỚI ( + )
-            </button>
+            <div className="flex flex-col sm:flex-row justify-between items-stretch gap-4 mt-2">
+              <button 
+                onClick={addBatch}
+                className="bg-[#A9D08E] border-2 border-black text-black p-3 font-bold hover:bg-[#96c179] transition-all rounded-sm flex-1 shadow-sm"
+              >
+                THÊM ĐỢT MỚI ( + )
+              </button>
+              <div className="flex-1 bg-[#FFC000] border-2 border-black text-black p-3 font-bold flex items-center justify-between shadow-sm text-lg px-6 uppercase">
+                <span>Tổng tất cả các đợt:</span>
+                <span className="text-red-600">{formatCurrency(grandTotalBatches)} ₫</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
