@@ -1,7 +1,8 @@
 import mongoose from "mongoose";
 
 const orderItemSchema = new mongoose.Schema({
-  productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
+  productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" }, // Bỏ required: true
+  name: { type: String }, // Thêm trường lưu tên sản phẩm thủ công
   size: { type: String, default: "" }, 
   quantity: { type: Number, required: true, min: 1 },
   price: { type: Number, required: true, min: 0 }
@@ -9,12 +10,13 @@ const orderItemSchema = new mongoose.Schema({
 
 const orderSchema = new mongoose.Schema(
   {
-    customerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    customerName: { type: String },
+    customerId: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // Bỏ required: true
+    customerName: { type: String, required: true },
     address: { type: String },
     phone: { type: String },
     items: [orderItemSchema],
     total: { type: Number, required: true, min: 0 },
+    shipFee: { type: Number, default: 0 },
     status: {
       type: String,
       enum: ["chưa giao", "đang giao", "đã giao", "đã hủy"],
