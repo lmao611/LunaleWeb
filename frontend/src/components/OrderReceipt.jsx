@@ -164,13 +164,14 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
         const { price } = getProductInfo(item);
         const unitPriceAfterSale = price * (1 - (item.sale || 0) / 100);
         
-        return {
-           productId: item.productId || null,
+        const mappedItem = {
            name: item.tempName,
            quantity: item.quantity,
            size: item.size,
            price: unitPriceAfterSale 
         };
+        if (item.productId) mappedItem.productId = item.productId;
+        return mappedItem;
       });
 
       const payload = {
@@ -179,15 +180,13 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
         phone: form.phone,
         items: dbItems,
         status: "chưa giao", 
-        receivedDate: isoReceivedDate, 
-        deliverDate: isoDeliverDate,
         paymentMethod: "COD", 
         shipFee: form.shipFee 
       };
 
-      if (form.customerId) {
-        payload.customerId = form.customerId;
-      }
+      if (form.customerId) payload.customerId = form.customerId;
+      if (isoReceivedDate) payload.receivedDate = isoReceivedDate;
+      if (isoDeliverDate) payload.deliverDate = isoDeliverDate;
 
       await axios.post("/orders", payload);
       toast.success("Đã lưu đơn hàng vào hệ thống!");

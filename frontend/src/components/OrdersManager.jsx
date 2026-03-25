@@ -174,24 +174,31 @@ export default function OrdersManager() {
   async function handleSave(e) {
     e && e.preventDefault();
     try {
-      const payload = {
-        customerId: editing.customerId || null,
-        customerName: editing.customerName,
-        address: editing.address,
-        phone: editing.phone,
-        items: (editing.items || []).map((it) => ({
-          productId: it.productId || null,
+      const payloadItems = (editing.items || []).map((it) => {
+        const mappedItem = {
           name: it.tempName,
           size: it.size,
           quantity: it.quantity,
           price: it.price,
-        })),
+        };
+        if (it.productId) mappedItem.productId = it.productId;
+        return mappedItem;
+      });
+
+      const payload = {
+        customerName: editing.customerName,
+        address: editing.address,
+        phone: editing.phone,
+        items: payloadItems,
         status: editing.status,
-        receivedDate: editing.receivedDate || null,
-        deliverDate: editing.deliverDate || null,
         paymentMethod: editing.paymentMethod,
         shipFee: Number(editing.shipFee || 0),
       };
+
+      if (editing.customerId) payload.customerId = editing.customerId;
+      if (editing.receivedDate) payload.receivedDate = editing.receivedDate;
+      if (editing.deliverDate) payload.deliverDate = editing.deliverDate;
+
       if (editing.id) {
         await axios.put(`/orders/${editing.id}`, payload);
       } else {
