@@ -128,7 +128,18 @@ const ProductPage = () => {
         
         <div className="flex-1 flex flex-col items-center">
           <div className="w-full max-w-[464px] aspect-[3/4] rounded-lg shadow-lg overflow-hidden bg-gray-100 relative">
-            <img src={mainImage || fallbackImage} alt={product.name} onLoad={() => setIsImageLoading(false)} onError={(e) => (e.target.src = fallbackImage)} onClick={handleMainImageClick} onMouseDown={stopDown} className={`absolute inset-0 w-full h-full object-cover cursor-pointer transition-all duration-500 ease-in-out ${isImageLoading ? "opacity-0 scale-105" : "opacity-100 hover:scale-110"}`} />
+            <img 
+              src={mainImage || fallbackImage} 
+              alt={product.name} 
+              draggable="false"
+              onContextMenu={(e) => e.preventDefault()}
+              style={{ userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" }}
+              onLoad={() => setIsImageLoading(false)} 
+              onError={(e) => (e.target.src = fallbackImage)} 
+              onClick={handleMainImageClick} 
+              onMouseDown={stopDown} 
+              className={`absolute inset-0 w-full h-full object-cover select-none cursor-pointer transition-all duration-500 ease-in-out ${isImageLoading ? "opacity-0 scale-105" : "opacity-100 hover:scale-110"}`} 
+            />
             {isSale && <span className="absolute top-4 right-4 bg-red-600 text-white text-sm font-bold px-3 py-1 rounded-full shadow-md z-10">-{percent}%</span>}
           </div>
           {allThumbnails.length > 1 && (
@@ -136,7 +147,20 @@ const ProductPage = () => {
               {canScroll && startIndex > 0 && <button type="button" onClick={handlePrev} className="absolute -left-5 z-20 bg-white/90 hover:bg-white text-gray-800 shadow-md rounded-full p-2"><ChevronLeft className="h-5 w-5" /></button>}
               <div className="flex gap-3 justify-center items-center w-full">
                 {visibleThumbnails.map((thumb, index) => (
-                  <motion.img key={thumb + index} src={thumb || fallbackImage} alt={`thumb-${index}`} onClick={(e) => handleThumbnailClick(e, thumb)} onMouseDown={stopDown} onError={(e) => (e.target.src = fallbackImage)} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }} className={`w-[116px] h-[140px] object-cover rounded-md cursor-pointer border-2 transition-all duration-300 ${mainImage === thumb ? "border-gray-900 scale-110 shadow-md z-10" : "border-gray-200 hover:border-gray-500"}`} />
+                  <motion.img 
+                    key={thumb + index} 
+                    src={thumb || fallbackImage} 
+                    alt={`thumb-${index}`} 
+                    draggable="false"
+                    onContextMenu={(e) => e.preventDefault()}
+                    style={{ userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" }}
+                    onClick={(e) => handleThumbnailClick(e, thumb)} 
+                    onMouseDown={stopDown} 
+                    onError={(e) => (e.target.src = fallbackImage)} 
+                    whileHover={{ scale: 1.05 }} 
+                    whileTap={{ scale: 0.97 }} 
+                    className={`w-[116px] h-[140px] object-cover select-none rounded-md cursor-pointer border-2 transition-all duration-300 ${mainImage === thumb ? "border-gray-900 scale-110 shadow-md z-10" : "border-gray-200 hover:border-gray-500"}`} 
+                  />
                 ))}
               </div>
               {canScroll && startIndex + visibleCount < allThumbnails.length && <button type="button" onClick={handleNext} className="absolute -right-5 z-20 bg-white/90 hover:bg-white text-gray-800 shadow-md rounded-full p-2"><ChevronRight className="h-5 w-5" /></button>}
@@ -178,8 +202,23 @@ const ProductPage = () => {
             </div>
 
           </div>
-          <img src="/model.jpg" alt="Model Size" className="mt-6 rounded-lg shadow-lg w-full object-cover" />
-          <img src="/size.jpg" alt="Size Chart" className="mt-6 rounded-lg shadow-lg w-full object-contain bg-white" onMouseDown={stopDown} />
+          <img 
+            src="/model.jpg" 
+            alt="Model Size" 
+            draggable="false"
+            onContextMenu={(e) => e.preventDefault()}
+            style={{ userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" }}
+            className="mt-6 rounded-lg shadow-lg w-full object-cover select-none" 
+          />
+          <img 
+            src="/size.jpg" 
+            alt="Size Chart" 
+            draggable="false"
+            onContextMenu={(e) => e.preventDefault()}
+            style={{ userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" }}
+            className="mt-6 rounded-lg shadow-lg w-full object-contain bg-white select-none" 
+            onMouseDown={stopDown} 
+          />
         </div>
       </div>
 
@@ -198,7 +237,14 @@ const ProductPage = () => {
                         {!showQR ? (
                            <div className="space-y-4">
                                <div className="flex gap-4 mb-4">
-                                   <img src={mainImage} className="w-20 h-24 object-cover rounded border" alt="prod"/>
+                                   <img 
+                                     src={mainImage} 
+                                     draggable="false"
+                                     onContextMenu={(e) => e.preventDefault()}
+                                     style={{ userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" }}
+                                     className="w-20 h-24 object-cover rounded border select-none" 
+                                     alt="prod"
+                                   />
                                    <div>
                                        <p className="font-bold line-clamp-2">{product.name}</p>
                                        <p className="text-blue-600 font-bold">{discountedPriceDisplay}</p>
@@ -255,7 +301,10 @@ const ProductPage = () => {
                                    <img 
                                         src="/qr-payment.jpg" 
                                         alt="QR Code" 
-                                        className="w-full max-w-[400px] h-auto object-contain mx-auto" 
+                                        draggable="false"
+                                        onContextMenu={(e) => e.preventDefault()}
+                                        style={{ userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" }}
+                                        className="w-full max-w-[400px] h-auto object-contain mx-auto select-none" 
                                    />
                                </div>
                                <p className="font-bold text-lg text-blue-700 mb-3">
@@ -295,7 +344,16 @@ const ProductPage = () => {
                       <input type="range" min="0.5" max="5" step="0.1" value={sliderValue} onChange={(e) => { const val = parseFloat(e.target.value); setSliderValue(val); centerView(val, 0); }} className="w-32 h-1 bg-white/30 rounded-lg appearance-none cursor-pointer accent-white" />
                       <button onClick={zoomIn} className="hover:bg-white/20 p-1 rounded transition-colors">+</button>
                     </div>
-                    <TransformComponent wrapperClass="!w-full !h-full"><img src={zoomImage} alt="Zoomed" className="max-h-screen max-w-screen object-contain" /></TransformComponent>
+                    <TransformComponent wrapperClass="!w-full !h-full">
+                      <img 
+                        src={zoomImage} 
+                        alt="Zoomed" 
+                        draggable="false"
+                        onContextMenu={(e) => e.preventDefault()}
+                        style={{ userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" }}
+                        className="max-h-screen max-w-screen object-contain select-none" 
+                      />
+                    </TransformComponent>
                   </>
                 )}
               </TransformWrapper>

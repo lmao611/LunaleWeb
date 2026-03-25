@@ -110,7 +110,10 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
         <img
           src={product.image ? optimizeUrl(product.image, 400) : PLACEHOLDER_IMAGE}
           alt={product.name}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          draggable="false"
+          onContextMenu={(e) => e.preventDefault()}
+          style={{ userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" }}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 select-none"
           loading="lazy"
           onError={(e) => { e.target.onerror = null; e.target.src = PLACEHOLDER_IMAGE; }}
         />
