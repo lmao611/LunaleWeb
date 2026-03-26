@@ -38,8 +38,11 @@ const FeaturedProducts = () => {
     const scrollStep = () => {
       if (!container) return;
       
-      // Tốc độ trượt (Pixel trên mỗi khung hình). Tăng số này lên nếu muốn trượt nhanh hơn (vd: 1.5)
-      container.scrollLeft += 0.8; 
+      // ĐIỀU CHỈNH TỐC ĐỘ Ở ĐÂY (Số càng nhỏ trượt càng chậm)
+      // isMobile ? [Tốc độ điện thoại] : [Tốc độ máy tính]
+      const speed = isMobile ? 0.3 : 0.5; 
+      
+      container.scrollLeft += speed; 
 
       // Hiệu ứng vòng lặp vô tận: Khi cuộn được đúng 1 nửa (bằng chiều dài ds gốc), giật mượt mà về 0
       if (container.scrollLeft >= container.scrollWidth / 2) {
@@ -52,7 +55,7 @@ const FeaturedProducts = () => {
     reqRef.current = requestAnimationFrame(scrollStep);
 
     return () => cancelAnimationFrame(reqRef.current);
-  }, [isAutoPlaying, products.length]);
+  }, [isAutoPlaying, products.length, isMobile]);
 
   // Hàm dừng tự động trượt
   const stopAutoPlay = () => {
