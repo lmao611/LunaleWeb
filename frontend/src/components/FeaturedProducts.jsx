@@ -11,7 +11,6 @@ const FeaturedProducts = () => {
   const { products, fetchFeaturedProducts } = useProductStore();
   const [isMobile, setIsMobile] = useState(false);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
-  const [showNav, setShowNav] = useState(false);
   
   const scrollContainerRef = useRef(null);
   const reqRef = useRef(null);
@@ -40,7 +39,7 @@ const FeaturedProducts = () => {
     const scrollStep = () => {
       if (!container) return;
       
-      const speed = isMobile ? 0.3 : 0.1; 
+      const speed = isMobile ? 0.3 : 0.2; 
       
       if (Math.abs(container.scrollLeft - exactScrollRef.current) > 2) {
         exactScrollRef.current = container.scrollLeft;
@@ -105,11 +104,7 @@ const FeaturedProducts = () => {
           Featured Products
         </h2>
 
-        <div 
-          className="relative z-0"
-          onMouseEnter={() => setShowNav(true)}
-          onMouseLeave={() => setShowNav(false)}
-        >
+        <div className="relative z-0">
           <div 
             ref={scrollContainerRef}
             onTouchStart={stopAutoPlay}
@@ -128,7 +123,7 @@ const FeaturedProducts = () => {
           </div>
 
           {!isMobile && (
-            <div className={`z-50 transition-opacity duration-300 ${showNav ? "opacity-100" : "opacity-0"}`}>
+            <div className="z-50">
               <button onClick={handleScrollLeftBtn} className="absolute top-1/2 -left-4 transform -translate-y-1/2 flex items-center justify-center rounded-full bg-gray-900 hover:bg-gray-700 transition-colors duration-300 shadow-md w-10 h-10 p-2 z-50">
                 <ChevronLeft className="w-6 h-6 text-white" />
               </button>
@@ -198,7 +193,7 @@ const Card = ({ product, isMobile, preorderStatus }) => {
           ref={cardRef}
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
-          className="group relative block overflow-hidden rounded-xl shadow-md hover:shadow-xl hover:ring-2 hover:ring-gray-900/40 transition-transform duration-200 ease-out bg-white/80 backdrop-blur-sm w-full h-full"
+          className="group/card relative block overflow-hidden rounded-xl shadow-md hover:shadow-xl hover:ring-2 hover:ring-gray-900/40 transition-transform duration-200 ease-out bg-white/80 backdrop-blur-sm w-full h-full"
         >
           <div ref={glareRef} className="pointer-events-none absolute inset-0 rounded-xl z-20 transition-all duration-300" />
 
@@ -215,12 +210,12 @@ const Card = ({ product, isMobile, preorderStatus }) => {
               draggable="false"
               onContextMenu={(e) => e.preventDefault()}
               style={{ userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" }}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 select-none"
+              className="w-full h-full object-cover transition-transform duration-500 group-hover/card:scale-110 select-none"
               onError={(e) => (e.target.src = "https://via.placeholder.com/300x400?text=No+Image")}
             />
           </div>
 
-          <div className={`absolute bottom-0 left-0 right-0 z-30 p-2 bg-gradient-to-t from-gray-900/80 to-gray-600/40 transition-transform duration-500 ease-in-out ${isMobile ? "translate-y-0" : "translate-y-full group-hover:translate-y-0"}`}>
+          <div className={`absolute bottom-0 left-0 right-0 z-30 p-2 bg-gradient-to-t from-gray-900/80 to-gray-600/40 transition-transform duration-500 ease-in-out ${isMobile ? "translate-y-0" : "translate-y-full group-hover/card:translate-y-0"}`}>
             <h5 className="font-semibold text-white truncate text-[10.5px] sm:text-base">{product.name}</h5>
             <div className="flex items-center justify-between">
               <span className="text-white font-bold text-sm">{Number(product.price).toLocaleString("vi-VN")}đ</span>
