@@ -13,6 +13,10 @@ const FeaturedProducts = () => {
   const [itemsPerPage, setItemsPerPage] = useState(4);
   const [isMobile, setIsMobile] = useState(false);
 
+  // --- THÊM STATE VÀ REF CHO TÍNH NĂNG AUTO-SCROLL TRÊN ĐIỆN THOẠI ---
+  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const scrollContainerRef = useRef(null);
+
   useEffect(() => {
     fetchFeaturedProducts();
   }, [fetchFeaturedProducts]);
@@ -29,6 +33,36 @@ const FeaturedProducts = () => {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // --- LOGIC TỰ ĐỘNG LƯỚT (AUTO-SLIDE) ---
+  useEffect(() => {
+    if (!isMobile || !isAutoPlaying || products.length === 0) return;
+
+    const interval = setInterval(() => {
+      const container = scrollContainerRef.current;
+      if (!container) return;
+
+      // Tính toán chiều rộng của 1 thẻ sản phẩm + khoảng cách (gap)
+      const firstChild = container.children[0];
+      const itemWidth = firstChild ? firstChild.offsetWidth + 16 : 200; 
+      const maxScroll = container.scrollWidth - container.clientWidth;
+
+      // Nếu đã lướt đến cuối cùng -> Cuộn ngược mượt mà về lại đầu tiên
+      if (container.scrollLeft >= maxScroll - 10) {
+        container.scrollTo({ left: 0, behavior: "smooth" });
+      } else {
+        // Lướt sang phải 1 sản phẩm
+        container.scrollBy({ left: itemWidth, behavior: "smooth" });
+      }
+    }, 2500); // Cứ 2.5 giây tự động lướt 1 lần
+
+    return () => clearInterval(interval);
+  }, [isMobile, isAutoPlaying, products.length]);
+
+  // Hàm tắt tính năng tự lướt khi khách hàng chạm vào
+  const stopAutoPlay = () => {
+    if (isAutoPlaying) setIsAutoPlaying(false);
+  };
 
   const totalPages = Math.ceil(products.length / itemsPerPage);
   const nextPage = () => setPage((p) => Math.min(p + 1, totalPages - 1));
@@ -62,9 +96,14 @@ const FeaturedProducts = () => {
 
         <div className="relative z-0">
           
-          {/* Mobile View: Vuốt ngang (Swipe) */}
+          {/* Mobile View: Vuốt ngang (Swipe) + Tự động lướt */}
           {isMobile ? (
-            <div className="flex overflow-x-auto gap-4 pb-6 snap-x snap-mandatory px-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <div 
+              ref={scrollContainerRef}
+              onTouchStart={stopAutoPlay} // Tắt auto khi chạm ngón tay
+              onMouseDown={stopAutoPlay}  // Tắt auto khi click chuột
+              className="flex overflow-x-auto gap-4 pb-6 snap-x snap-mandatory px-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+            >
               {products.map((product) => (
                 <Card
                   key={product._id}
