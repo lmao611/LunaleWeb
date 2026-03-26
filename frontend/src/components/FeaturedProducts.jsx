@@ -40,7 +40,8 @@ const FeaturedProducts = () => {
       
       // ĐIỀU CHỈNH TỐC ĐỘ Ở ĐÂY (Số càng nhỏ trượt càng chậm)
       // isMobile ? [Tốc độ điện thoại] : [Tốc độ máy tính]
-      const speed = isMobile ? 0.3 : 0.2; 
+      // Đã chỉnh PC về 0.1
+      const speed = isMobile ? 0.3 : 0.1; 
       
       container.scrollLeft += speed; 
 
@@ -105,12 +106,13 @@ const FeaturedProducts = () => {
 
         <div className="relative z-0 group">
           {/* Băng chuyền chung cho cả Desktop và Mobile */}
+          {/* SỬA LỖI 2 (Clipping): Bổ sung pt-4 pb-12 px-4 và tăng sm:gap-10 để tạo không gian cho hiệu ứng tilt */}
           <div 
             ref={scrollContainerRef}
             onTouchStart={stopAutoPlay} // Tắt auto khi vuốt trên điện thoại
             onMouseDownCapture={stopAutoPlay} // Tắt auto khi click/kéo trên máy tính
             onWheel={stopAutoPlay} // Tắt auto khi lăn chuột
-            className="flex overflow-x-auto gap-4 sm:gap-6 pb-6 px-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+            className="flex overflow-x-auto gap-4 sm:gap-10 pt-4 pb-12 px-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
           >
             {displayProducts.map((product, index) => (
               <Card
@@ -167,7 +169,8 @@ const Card = ({ product, isMobile, preorderStatus }) => {
     const centerY = rect.height / 2;
     const rotateX = ((y - centerY) / centerY) * 10;
     const rotateY = ((x - centerX) / centerX) * 10;
-    card.style.transform = `perspective(800px) scale(1.05) rotateX(${-rotateX}deg) rotateY(${rotateY}deg)`;
+    // Tăng scale lên 1.06 để hiệu ứng rõ hơn vì đã tắt scale của Framer Motion
+    card.style.transform = `perspective(800px) scale(1.06) rotateX(${-rotateX}deg) rotateY(${rotateY}deg)`;
     const angle = Math.atan2(y - centerY, x - centerX) * (180 / Math.PI);
     const opacity = Math.min(0.25, Math.hypot(x - centerX, y - centerY) / (rect.width / 1.5));
     glare.style.background = `linear-gradient(${angle}deg, rgba(255,255,255,${opacity}) 0%, transparent 80%)`;
@@ -185,9 +188,12 @@ const Card = ({ product, isMobile, preorderStatus }) => {
   return (
     <>
       <motion.div 
-        whileHover={!isMobile ? { scale: 1.04 } : {}} 
+        // SỬA LỖI 1 (PC Scale all): Đã tắt scale của Framer Motion trên PC (scale: 1)
+        // Chỉ giữ lại scale: 1.04 khi hove trên mobile nếu cần (nhưng Mobile không dùng)
+        whileHover={!isMobile ? { scale: 1 } : {}} 
         transition={{ duration: 0.3 }} 
-        className="z-10 shrink-0 w-[160px] sm:w-[200px] md:w-[240px] lg:w-[260px]"
+        // Tăng chiều rộng PC một chút để ds thưa hơn
+        className="z-10 shrink-0 w-[160px] sm:w-[200px] md:w-[240px] lg:w-[280px]"
       >
         <Link
           to={`/product/${product._id}`}
