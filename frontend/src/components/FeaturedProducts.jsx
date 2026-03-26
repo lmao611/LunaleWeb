@@ -61,25 +61,44 @@ const FeaturedProducts = () => {
         </h2>
 
         <div className="relative z-0">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6 justify-items-center">
-            {visibleProducts.map((product) => (
-              <Card
-                key={product._id}
-                product={product}
-                isMobile={isMobile}
-                preorderStatus={getPreOrderLabel(product.isPreOrder)}
-              />
-            ))}
-          </div>
+          
+          {/* Mobile View: Vuốt ngang (Swipe) */}
+          {isMobile ? (
+            <div className="flex overflow-x-auto gap-4 pb-6 snap-x snap-mandatory px-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              {products.map((product) => (
+                <Card
+                  key={product._id}
+                  product={product}
+                  isMobile={isMobile}
+                  preorderStatus={getPreOrderLabel(product.isPreOrder)}
+                />
+              ))}
+            </div>
+          ) : (
+            /* Desktop View: Grid có phân trang */
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6 justify-items-center">
+              {visibleProducts.map((product) => (
+                <Card
+                  key={product._id}
+                  product={product}
+                  isMobile={isMobile}
+                  preorderStatus={getPreOrderLabel(product.isPreOrder)}
+                />
+              ))}
+            </div>
+          )}
 
-          <div className="z-50">
-            <button onClick={prevPage} disabled={page === 0} className={`absolute top-1/2 -left-3 sm:-left-4 transform -translate-y-1/2 flex items-center justify-center rounded-full transition-colors duration-300 shadow-md ${page === 0 ? "bg-gray-400 cursor-not-allowed" : "bg-gray-900 hover:bg-gray-700"} ${isMobile ? "w-8 h-8 p-1" : "w-10 h-10 p-2"} z-50`}>
-              <ChevronLeft className={`${isMobile ? "w-4 h-4" : "w-6 h-6"} text-white`} />
-            </button>
-            <button onClick={nextPage} disabled={page >= totalPages - 1} className={`absolute top-1/2 -right-3 sm:-right-4 transform -translate-y-1/2 flex items-center justify-center rounded-full transition-colors duration-300 shadow-md ${page >= totalPages - 1 ? "bg-gray-400 cursor-not-allowed" : "bg-gray-900 hover:bg-gray-700"} ${isMobile ? "w-8 h-8 p-1" : "w-10 h-10 p-2"} z-50`}>
-              <ChevronRight className={`${isMobile ? "w-4 h-4" : "w-6 h-6"} text-white`} />
-            </button>
-          </div>
+          {/* Chỉ hiển thị nút điều hướng trên máy tính */}
+          {!isMobile && (
+            <div className="z-50">
+              <button onClick={prevPage} disabled={page === 0} className={`absolute top-1/2 -left-3 sm:-left-4 transform -translate-y-1/2 flex items-center justify-center rounded-full transition-colors duration-300 shadow-md ${page === 0 ? "bg-gray-400 cursor-not-allowed" : "bg-gray-900 hover:bg-gray-700"} w-10 h-10 p-2 z-50`}>
+                <ChevronLeft className="w-6 h-6 text-white" />
+              </button>
+              <button onClick={nextPage} disabled={page >= totalPages - 1} className={`absolute top-1/2 -right-3 sm:-right-4 transform -translate-y-1/2 flex items-center justify-center rounded-full transition-colors duration-300 shadow-md ${page >= totalPages - 1 ? "bg-gray-400 cursor-not-allowed" : "bg-gray-900 hover:bg-gray-700"} w-10 h-10 p-2 z-50`}>
+                <ChevronRight className="w-6 h-6 text-white" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -131,13 +150,17 @@ const Card = ({ product, isMobile, preorderStatus }) => {
 
   return (
     <>
-      <motion.div whileHover={!isMobile ? { scale: 1.04 } : {}} transition={{ duration: 0.3 }} className="z-10 w-full">
+      <motion.div 
+        whileHover={!isMobile ? { scale: 1.04 } : {}} 
+        transition={{ duration: 0.3 }} 
+        className={`z-10 ${isMobile ? "shrink-0 snap-start w-[160px] sm:w-[200px]" : "w-full sm:w-52 md:w-54 lg:w-64"}`}
+      >
         <Link
           to={`/product/${product._id}`}
           ref={cardRef}
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
-          className="group relative block overflow-hidden rounded-xl shadow-md hover:shadow-1xl hover:ring-2 hover:ring-gray-900/40 transition-transform duration-200 ease-out bg-white/80 backdrop-blur-sm w-full sm:w-52 md:w-54 lg:w-64"
+          className="group relative block overflow-hidden rounded-xl shadow-md hover:shadow-xl hover:ring-2 hover:ring-gray-900/40 transition-transform duration-200 ease-out bg-white/80 backdrop-blur-sm w-full h-full"
         >
           <div ref={glareRef} className="pointer-events-none absolute inset-0 rounded-xl z-20 transition-all duration-300" />
 
@@ -151,7 +174,10 @@ const Card = ({ product, isMobile, preorderStatus }) => {
             <img
               src={product.image}
               alt={product.name}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+              draggable="false"
+              onContextMenu={(e) => e.preventDefault()}
+              style={{ userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" }}
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 select-none"
               onError={(e) => (e.target.src = "https://via.placeholder.com/300x400?text=No+Image")}
             />
           </div>
