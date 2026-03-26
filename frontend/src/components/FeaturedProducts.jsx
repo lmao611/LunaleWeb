@@ -16,6 +16,8 @@ const FeaturedProducts = () => {
   const reqRef = useRef(null);
   const exactScrollRef = useRef(0);
 
+  const MULTIPLIER = 30;
+
   useEffect(() => {
     fetchFeaturedProducts();
   }, [fetchFeaturedProducts]);
@@ -30,33 +32,55 @@ const FeaturedProducts = () => {
   }, []);
 
   useEffect(() => {
-    if (!isAutoPlaying || products.length === 0) return;
+    const container = scrollContainerRef.current;
+    if (!container || products.length === 0) return;
+
+    const initScroll = () => {
+      const setWidth = container.scrollWidth / MULTIPLIER;
+      if (container.scrollLeft === 0) {
+        container.scrollLeft = setWidth * 15;
+        exactScrollRef.current = setWidth * 15;
+      }
+    };
+
+    initScroll();
+    const timeoutId = setTimeout(initScroll, 200);
+    return () => clearTimeout(timeoutId);
+  }, [products.length]);
+
+  useEffect(() => {
+    if (products.length === 0) return;
     const container = scrollContainerRef.current;
     if (!container) return;
 
-    exactScrollRef.current = container.scrollLeft;
-
-    const scrollStep = () => {
+    const loop = () => {
       if (!container) return;
-      
-      const speed = isMobile ? 0.3 : 0.2; 
-      
-      if (Math.abs(container.scrollLeft - exactScrollRef.current) > 2) {
+
+      const setWidth = container.scrollWidth / MULTIPLIER;
+
+      if (container.scrollLeft < setWidth * 10) {
+        container.scrollLeft += setWidth * 10;
+        exactScrollRef.current += setWidth * 10;
+      } else if (container.scrollLeft >= setWidth * 20) {
+        container.scrollLeft -= setWidth * 10;
+        exactScrollRef.current -= setWidth * 10;
+      }
+
+      if (isAutoPlaying) {
+        const speed = isMobile ? 0.3 : 0.2;
+        if (Math.abs(container.scrollLeft - exactScrollRef.current) > 2) {
+          exactScrollRef.current = container.scrollLeft;
+        }
+        exactScrollRef.current += speed;
+        container.scrollLeft = exactScrollRef.current;
+      } else {
         exactScrollRef.current = container.scrollLeft;
       }
 
-      exactScrollRef.current += speed;
-      container.scrollLeft = exactScrollRef.current; 
-
-      if (container.scrollLeft >= container.scrollWidth / 2) {
-        exactScrollRef.current = 0;
-        container.scrollLeft = 0;
-      }
-
-      reqRef.current = requestAnimationFrame(scrollStep);
+      reqRef.current = requestAnimationFrame(loop);
     };
     
-    reqRef.current = requestAnimationFrame(scrollStep);
+    reqRef.current = requestAnimationFrame(loop);
 
     return () => cancelAnimationFrame(reqRef.current);
   }, [isAutoPlaying, products.length, isMobile]);
@@ -95,7 +119,7 @@ const FeaturedProducts = () => {
     }
   };
 
-  const displayProducts = [...products, ...products];
+  const displayProducts = products.length > 0 ? Array(MULTIPLIER).fill(products).flat() : [];
 
   return (
     <div className="py-12 bg-transparent relative overflow-hidden">
@@ -123,7 +147,7 @@ const FeaturedProducts = () => {
           </div>
 
           {!isMobile && (
-            <div className="z-50">
+            <div className="z-50 opacity-100">
               <button onClick={handleScrollLeftBtn} className="absolute top-1/2 -left-4 transform -translate-y-1/2 flex items-center justify-center rounded-full bg-gray-900 hover:bg-gray-700 transition-colors duration-300 shadow-md w-10 h-10 p-2 z-50">
                 <ChevronLeft className="w-6 h-6 text-white" />
               </button>
