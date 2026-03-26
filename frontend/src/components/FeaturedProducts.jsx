@@ -40,7 +40,7 @@ const FeaturedProducts = () => {
       
       // ĐIỀU CHỈNH TỐC ĐỘ Ở ĐÂY (Số càng nhỏ trượt càng chậm)
       // isMobile ? [Tốc độ điện thoại] : [Tốc độ máy tính]
-      const speed = isMobile ? 0.3 : 0.5; 
+      const speed = isMobile ? 0.3 : 0.2; 
       
       container.scrollLeft += speed; 
 
