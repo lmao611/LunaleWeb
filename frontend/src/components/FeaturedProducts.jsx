@@ -10,11 +10,12 @@ import AddToCartModal from "./AddToCartModal";
 const FeaturedProducts = () => {
   const { products, fetchFeaturedProducts } = useProductStore();
   const [isMobile, setIsMobile] = useState(false);
-
-  // --- STATE VÀ REF CHO TÍNH NĂNG AUTO-SLIDE MƯỢT MÀ ---
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [showNav, setShowNav] = useState(false);
+  
   const scrollContainerRef = useRef(null);
   const reqRef = useRef(null);
+  const exactScrollRef = useRef(0);
 
   useEffect(() => {
     fetchFeaturedProducts();
@@ -29,24 +30,27 @@ const FeaturedProducts = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // --- LOGIC TRƯỢT TỪ TỪ (SMOOTH SCROLL) ---
   useEffect(() => {
     if (!isAutoPlaying || products.length === 0) return;
     const container = scrollContainerRef.current;
     if (!container) return;
 
+    exactScrollRef.current = container.scrollLeft;
+
     const scrollStep = () => {
       if (!container) return;
       
-      // ĐIỀU CHỈNH TỐC ĐỘ Ở ĐÂY (Số càng nhỏ trượt càng chậm)
-      // isMobile ? [Tốc độ điện thoại] : [Tốc độ máy tính]
-      // Đã chỉnh PC về 0.1
       const speed = isMobile ? 0.3 : 0.1; 
       
-      container.scrollLeft += speed; 
+      if (Math.abs(container.scrollLeft - exactScrollRef.current) > 2) {
+        exactScrollRef.current = container.scrollLeft;
+      }
 
-      // Hiệu ứng vòng lặp vô tận: Khi cuộn được đúng 1 nửa (bằng chiều dài ds gốc), giật mượt mà về 0
+      exactScrollRef.current += speed;
+      container.scrollLeft = exactScrollRef.current; 
+
       if (container.scrollLeft >= container.scrollWidth / 2) {
+        exactScrollRef.current = 0;
         container.scrollLeft = 0;
       }
 
@@ -58,12 +62,10 @@ const FeaturedProducts = () => {
     return () => cancelAnimationFrame(reqRef.current);
   }, [isAutoPlaying, products.length, isMobile]);
 
-  // Hàm dừng tự động trượt
   const stopAutoPlay = () => {
     if (isAutoPlaying) setIsAutoPlaying(false);
   };
 
-  // Hàm cho 2 nút bấm trên máy tính
   const handleScrollLeftBtn = () => {
     stopAutoPlay();
     if (scrollContainerRef.current) {
@@ -94,7 +96,6 @@ const FeaturedProducts = () => {
     }
   };
 
-  // Nhân đôi mảng sản phẩm để có thể trượt mượt mà không bị khựng lại ở cuối
   const displayProducts = [...products, ...products];
 
   return (
@@ -104,14 +105,16 @@ const FeaturedProducts = () => {
           Featured Products
         </h2>
 
-        <div className="relative z-0 group">
-          {/* Băng chuyền chung cho cả Desktop và Mobile */}
-          {/* SỬA LỖI 2 (Clipping): Bổ sung pt-4 pb-12 px-4 và tăng sm:gap-10 để tạo không gian cho hiệu ứng tilt */}
+        <div 
+          className="relative z-0"
+          onMouseEnter={() => setShowNav(true)}
+          onMouseLeave={() => setShowNav(false)}
+        >
           <div 
             ref={scrollContainerRef}
-            onTouchStart={stopAutoPlay} // Tắt auto khi vuốt trên điện thoại
-            onMouseDownCapture={stopAutoPlay} // Tắt auto khi click/kéo trên máy tính
-            onWheel={stopAutoPlay} // Tắt auto khi lăn chuột
+            onTouchStart={stopAutoPlay}
+            onMouseDownCapture={stopAutoPlay}
+            onWheel={stopAutoPlay}
             className="flex overflow-x-auto gap-4 sm:gap-10 pt-4 pb-12 px-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
           >
             {displayProducts.map((product, index) => (
@@ -124,9 +127,8 @@ const FeaturedProducts = () => {
             ))}
           </div>
 
-          {/* Chỉ hiển thị nút điều hướng trên máy tính */}
           {!isMobile && (
-            <div className="z-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <div className={`z-50 transition-opacity duration-300 ${showNav ? "opacity-100" : "opacity-0"}`}>
               <button onClick={handleScrollLeftBtn} className="absolute top-1/2 -left-4 transform -translate-y-1/2 flex items-center justify-center rounded-full bg-gray-900 hover:bg-gray-700 transition-colors duration-300 shadow-md w-10 h-10 p-2 z-50">
                 <ChevronLeft className="w-6 h-6 text-white" />
               </button>
@@ -169,7 +171,6 @@ const Card = ({ product, isMobile, preorderStatus }) => {
     const centerY = rect.height / 2;
     const rotateX = ((y - centerY) / centerY) * 10;
     const rotateY = ((x - centerX) / centerX) * 10;
-    // Tăng scale lên 1.06 để hiệu ứng rõ hơn vì đã tắt scale của Framer Motion
     card.style.transform = `perspective(800px) scale(1.06) rotateX(${-rotateX}deg) rotateY(${rotateY}deg)`;
     const angle = Math.atan2(y - centerY, x - centerX) * (180 / Math.PI);
     const opacity = Math.min(0.25, Math.hypot(x - centerX, y - centerY) / (rect.width / 1.5));
@@ -188,11 +189,8 @@ const Card = ({ product, isMobile, preorderStatus }) => {
   return (
     <>
       <motion.div 
-        // SỬA LỖI 1 (PC Scale all): Đã tắt scale của Framer Motion trên PC (scale: 1)
-        // Chỉ giữ lại scale: 1.04 khi hove trên mobile nếu cần (nhưng Mobile không dùng)
         whileHover={!isMobile ? { scale: 1 } : {}} 
         transition={{ duration: 0.3 }} 
-        // Tăng chiều rộng PC một chút để ds thưa hơn
         className="z-10 shrink-0 w-[160px] sm:w-[200px] md:w-[240px] lg:w-[280px]"
       >
         <Link
