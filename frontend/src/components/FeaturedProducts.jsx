@@ -9,13 +9,12 @@ import AddToCartModal from "./AddToCartModal";
 
 const FeaturedProducts = () => {
   const { products, fetchFeaturedProducts } = useProductStore();
-  const [page, setPage] = useState(0);
-  const [itemsPerPage, setItemsPerPage] = useState(4);
   const [isMobile, setIsMobile] = useState(false);
 
-  // --- THÊM STATE VÀ REF CHO TÍNH NĂNG AUTO-SCROLL TRÊN ĐIỆN THOẠI ---
+  // --- STATE VÀ REF CHO TÍNH NĂNG AUTO-SLIDE MƯỢT MÀ ---
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const scrollContainerRef = useRef(null);
+  const reqRef = useRef(null);
 
   useEffect(() => {
     fetchFeaturedProducts();
@@ -23,50 +22,57 @@ const FeaturedProducts = () => {
 
   useEffect(() => {
     const handleResize = () => {
-      const width = window.innerWidth;
-      setIsMobile(width < 768);
-      if (width < 640) setItemsPerPage(2);
-      else if (width < 900) setItemsPerPage(3);
-      else setItemsPerPage(4);
+      setIsMobile(window.innerWidth < 768);
     };
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // --- LOGIC TỰ ĐỘNG LƯỚT (AUTO-SLIDE) ---
+  // --- LOGIC TRƯỢT TỪ TỪ (SMOOTH SCROLL) ---
   useEffect(() => {
-    if (!isMobile || !isAutoPlaying || products.length === 0) return;
+    if (!isAutoPlaying || products.length === 0) return;
+    const container = scrollContainerRef.current;
+    if (!container) return;
 
-    const interval = setInterval(() => {
-      const container = scrollContainerRef.current;
+    const scrollStep = () => {
       if (!container) return;
+      
+      // Tốc độ trượt (Pixel trên mỗi khung hình). Tăng số này lên nếu muốn trượt nhanh hơn (vd: 1.5)
+      container.scrollLeft += 0.8; 
 
-      // Tính toán chiều rộng của 1 thẻ sản phẩm + khoảng cách (gap)
-      const firstChild = container.children[0];
-      const itemWidth = firstChild ? firstChild.offsetWidth + 16 : 200; 
-      const maxScroll = container.scrollWidth - container.clientWidth;
-
-      // Nếu đã lướt đến cuối cùng -> Cuộn ngược mượt mà về lại đầu tiên
-      if (container.scrollLeft >= maxScroll - 10) {
-        container.scrollTo({ left: 0, behavior: "smooth" });
-      } else {
-        // Lướt sang phải 1 sản phẩm
-        container.scrollBy({ left: itemWidth, behavior: "smooth" });
+      // Hiệu ứng vòng lặp vô tận: Khi cuộn được đúng 1 nửa (bằng chiều dài ds gốc), giật mượt mà về 0
+      if (container.scrollLeft >= container.scrollWidth / 2) {
+        container.scrollLeft = 0;
       }
-    }, 2500); // Cứ 2.5 giây tự động lướt 1 lần
 
-    return () => clearInterval(interval);
-  }, [isMobile, isAutoPlaying, products.length]);
+      reqRef.current = requestAnimationFrame(scrollStep);
+    };
+    
+    reqRef.current = requestAnimationFrame(scrollStep);
 
-  // Hàm tắt tính năng tự lướt khi khách hàng chạm vào
+    return () => cancelAnimationFrame(reqRef.current);
+  }, [isAutoPlaying, products.length]);
+
+  // Hàm dừng tự động trượt
   const stopAutoPlay = () => {
     if (isAutoPlaying) setIsAutoPlaying(false);
   };
 
-  const totalPages = Math.ceil(products.length / itemsPerPage);
-  const nextPage = () => setPage((p) => Math.min(p + 1, totalPages - 1));
-  const prevPage = () => setPage((p) => Math.max(p - 1, 0));
+  // Hàm cho 2 nút bấm trên máy tính
+  const handleScrollLeftBtn = () => {
+    stopAutoPlay();
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: -scrollContainerRef.current.clientWidth * 0.8, behavior: "smooth" });
+    }
+  };
+
+  const handleScrollRightBtn = () => {
+    stopAutoPlay();
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: scrollContainerRef.current.clientWidth * 0.8, behavior: "smooth" });
+    }
+  };
 
   if (!products?.length)
     return (
@@ -74,9 +80,6 @@ const FeaturedProducts = () => {
         Không có sản phẩm nổi bật.
       </div>
     );
-
-  const start = page * itemsPerPage;
-  const visibleProducts = products.slice(start, start + itemsPerPage);
 
   const getPreOrderLabel = (status) => {
     switch (status) {
@@ -87,53 +90,42 @@ const FeaturedProducts = () => {
     }
   };
 
+  // Nhân đôi mảng sản phẩm để có thể trượt mượt mà không bị khựng lại ở cuối
+  const displayProducts = [...products, ...products];
+
   return (
     <div className="py-12 bg-transparent relative overflow-hidden">
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-4 relative">
         <h2 className="text-center text-3xl mb:text-[26px] font-bold text-blue-990 mb-6">
           Featured Products
         </h2>
 
-        <div className="relative z-0">
-          
-          {/* Mobile View: Vuốt ngang (Swipe) + Tự động lướt */}
-          {isMobile ? (
-            <div 
-              ref={scrollContainerRef}
-              onTouchStart={stopAutoPlay} // Tắt auto khi chạm ngón tay
-              onMouseDown={stopAutoPlay}  // Tắt auto khi click chuột
-              className="flex overflow-x-auto gap-4 pb-6 snap-x snap-mandatory px-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
-            >
-              {products.map((product) => (
-                <Card
-                  key={product._id}
-                  product={product}
-                  isMobile={isMobile}
-                  preorderStatus={getPreOrderLabel(product.isPreOrder)}
-                />
-              ))}
-            </div>
-          ) : (
-            /* Desktop View: Grid có phân trang */
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6 justify-items-center">
-              {visibleProducts.map((product) => (
-                <Card
-                  key={product._id}
-                  product={product}
-                  isMobile={isMobile}
-                  preorderStatus={getPreOrderLabel(product.isPreOrder)}
-                />
-              ))}
-            </div>
-          )}
+        <div className="relative z-0 group">
+          {/* Băng chuyền chung cho cả Desktop và Mobile */}
+          <div 
+            ref={scrollContainerRef}
+            onTouchStart={stopAutoPlay} // Tắt auto khi vuốt trên điện thoại
+            onMouseDownCapture={stopAutoPlay} // Tắt auto khi click/kéo trên máy tính
+            onWheel={stopAutoPlay} // Tắt auto khi lăn chuột
+            className="flex overflow-x-auto gap-4 sm:gap-6 pb-6 px-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+          >
+            {displayProducts.map((product, index) => (
+              <Card
+                key={`${product._id}-${index}`}
+                product={product}
+                isMobile={isMobile}
+                preorderStatus={getPreOrderLabel(product.isPreOrder)}
+              />
+            ))}
+          </div>
 
           {/* Chỉ hiển thị nút điều hướng trên máy tính */}
           {!isMobile && (
-            <div className="z-50">
-              <button onClick={prevPage} disabled={page === 0} className={`absolute top-1/2 -left-3 sm:-left-4 transform -translate-y-1/2 flex items-center justify-center rounded-full transition-colors duration-300 shadow-md ${page === 0 ? "bg-gray-400 cursor-not-allowed" : "bg-gray-900 hover:bg-gray-700"} w-10 h-10 p-2 z-50`}>
+            <div className="z-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <button onClick={handleScrollLeftBtn} className="absolute top-1/2 -left-4 transform -translate-y-1/2 flex items-center justify-center rounded-full bg-gray-900 hover:bg-gray-700 transition-colors duration-300 shadow-md w-10 h-10 p-2 z-50">
                 <ChevronLeft className="w-6 h-6 text-white" />
               </button>
-              <button onClick={nextPage} disabled={page >= totalPages - 1} className={`absolute top-1/2 -right-3 sm:-right-4 transform -translate-y-1/2 flex items-center justify-center rounded-full transition-colors duration-300 shadow-md ${page >= totalPages - 1 ? "bg-gray-400 cursor-not-allowed" : "bg-gray-900 hover:bg-gray-700"} w-10 h-10 p-2 z-50`}>
+              <button onClick={handleScrollRightBtn} className="absolute top-1/2 -right-4 transform -translate-y-1/2 flex items-center justify-center rounded-full bg-gray-900 hover:bg-gray-700 transition-colors duration-300 shadow-md w-10 h-10 p-2 z-50">
                 <ChevronRight className="w-6 h-6 text-white" />
               </button>
             </div>
@@ -192,7 +184,7 @@ const Card = ({ product, isMobile, preorderStatus }) => {
       <motion.div 
         whileHover={!isMobile ? { scale: 1.04 } : {}} 
         transition={{ duration: 0.3 }} 
-        className={`z-10 ${isMobile ? "shrink-0 snap-start w-[160px] sm:w-[200px]" : "w-full sm:w-52 md:w-54 lg:w-64"}`}
+        className="z-10 shrink-0 w-[160px] sm:w-[200px] md:w-[240px] lg:w-[260px]"
       >
         <Link
           to={`/product/${product._id}`}
