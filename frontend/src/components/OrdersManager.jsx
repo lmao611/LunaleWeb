@@ -42,7 +42,6 @@ export default function OrdersManager() {
       const data = Array.isArray(res.data) ? res.data : (res.data.orders || []);
       setOrders(data);
     } catch (err) {
-      console.error(err);
       setOrders([]);
     } finally {
       setLoading(false);
@@ -73,16 +72,38 @@ export default function OrdersManager() {
 
   const filteredOrders = orders.filter((o) => (filterStatus ? o.status === filterStatus : true));
 
-  const groupedOrders = filteredOrders.reduce((groups, order) => {
-    const d = new Date(order.createdAt);
-    const monthKey = `${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
-    
-    if (!groups[monthKey]) {
-      groups[monthKey] = [];
+  const groupedOrders = {};
+  const today = new Date();
+  let minDate = new Date(today);
+
+  filteredOrders.forEach(order => {
+    const d = order.receivedDate ? new Date(order.receivedDate) : new Date(order.createdAt);
+    if (d < minDate) minDate = new Date(d);
+  });
+
+  let currentY = minDate.getFullYear();
+  let currentM = minDate.getMonth();
+  const endY = today.getFullYear();
+  const endM = today.getMonth();
+
+  while (currentY < endY || (currentY === endY && currentM <= endM)) {
+    const mKey = `${String(currentM + 1).padStart(2, '0')}/${currentY}`;
+    groupedOrders[mKey] = [];
+    currentM++;
+    if (currentM > 11) {
+      currentM = 0;
+      currentY++;
     }
-    groups[monthKey].push(order);
-    return groups;
-  }, {});
+  }
+
+  filteredOrders.forEach(order => {
+    const d = order.receivedDate ? new Date(order.receivedDate) : new Date(order.createdAt);
+    const monthKey = `${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+    if (!groupedOrders[monthKey]) {
+      groupedOrders[monthKey] = [];
+    }
+    groupedOrders[monthKey].push(order);
+  });
 
   const sortedMonthKeys = Object.keys(groupedOrders).sort((a, b) => {
     const [m1, y1] = a.split("/");
@@ -97,8 +118,22 @@ export default function OrdersManager() {
   }, [sortedMonthKeys, selectedMonthKey]);
 
   const currentMonthOrders = selectedMonthKey ? groupedOrders[selectedMonthKey] : [];
+  
+  currentMonthOrders.sort((a, b) => {
+    const dA = a.receivedDate ? new Date(a.receivedDate) : new Date(a.createdAt);
+    const dB = b.receivedDate ? new Date(b.receivedDate) : new Date(b.createdAt);
+    return dB - dA;
+  });
 
   function openCreate() {
+    let defaultDate = new Date().toISOString().substring(0, 10); 
+    const currentMonthKey = `${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+
+    if (selectedMonthKey && selectedMonthKey !== currentMonthKey) {
+        const [m, y] = selectedMonthKey.split('/');
+        defaultDate = `${y}-${m}-01`;
+    }
+
     setEditing({
       customerId: "",
       customerName: "",
@@ -106,7 +141,7 @@ export default function OrdersManager() {
       phone: "",
       items: [],
       status: "chưa giao",
-      receivedDate: "",
+      receivedDate: defaultDate, 
       deliverDate: "",
       paymentMethod: "COD",
       shipFee: 25000,
@@ -134,7 +169,7 @@ export default function OrdersManager() {
         price: it.price,
       })),
       status: order.status,
-      receivedDate: order.receivedDate ? order.receivedDate.split("T")[0] : "",
+      receivedDate: order.receivedDate ? order.receivedDate.split("T")[0] : (order.createdAt ? order.createdAt.split("T")[0] : ""),
       deliverDate: order.deliverDate ? order.deliverDate.split("T")[0] : "",
       paymentMethod: order.paymentMethod || "COD",
       shipFee: currentShipFee,
@@ -204,6 +239,11 @@ export default function OrdersManager() {
       } else {
         await axios.post("/orders", payload);
       }
+
+      const d = editing.receivedDate ? new Date(editing.receivedDate) : new Date();
+      const newMonthKey = `${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+      setSelectedMonthKey(newMonthKey);
+
       fetchAll();
       setShowModal(false);
       setEditing(null);
@@ -250,7 +290,7 @@ export default function OrdersManager() {
       worksheet.addRow([
         idx + 1,
         o.status,
-        formatDate(o.receivedDate),
+        formatDate(o.receivedDate || o.createdAt),
         formatDate(o.deliverDate),
         o.customerName ?? o.customerId?.name ?? "-",
         o.address,
@@ -358,7 +398,7 @@ export default function OrdersManager() {
                                                 <td className={`px-4 py-2 align-top font-semibold ${statusColor} whitespace-nowrap`}>
                                                     {o.status}
                                                 </td>
-                                                <td className="px-4 py-2 align-top whitespace-nowrap">{formatDate(o.receivedDate)}</td>
+                                                <td className="px-4 py-2 align-top whitespace-nowrap">{formatDate(o.receivedDate || o.createdAt)}</td>
                                                 <td className="px-4 py-2 align-top whitespace-nowrap">{formatDate(o.deliverDate)}</td>
                                                 <td className="px-4 py-2 align-top font-medium">
                                                     {o.customerName ?? o.customerId?.name ?? "-"}
@@ -448,7 +488,6 @@ export default function OrdersManager() {
                         </div>
                     );
                 })}
-                {sortedMonthKeys.length === 0 && <span className="text-sm italic text-gray-400 px-2">Chưa có dữ liệu đơn hàng</span>}
              </div>
         </div>
       </div>
@@ -649,11 +688,11 @@ export default function OrdersManager() {
 
                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs text-gray-500 font-bold uppercase mb-1 block">Ngày nhận (Dự kiến)</label>
-                    <input type="date" value={editing.receivedDate} onChange={(e) => setEditing({...editing, receivedDate: e.target.value})} className="w-full border border-gray-300 rounded px-2 py-2 text-sm text-gray-600" />
+                    <label className="text-xs text-blue-600 font-bold uppercase mb-1 block">Ngày nhận đơn</label>
+                    <input type="date" value={editing.receivedDate} onChange={(e) => setEditing({...editing, receivedDate: e.target.value})} className="w-full border border-blue-300 bg-blue-50 rounded px-2 py-2 text-sm text-blue-800 font-medium" />
                   </div>
                    <div>
-                    <label className="text-xs text-gray-500 font-bold uppercase mb-1 block">Ngày giao (Thực tế)</label>
+                    <label className="text-xs text-gray-500 font-bold uppercase mb-1 block">Ngày giao (Dự kiến/Thực tế)</label>
                     <input type="date" value={editing.deliverDate} onChange={(e) => setEditing({...editing, deliverDate: e.target.value})} className="w-full border border-gray-300 rounded px-2 py-2 text-sm text-gray-600" />
                   </div>
                </div>

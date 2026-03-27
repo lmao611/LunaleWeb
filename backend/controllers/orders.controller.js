@@ -6,7 +6,7 @@ export const createOrder = async (req, res) => {
     const { 
         customerId, items, status, receivedDate, deliverDate, 
         paymentMethod, shipFee, 
-        address, phone, customerName 
+        address, phone, customerName, createdAt 
     } = req.body;
 
     if (!customerName) return res.status(400).json({ message: "Vui lòng nhập tên khách hàng" });
@@ -21,7 +21,6 @@ export const createOrder = async (req, res) => {
       
       let name = it.name || "Sản phẩm tự nhập";
 
-      // Nếu có productId hợp lệ, lấy thông tin từ DB để đối chiếu
       if (it.productId && it.productId.trim() !== "") {
          const prod = await Product.findById(it.productId);
          if (prod) {
@@ -40,7 +39,6 @@ export const createOrder = async (req, res) => {
         price 
       };
       
-      // Tuyệt đối KHÔNG gán productId nếu nó rỗng, để tránh lỗi CastError
       if (it.productId && it.productId.trim() !== "") {
           itemData.productId = it.productId;
       }
@@ -61,7 +59,9 @@ export const createOrder = async (req, res) => {
       paymentMethod: paymentMethod || "COD"
     };
 
-    // Tuyệt đối KHÔNG gán customerId nếu rỗng
+    // --- Cập nhật: Cho phép gán ngày tạo đơn ---
+    if (createdAt) orderData.createdAt = new Date(createdAt);
+
     if (customerId && customerId.trim() !== "") {
         orderData.customerId = customerId;
     }
@@ -79,7 +79,6 @@ export const createOrder = async (req, res) => {
     res.status(201).json(full);
   } catch (error) {
     console.error("createOrder error:", error);
-    // Thay đổi quan trọng: Trả về 400 kèm message để Frontend hiện rõ nguyên nhân
     res.status(400).json({ message: `Chi tiết lỗi Server: ${error.message}` });
   }
 };
@@ -132,10 +131,12 @@ export const updateOrder = async (req, res) => {
       if (body.shipFee) body.total += Number(body.shipFee);
     }
 
+    // --- Cập nhật: Cho phép sửa lại ngày tạo đơn ---
+    if (body.createdAt) body.createdAt = new Date(body.createdAt);
+    
     if (body.receivedDate) body.receivedDate = new Date(body.receivedDate);
     if (body.deliverDate) body.deliverDate = new Date(body.deliverDate);
 
-    // Xóa triệt để customerId khỏi payload nếu nó là chuỗi rỗng
     if (body.customerId === "" || body.customerId === null) {
         delete body.customerId; 
         body.$unset = { customerId: 1 };
