@@ -4,7 +4,9 @@ import { motion } from "framer-motion";
 import { useProductStore } from "../stores/useProductStore";
 import { useProductionStore } from "../stores/useProductionStore";
 import ProductionCard from "../components/ProductionCard";
-import { ArrowLeft, Search } from "lucide-react";
+import { ArrowLeft, Search, Lock, KeyRound } from "lucide-react";
+import axios from "../lib/axios";
+import toast from "react-hot-toast";
 
 const categories = [
   { id: "all", label: "Tất cả" },
@@ -24,14 +26,43 @@ const ProductionPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const cardsPerPage = 24;
 
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
   useEffect(() => {
-    fetchAllProducts();
-    fetchAllProductions();
-  }, [fetchAllProducts, fetchAllProductions]);
+    const auth = sessionStorage.getItem("prod_auth");
+    if (auth === "true") {
+      setIsAuthorized(true);
+    }
+    setCheckingAuth(false);
+  }, []);
+
+  useEffect(() => {
+    if (isAuthorized) {
+      fetchAllProducts();
+      fetchAllProductions();
+    }
+  }, [fetchAllProducts, fetchAllProductions, isAuthorized]);
 
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, selectedCategory]);
+
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await axios.post("/production/verify-password", { password: passwordInput });
+      if (res.data.success) {
+        setIsAuthorized(true);
+        sessionStorage.setItem("prod_auth", "true");
+        toast.success("Truy cập thành công");
+      }
+    } catch (error) {
+      toast.error("Mật khẩu không chính xác");
+      setPasswordInput("");
+    }
+  };
 
   const filteredProducts = products?.filter((product) => {
     if (product.category?.toLowerCase() === "feedback") return false;
@@ -74,6 +105,52 @@ const ProductionPage = () => {
     hidden: { opacity: 0, y: 20, scale: 0.97 },
     visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.4, ease: "easeOut" } },
   };
+
+  if (checkingAuth) return null;
+
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#FDFBF7] px-4">
+        <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md border-2 border-black">
+          <div className="flex flex-col items-center mb-6">
+            <div className="bg-blue-100 p-4 rounded-full mb-4">
+              <Lock className="text-blue-600" size={32} />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800 uppercase tracking-widest">Khu Vực Sản Xuất</h2>
+            <p className="text-gray-500 text-sm mt-2 text-center">Vui lòng nhập mật khẩu bảo mật để truy cập bảng dữ liệu.</p>
+          </div>
+          <form onSubmit={handlePasswordSubmit} className="space-y-5">
+            <div className="relative">
+              <input
+                type="password"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                placeholder="Nhập mật khẩu..."
+                className="w-full pl-11 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-colors"
+                autoFocus
+              />
+              <KeyRound className="absolute left-3.5 top-3.5 text-gray-400" size={20} />
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => navigate("/secret-dashboard")}
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-lg transition-colors border border-gray-300"
+              >
+                Quay lại
+              </button>
+              <button
+                type="submit"
+                className="flex-1 bg-black hover:bg-gray-800 text-white font-bold py-3 rounded-lg transition-colors"
+              >
+                Xác nhận
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] text-gray-900 pt-24 pb-12">

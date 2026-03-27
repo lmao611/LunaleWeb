@@ -52,6 +52,7 @@ const ProductionDetailPage = () => {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState("saved");
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
   const [inventory, setInventory] = useState([]);
   const [batches, setBatches] = useState([]);
@@ -60,6 +61,16 @@ const ProductionDetailPage = () => {
   const timeoutRef = useRef(null);
 
   useEffect(() => {
+    if (sessionStorage.getItem("prod_auth") !== "true") {
+      navigate("/admin/production");
+    } else {
+      setIsAuthorized(true);
+    }
+  }, [navigate]);
+
+  useEffect(() => {
+    if (!isAuthorized) return;
+    
     const loadData = async () => {
       setLoading(true);
       const productData = await fetchProductById(id);
@@ -74,9 +85,11 @@ const ProductionDetailPage = () => {
       setLoading(false);
     };
     loadData();
-  }, [id, fetchProductById, fetchProduction]);
+  }, [id, fetchProductById, fetchProduction, isAuthorized]);
 
   useEffect(() => {
+    if (!isAuthorized) return;
+
     if (initialLoadRef.current) {
       if (!loading && product) {
         initialLoadRef.current = false;
@@ -93,7 +106,7 @@ const ProductionDetailPage = () => {
     }, 1500);
 
     return () => clearTimeout(timeoutRef.current);
-  }, [inventory, batches, id, saveProduction, loading, product]);
+  }, [inventory, batches, id, saveProduction, loading, product, isAuthorized]);
 
   const calculateInventory = (currentData) => {
     let newData = [...currentData];
@@ -234,6 +247,8 @@ const ProductionDetailPage = () => {
     if (!amount) return "-";
     return new Intl.NumberFormat('vi-VN').format(amount);
   };
+
+  if (!isAuthorized) return null;
 
   if (loading) return <div className="min-h-screen bg-[#FDFBF7] text-gray-900 p-8 pt-24 text-center">Đang tải...</div>;
   if (!product) return <div className="min-h-screen bg-[#FDFBF7] text-gray-900 p-8 pt-24 text-center">Không tìm thấy sản phẩm</div>;

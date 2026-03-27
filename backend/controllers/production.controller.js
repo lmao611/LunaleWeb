@@ -61,3 +61,18 @@ export const saveProduction = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+export const verifyPassword = async (req, res) => {
+  try {
+    const { password } = req.body;
+    const correctPassword = process.env.PRODUCTION_PASSWORD;
+
+    if (password === correctPassword) {
+      return res.status(200).json({ success: true });
+    } else {
+      return res.status(401).json({ success: false, message: "Sai mật khẩu" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
