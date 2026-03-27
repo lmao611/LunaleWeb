@@ -5,20 +5,13 @@ import fetch from "node-fetch";
 import cloudinary from "../lib/cloudinary.js"; 
 import { io } from "../lib/socket.js";
 import { ipTracker } from "./production.controller.js";
+
 const generateTokens = (userId) => {
     const accessToken = jwt.sign({ userId }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "3h" });
     const refreshToken = jwt.sign({ userId }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
     return { accessToken, refreshToken };
 };
-const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-const tracker = ipTracker[clientIp];
 
-if (tracker && tracker.lockedUntil && new Date() < tracker.lockedUntil) {
-  const remainingTime = Math.ceil((tracker.lockedUntil - new Date()) / 1000);
-  return res.status(429).json({ 
-    message: `Đăng nhập bị khóa. Vui lòng thử lại sau ${remainingTime} giây.` 
-  });
-}
 const storeRefreshToken = async (userId, refreshToken) => {
     await redis.set(`refresh_token:${userId}`, refreshToken, "EX", 7 * 24 * 60 * 60);
 };
@@ -126,10 +119,27 @@ export const signup = async (req, res) => {
 
 export const login = async (req, res) => {
     try {
+        const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+        
+        if (!ipTracker[clientIp]) {
+            ipTracker[clientIp] = { attempts: 0, lockouts: 0, lockedUntil: null };
+        }
+        
+        const tracker = ipTracker[clientIp];
+
+        if (tracker.lockedUntil && new Date() < tracker.lockedUntil) {
+            const remainingTime = Math.ceil((tracker.lockedUntil - new Date()) / 1000);
+            return res.status(429).json({ 
+                message: `Đăng nhập bị khóa. Vui lòng thử lại sau ${remainingTime} giây.` 
+            });
+        }
+
         const { email, password } = req.body;
         const user = await User.findOne({ email });
 
         if (user && (await user.comparePassword(password))) {
+            tracker.attempts = 0;
+
             const { accessToken, refreshToken } = generateTokens(user._id);
             await storeRefreshToken(user._id, refreshToken);
             setCookies(res, accessToken, refreshToken);
@@ -147,6 +157,24 @@ export const login = async (req, res) => {
                 },
             });
         } else {
+            tracker.attempts += 1;
+
+            if (tracker.attempts >= 6) {
+                tracker.lockouts += 1;
+                tracker.attempts = 0;
+
+                let penaltyTime = 0;
+                if (tracker.lockouts === 1) penaltyTime = 20 * 1000;
+                else if (tracker.lockouts === 2) penaltyTime = 60 * 1000;
+                else penaltyTime = 60 * 60 * 1000;
+
+                tracker.lockedUntil = new Date(Date.now() + penaltyTime);
+
+                return res.status(429).json({ 
+                    message: "Tài khoản bị khóa do nhập sai quá 6 lần."
+                });
+            }
+
             res.status(401).json({ message: "Mật khẩu hoặc tên tài khoản không đúng" });
         }
     } catch (error) {
