@@ -1,6 +1,7 @@
 import Production from "../models/production.model.js";
 
 const defaultSizes = { total: 0, S: 0, M: 0, L: 0, XL: 0 };
+export const ipTracker = {};
 
 export const getAllProductions = async (req, res) => {
   try {
@@ -66,11 +67,51 @@ export const verifyPassword = async (req, res) => {
   try {
     const { password } = req.body;
     const correctPassword = process.env.PRODUCTION_PASSWORD;
+    const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+
+    if (!ipTracker[clientIp]) {
+      ipTracker[clientIp] = { attempts: 0, lockouts: 0, lockedUntil: null };
+    }
+
+    const tracker = ipTracker[clientIp];
+
+    if (tracker.lockedUntil && new Date() < tracker.lockedUntil) {
+      const remainingTime = Math.ceil((tracker.lockedUntil - new Date()) / 1000);
+      return res.status(429).json({ 
+        success: false, 
+        message: `IP bị khóa. Thử lại sau ${remainingTime} giây.`,
+        isLockedOut: true
+      });
+    }
 
     if (password === correctPassword) {
+      tracker.attempts = 0;
       return res.status(200).json({ success: true });
     } else {
-      return res.status(401).json({ success: false, message: "Sai mật khẩu" });
+      tracker.attempts += 1;
+
+      if (tracker.attempts >= 6) {
+        tracker.lockouts += 1;
+        tracker.attempts = 0;
+
+        let penaltyTime = 0;
+        if (tracker.lockouts === 1) penaltyTime = 20 * 1000;
+        else if (tracker.lockouts === 2) penaltyTime = 60 * 1000;
+        else penaltyTime = 60 * 60 * 1000;
+
+        tracker.lockedUntil = new Date(Date.now() + penaltyTime);
+
+        return res.status(429).json({ 
+          success: false, 
+          message: "Bạn đã bị khóa và đăng xuất do nhập sai quá 6 lần.",
+          isLockedOut: true
+        });
+      }
+
+      return res.status(401).json({ 
+        success: false, 
+        attemptsLeft: 6 - tracker.attempts 
+      });
     }
   } catch (error) {
     res.status(500).json({ message: error.message });

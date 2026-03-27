@@ -4,13 +4,21 @@ import jwt from "jsonwebtoken";
 import fetch from "node-fetch";
 import cloudinary from "../lib/cloudinary.js"; 
 import { io } from "../lib/socket.js";
-
+import { ipTracker } from "./production.controller.js";
 const generateTokens = (userId) => {
     const accessToken = jwt.sign({ userId }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "3h" });
     const refreshToken = jwt.sign({ userId }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
     return { accessToken, refreshToken };
 };
+const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+const tracker = ipTracker[clientIp];
 
+if (tracker && tracker.lockedUntil && new Date() < tracker.lockedUntil) {
+  const remainingTime = Math.ceil((tracker.lockedUntil - new Date()) / 1000);
+  return res.status(429).json({ 
+    message: `Đăng nhập bị khóa. Vui lòng thử lại sau ${remainingTime} giây.` 
+  });
+}
 const storeRefreshToken = async (userId, refreshToken) => {
     await redis.set(`refresh_token:${userId}`, refreshToken, "EX", 7 * 24 * 60 * 60);
 };

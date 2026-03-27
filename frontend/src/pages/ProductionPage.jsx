@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useProductStore } from "../stores/useProductStore";
 import { useProductionStore } from "../stores/useProductionStore";
+import { useUserStore } from "../stores/useUserStore";
 import ProductionCard from "../components/ProductionCard";
 import { ArrowLeft, Search, Lock, KeyRound } from "lucide-react";
 import axios from "../lib/axios";
@@ -20,6 +21,7 @@ const ProductionPage = () => {
   const navigate = useNavigate();
   const { fetchAllProducts, products, loading: productLoading } = useProductStore();
   const { fetchAllProductions, allProductions } = useProductionStore();
+  const { logout } = useUserStore();
   
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -59,8 +61,19 @@ const ProductionPage = () => {
         toast.success("Truy cập thành công");
       }
     } catch (error) {
-      toast.error("Mật khẩu không chính xác");
-      setPasswordInput("");
+      if (error.response?.status === 429) {
+        toast.error(error.response.data.message);
+        sessionStorage.removeItem("prod_auth");
+        setIsAuthorized(false);
+        if (logout) {
+          await logout();
+        }
+        navigate("/login");
+      } else {
+        const left = error.response?.data?.attemptsLeft || 0;
+        toast.error(`Sai mật khẩu. Còn ${left} lần thử.`);
+        setPasswordInput("");
+      }
     }
   };
 
