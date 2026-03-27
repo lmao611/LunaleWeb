@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useProductStore } from "../stores/useProductStore";
 import { useProductionStore } from "../stores/useProductionStore";
@@ -19,6 +19,7 @@ const categories = [
 
 const ProductionPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { fetchAllProducts, products, loading: productLoading } = useProductStore();
   const { fetchAllProductions, allProductions } = useProductionStore();
   const { logout } = useUserStore();
@@ -28,17 +29,8 @@ const ProductionPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const cardsPerPage = 24;
 
-  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState(location.state?.authorized || false);
   const [passwordInput, setPasswordInput] = useState("");
-  const [checkingAuth, setCheckingAuth] = useState(true);
-
-  useEffect(() => {
-    const auth = sessionStorage.getItem("prod_auth");
-    if (auth === "true") {
-      setIsAuthorized(true);
-    }
-    setCheckingAuth(false);
-  }, []);
 
   useEffect(() => {
     if (isAuthorized) {
@@ -57,13 +49,11 @@ const ProductionPage = () => {
       const res = await axios.post("/production/verify-password", { password: passwordInput });
       if (res.data.success) {
         setIsAuthorized(true);
-        sessionStorage.setItem("prod_auth", "true");
         toast.success("Truy cập thành công");
       }
     } catch (error) {
       if (error.response?.status === 429) {
         toast.error(error.response.data.message);
-        sessionStorage.removeItem("prod_auth");
         setIsAuthorized(false);
         if (logout) {
           await logout();
@@ -118,8 +108,6 @@ const ProductionPage = () => {
     hidden: { opacity: 0, y: 20, scale: 0.97 },
     visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.4, ease: "easeOut" } },
   };
-
-  if (checkingAuth) return null;
 
   if (!isAuthorized) {
     return (
@@ -231,7 +219,13 @@ const ProductionPage = () => {
                     const inv = getFinalInventory(p._id);
                     return (
                       <tr key={p._id} className="border-b border-gray-300 hover:bg-gray-50">
-                        <td className="border-r border-black p-2 text-left font-semibold truncate max-w-[150px] cursor-pointer hover:text-blue-600" title={p.name} onClick={() => navigate(`/admin/production/${p._id}`)}>{p.name}</td>
+                        <td 
+                          className="border-r border-black p-2 text-left font-semibold truncate max-w-[150px] cursor-pointer hover:text-blue-600" 
+                          title={p.name} 
+                          onClick={() => navigate(`/admin/production/${p._id}`, { state: { authorized: true } })}
+                        >
+                          {p.name}
+                        </td>
                         <td className="border-r border-black p-2 text-red-600 font-bold">{formatSize(inv.total)}</td>
                         <td className="border-r border-black p-2">{formatSize(inv.S)}</td>
                         <td className="border-r border-black p-2">{formatSize(inv.M)}</td>
@@ -269,7 +263,14 @@ const ProductionPage = () => {
                     viewport={{ once: true, amount: 0.2 }}
                     className="w-full flex justify-center"
                   >
-                    <div className="w-[160px] sm:w-[200px] lg:w-[260px] flex justify-center">
+                    <div 
+                      className="w-[160px] sm:w-[200px] lg:w-[260px] flex justify-center cursor-pointer"
+                      onClickCapture={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        navigate(`/admin/production/${product._id}`, { state: { authorized: true } });
+                      }}
+                    >
                       <ProductionCard
                         product={{
                           ...product,
