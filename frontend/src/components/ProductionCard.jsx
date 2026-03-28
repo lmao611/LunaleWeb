@@ -41,12 +41,11 @@ const ProductionCard = ({ product }) => {
       ref={cardRef}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      onClick={() => navigate(`/admin/production/${product._id}`)}
+      onClick={() => navigate(`/admin/production/${product._id}`, { state: { authorized: true } })}
       className="relative overflow-hidden rounded-xl shadow-md transform-gpu will-change-transform hover:shadow-2xl transition-transform duration-300 ease-out bg-white w-[160px] sm:w-[200px] lg:w-[260px] cursor-pointer group block"
     >
       <div ref={glareRef} className="pointer-events-none absolute inset-0 rounded-xl z-20 transition-opacity duration-300" />
 
-      {/* Copy class height chuẩn xác của ProductCard */}
       <div className="w-full overflow-hidden h-[240px] sm:h-[300px] lg:h-[380px]">
         <img
           src={product.image ? optimizeUrl(product.image, 400) : PLACEHOLDER_IMAGE}
