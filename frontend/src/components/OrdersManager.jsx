@@ -9,6 +9,31 @@ import { useUserStore } from "../stores/useUserStore";
 const statuses = ["chưa giao", "đang giao", "đã giao", "đã hủy"];
 const paymentMethods = ["COD", "Chuyển khoản", "Tiền mặt"];
 
+const MaskedDateInput = ({ value, onChange, className, placeholder }) => {
+  const handleChange = (e) => {
+    let input = e.target.value.replace(/\D/g, "");
+    if (input.length > 8) input = input.substring(0, 8);
+    
+    let formatted = input;
+    if (input.length > 4) {
+      formatted = `${input.substring(0, 2)}/${input.substring(2, 4)}/${input.substring(4)}`;
+    } else if (input.length > 2) {
+      formatted = `${input.substring(0, 2)}/${input.substring(2)}`;
+    }
+    onChange(formatted);
+  };
+
+  return (
+    <input
+      type="text"
+      value={value}
+      onChange={handleChange}
+      placeholder={placeholder || "dd/mm/yyyy"}
+      className={className}
+    />
+  );
+};
+
 export default function OrdersManager() {
   const [orders, setOrders] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -73,12 +98,22 @@ export default function OrdersManager() {
     }
   }
 
+  const convertToISO = (dateStr) => {
+    if (!dateStr || dateStr.length < 10) return "";
+    const [d, m, y] = dateStr.split("/");
+    if (!d || !m || !y) return "";
+    return `${y}-${m}-${d}`;
+  };
+
+  const isoStart = convertToISO(startDate);
+  const isoEnd = convertToISO(endDate);
+
   const filteredOrders = orders.filter((o) => {
     if (filterStatus && o.status !== filterStatus) return false;
     
     const oDateStr = o.receivedDate ? o.receivedDate.split("T")[0] : (o.createdAt ? o.createdAt.split("T")[0] : "");
-    if (startDate && oDateStr < startDate) return false;
-    if (endDate && oDateStr > endDate) return false;
+    if (isoStart && oDateStr < isoStart) return false;
+    if (isoEnd && oDateStr > isoEnd) return false;
 
     return true;
   });
@@ -162,7 +197,7 @@ export default function OrdersManager() {
     }
   }, [availableYears, selectedYear]);
 
-  const isDateFiltered = startDate !== "" || endDate !== "";
+  const isDateFiltered = isoStart !== "" || isoEnd !== "";
 
   const displayTotal = filteredOrders.reduce((sum, o) => {
     const d = o.receivedDate ? new Date(o.receivedDate) : new Date(o.createdAt);
@@ -381,9 +416,9 @@ export default function OrdersManager() {
             
             <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-gray-200 shadow-sm">
                <span className="text-sm font-medium text-gray-500">Từ:</span>
-               <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="text-sm border-none outline-none text-gray-800 bg-transparent cursor-pointer" />
+               <MaskedDateInput value={startDate} onChange={setStartDate} className="text-sm border-none outline-none text-gray-800 bg-transparent w-[85px]" placeholder="dd/mm/yyyy" />
                <span className="text-sm font-medium text-gray-500">Đến:</span>
-               <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="text-sm border-none outline-none text-gray-800 bg-transparent cursor-pointer" />
+               <MaskedDateInput value={endDate} onChange={setEndDate} className="text-sm border-none outline-none text-gray-800 bg-transparent w-[85px]" placeholder="dd/mm/yyyy" />
             </div>
         </div>
         
