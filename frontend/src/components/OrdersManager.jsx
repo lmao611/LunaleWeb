@@ -16,6 +16,9 @@ export default function OrdersManager() {
   const [loading, setLoading] = useState(false);
   
   const [selectedMonthKey, setSelectedMonthKey] = useState(null);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
 
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -70,29 +73,41 @@ export default function OrdersManager() {
     }
   }
 
-  const filteredOrders = orders.filter((o) => (filterStatus ? o.status === filterStatus : true));
+  const filteredOrders = orders.filter((o) => {
+    if (filterStatus && o.status !== filterStatus) return false;
+    
+    const oDateStr = o.receivedDate ? o.receivedDate.split("T")[0] : (o.createdAt ? o.createdAt.split("T")[0] : "");
+    if (startDate && oDateStr < startDate) return false;
+    if (endDate && oDateStr > endDate) return false;
 
-  const groupedOrders = {};
-  const today = new Date();
-  let minDate = new Date(today);
-
-  filteredOrders.forEach(order => {
-    const d = order.receivedDate ? new Date(order.receivedDate) : new Date(order.createdAt);
-    if (d < minDate) minDate = new Date(d);
+    return true;
   });
 
-  let currentY = minDate.getFullYear();
-  let currentM = minDate.getMonth();
-  const endY = today.getFullYear();
-  const endM = today.getMonth();
+  const groupedOrders = {};
 
-  while (currentY < endY || (currentY === endY && currentM <= endM)) {
-    const mKey = `${String(currentM + 1).padStart(2, '0')}/${currentY}`;
-    groupedOrders[mKey] = [];
-    currentM++;
-    if (currentM > 11) {
-      currentM = 0;
-      currentY++;
+  if (filteredOrders.length > 0) {
+    let minDate = new Date(filteredOrders[0].receivedDate || filteredOrders[0].createdAt);
+    let maxDate = new Date(filteredOrders[0].receivedDate || filteredOrders[0].createdAt);
+
+    filteredOrders.forEach(o => {
+      const d = new Date(o.receivedDate || o.createdAt);
+      if (d < minDate) minDate = d;
+      if (d > maxDate) maxDate = d;
+    });
+
+    let currentY = minDate.getFullYear();
+    let currentM = minDate.getMonth();
+    const endY = maxDate.getFullYear();
+    const endM = maxDate.getMonth();
+
+    while (currentY < endY || (currentY === endY && currentM <= endM)) {
+      const mKey = `${String(currentM + 1).padStart(2, '0')}/${currentY}`;
+      groupedOrders[mKey] = [];
+      currentM++;
+      if (currentM > 11) {
+        currentM = 0;
+        currentY++;
+      }
     }
   }
 
@@ -105,19 +120,30 @@ export default function OrdersManager() {
     groupedOrders[monthKey].push(order);
   });
 
-  const sortedMonthKeys = Object.keys(groupedOrders).sort((a, b) => {
+  const sortedMonthKeys = ["Tất cả", ...Object.keys(groupedOrders).sort((a, b) => {
     const [m1, y1] = a.split("/");
     const [m2, y2] = b.split("/");
     return new Date(`${y2}-${m2}-01`) - new Date(`${y1}-${m1}-01`);
-  });
+  })];
 
   useEffect(() => {
     if (sortedMonthKeys.length > 0 && !selectedMonthKey) {
-      setSelectedMonthKey(sortedMonthKeys[0]);
+      const today = new Date();
+      const currentM = `${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+      if (sortedMonthKeys.includes(currentM)) {
+        setSelectedMonthKey(currentM);
+      } else {
+        setSelectedMonthKey("Tất cả");
+      }
     }
   }, [sortedMonthKeys, selectedMonthKey]);
 
-  const currentMonthOrders = selectedMonthKey ? groupedOrders[selectedMonthKey] : [];
+  let currentMonthOrders = [];
+  if (selectedMonthKey === "Tất cả") {
+    currentMonthOrders = [...filteredOrders];
+  } else if (selectedMonthKey) {
+    currentMonthOrders = groupedOrders[selectedMonthKey] || [];
+  }
   
   currentMonthOrders.sort((a, b) => {
     const dA = a.receivedDate ? new Date(a.receivedDate) : new Date(a.createdAt);
@@ -125,11 +151,35 @@ export default function OrdersManager() {
     return dB - dA;
   });
 
+  const availableYears = [...new Set(orders.map(o => {
+    const d = o.receivedDate ? new Date(o.receivedDate) : new Date(o.createdAt);
+    return d.getFullYear().toString();
+  }))].sort((a, b) => b - a);
+
+  useEffect(() => {
+    if (availableYears.length > 0 && !availableYears.includes(selectedYear)) {
+        setSelectedYear(availableYears[0]);
+    }
+  }, [availableYears, selectedYear]);
+
+  const isDateFiltered = startDate !== "" || endDate !== "";
+
+  const displayTotal = filteredOrders.reduce((sum, o) => {
+    const d = o.receivedDate ? new Date(o.receivedDate) : new Date(o.createdAt);
+    if (isDateFiltered || d.getFullYear().toString() === selectedYear) {
+        const itemsTotal = (o.items || []).reduce((acc, it) => acc + (Number(it.price || 0) * Number(it.quantity || 0)), 0);
+        const orderTotal = o.total || o.totalAmount || (itemsTotal + Number(o.shipFee || 0));
+        return sum + orderTotal;
+    }
+    return sum;
+  }, 0);
+
   function openCreate() {
-    let defaultDate = new Date().toISOString().substring(0, 10); 
+    const today = new Date();
+    let defaultDate = today.toISOString().substring(0, 10); 
     const currentMonthKey = `${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
 
-    if (selectedMonthKey && selectedMonthKey !== currentMonthKey) {
+    if (selectedMonthKey && selectedMonthKey !== "Tất cả" && selectedMonthKey !== currentMonthKey) {
         const [m, y] = selectedMonthKey.split('/');
         defaultDate = `${y}-${m}-01`;
     }
@@ -311,23 +361,33 @@ export default function OrdersManager() {
     headerRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF666666" } };
   
     const buffer = await workbook.xlsx.writeBuffer();
-    saveAs(new Blob([buffer]), `DonHang_${selectedMonthKey?.replace('/','-')}.xlsx`);
+    const fileName = selectedMonthKey === "Tất cả" ? "DonHang_TatCa.xlsx" : `DonHang_${selectedMonthKey?.replace('/','-')}.xlsx`;
+    saveAs(new Blob([buffer]), fileName);
   }
 
   return (
     <div className="p-4 max-w-[98%] mx-auto min-h-screen flex flex-col">
-      <div className="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
-        <div>
-           <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-             <Calendar className="text-blue-600" /> Quản lý đơn hàng
-           </h2>
-           <p className="text-gray-500 text-sm mt-1">
-             Tháng: <span className="font-bold text-blue-700">{selectedMonthKey || "..."}</span> 
-             {" • "} Tổng: {currentMonthOrders.length} đơn
-           </p>
+      <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between mb-6 gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div>
+               <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                 <Calendar className="text-blue-600" /> Quản lý đơn hàng
+               </h2>
+               <p className="text-gray-500 text-sm mt-1">
+                 {selectedMonthKey === "Tất cả" ? "Tất cả đơn hàng" : `Tháng: ${selectedMonthKey}`}
+                 {" • "} Tổng: {currentMonthOrders.length} đơn
+               </p>
+            </div>
+            
+            <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-gray-200 shadow-sm">
+               <span className="text-sm font-medium text-gray-500">Từ:</span>
+               <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="text-sm border-none outline-none text-gray-800 bg-transparent cursor-pointer" />
+               <span className="text-sm font-medium text-gray-500">Đến:</span>
+               <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="text-sm border-none outline-none text-gray-800 bg-transparent cursor-pointer" />
+            </div>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
@@ -455,18 +515,23 @@ export default function OrdersManager() {
                     ) : (
                         <div className="flex flex-col items-center justify-center h-[300px] text-gray-400">
                             <ShoppingBag size={48} className="mb-4 text-gray-200" />
-                            <p>Tháng {selectedMonthKey} chưa có đơn hàng nào.</p>
+                            <p>Không có đơn hàng nào.</p>
                         </div>
                     )}
                  </AnimatePresence>
             </div>
         )}
 
-        <div className="bg-white border-t p-3 overflow-x-auto custom-scrollbar">
-             <div className="flex items-center gap-3 min-w-max pb-1">
-                <span className="text-xs font-bold text-gray-400 uppercase mr-2 tracking-wide sticky left-0 bg-white pl-1">Chọn tháng:</span>
+        <div className="bg-white border-t p-3 flex flex-col lg:flex-row justify-between items-center gap-4">
+             <div className="flex items-center gap-3 min-w-max pb-1 overflow-x-auto custom-scrollbar w-full lg:w-auto flex-1">
+                <span className="text-xs font-bold text-gray-400 uppercase mr-2 tracking-wide sticky left-0 bg-white pl-1 z-10">Chọn tháng:</span>
                 {sortedMonthKeys.map(key => {
-                    const monthTotal = groupedOrders[key].reduce((sum, o) => sum + (o.total || o.totalAmount || 0), 0);
+                    const ordersForTab = key === "Tất cả" ? filteredOrders : (groupedOrders[key] || []);
+                    const monthTotal = ordersForTab.reduce((sum, o) => {
+                        const itemsTotal = (o.items || []).reduce((acc, it) => acc + (Number(it.price || 0) * Number(it.quantity || 0)), 0);
+                        return sum + (o.total || o.totalAmount || (itemsTotal + Number(o.shipFee || 0)));
+                    }, 0);
+                    
                     return (
                         <div key={key} className="flex flex-col items-center gap-1">
                             <button
@@ -479,7 +544,7 @@ export default function OrdersManager() {
                             >
                                 {key}
                                 <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${selectedMonthKey === key ? "bg-white/20 text-white" : "bg-gray-200 text-gray-500"}`}>
-                                    {groupedOrders[key].length}
+                                    {ordersForTab.length}
                                </span>
                             </button>
                             <span className="bg-yellow-200 text-red-600 text-[10px] px-1.5 py-0.5 rounded font-bold">
@@ -488,6 +553,18 @@ export default function OrdersManager() {
                         </div>
                     );
                 })}
+             </div>
+
+             <div className="flex items-center gap-3 bg-yellow-50 px-5 py-2.5 rounded-xl border border-yellow-200 flex-shrink-0 w-full lg:w-auto justify-center">
+                <span className="text-sm font-bold text-gray-700 uppercase">
+                    {isDateFiltered ? "Tổng theo lọc:" : "Tổng doanh thu:"}
+                </span>
+                {!isDateFiltered && (
+                    <select value={selectedYear} onChange={e => setSelectedYear(e.target.value)} className="bg-white border border-yellow-300 rounded-md text-sm px-2 py-1 font-bold outline-none text-blue-700 shadow-sm cursor-pointer">
+                        {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                )}
+                <span className="text-xl font-black text-red-600">{displayTotal.toLocaleString()} ₫</span>
              </div>
         </div>
       </div>
