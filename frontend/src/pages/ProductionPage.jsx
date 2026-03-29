@@ -29,7 +29,9 @@ const ProductionPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const cardsPerPage = 24;
 
-  const [isAuthorized, setIsAuthorized] = useState(location.state?.authorized || false);
+  const [isAuthorized, setIsAuthorized] = useState(
+    location.state?.authorized || sessionStorage.getItem("prod_auth") === "true"
+  );
   const [passwordInput, setPasswordInput] = useState("");
 
   useEffect(() => {
@@ -49,12 +51,14 @@ const ProductionPage = () => {
       const res = await axios.post("/production/verify-password", { password: passwordInput });
       if (res.data.success) {
         setIsAuthorized(true);
+        sessionStorage.setItem("prod_auth", "true");
         toast.success("Truy cập thành công");
       }
     } catch (error) {
       if (error.response?.status === 429) {
         toast.error(error.response.data.message);
         setIsAuthorized(false);
+        sessionStorage.removeItem("prod_auth");
         if (logout) {
           await logout();
         }
