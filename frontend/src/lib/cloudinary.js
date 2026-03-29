@@ -5,7 +5,7 @@ export const optimizeUrl = (url, width = 800) => {
 
     if (url.match(/\/w_\d+/)) return url;
 
-    return url.replace(/\/upload\//i, `/upload/w_${width},q_auto:best,f_auto/`);
+    return url.replace(/\/upload\//i, `/upload/w_${width},q_auto,f_auto/`);
 };
   
 export const optimizeVideoUrl = (url) => {
@@ -15,5 +15,5 @@ export const optimizeVideoUrl = (url) => {
     
     if (url.match(/\/vc_auto/)) return url;
 
-    return url.replace(/\/upload\//i, `/upload/q_auto:best,f_auto,vc_auto,ac_none/`);
+    return url.replace(/\/upload\//i, `/upload/w_1080,c_limit,q_auto,f_auto,vc_auto,ac_none/`);
 };
