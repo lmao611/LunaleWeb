@@ -15,7 +15,9 @@ export const createGuestOrder = async (req, res) => {
 
     // Kiểm tra IP có đang bị khóa không
     if (tracker.lockedUntil && Date.now() < tracker.lockedUntil) {
-       return res.status(429).json({ message: "Bạn đã đạt giới hạn 3 đơn hàng/ngày. Vui lòng thử lại sau 24h." });
+       return res.status(429).json({ 
+           message: "Bạn đã đạt giới hạn 5 đơn hàng vãng lai/ngày. Vui lòng đăng nhập để tiếp tục mua hàng hoặc thử lại sau 24h." 
+       });
     }
     
     // Reset nếu đã hết thời gian khóa
@@ -30,6 +32,7 @@ export const createGuestOrder = async (req, res) => {
         return res.status(400).json({ message: "Vui lòng điền đầy đủ thông tin" });
     }
 
+    const Product = (await import("../models/product.model.js")).default;
     const product = await Product.findById(productId);
     
     if (!product) return res.status(404).json({ message: "Sản phẩm không tồn tại" });
@@ -38,6 +41,7 @@ export const createGuestOrder = async (req, res) => {
     const totalAmount = product.price * qty;
 
     // Lấy orderId tiếp theo
+    const CustomerOrder = (await import("../models/customerOrder.model.js")).default;
     const lastOrder = await CustomerOrder.findOne().sort({ orderId: -1 });
     const nextOrderId = lastOrder && lastOrder.orderId ? lastOrder.orderId + 1 : 1;
 
@@ -48,7 +52,7 @@ export const createGuestOrder = async (req, res) => {
             address: address
         },
         products: [{
-            product: product._id, // Map đúng Schema hiện tại
+            product: product._id, 
             name: product.name,
             size: size || "M",
             quantity: qty,
@@ -63,14 +67,15 @@ export const createGuestOrder = async (req, res) => {
     });
 
     // Phát sự kiện Socket cho Admin
+    const { io } = await import("../lib/socket.js");
     if (io) {
         io.emit("newCustomerOrder", newOrder);
     }
 
-    // Tăng số đếm, khóa nếu đạt 3 đơn
+    // Tăng số đếm, khóa 24h nếu đạt 5 đơn
     tracker.count += 1;
-    if (tracker.count >= 3) {
-       tracker.lockedUntil = Date.now() + 24 * 60 * 60 * 1000; // Khóa 24h
+    if (tracker.count >= 5) {
+       tracker.lockedUntil = Date.now() + 24 * 60 * 60 * 1000; // Bắt đầu tính 24h cấm SAU KHI đặt xong đơn thứ 5
     }
     guestOrderTracker[clientIp] = tracker;
 
