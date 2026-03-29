@@ -151,7 +151,7 @@ const HomePage = () => {
         <motion.div
           className="whitespace-nowrap flex w-max"
           animate={{ x: ["0%", "-50%"] }}
-          transition={{ ease: "linear", duration: 15, repeat: Infinity }}
+          transition={{ ease: "linear", duration: 50, repeat: Infinity }}
         >
           <span className="text-white font-medium tracking-widest text-sm md:text-base pr-4">
             {"LUNALE FASHION - SOPHISTICATED - ELEGANT - FASHIONABLE - ".repeat(10)}
