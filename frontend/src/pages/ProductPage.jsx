@@ -10,6 +10,7 @@ import PeopleAlsoBought from "../components/PeopleAlsoBought";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ContactModal from "../components/ContactModal";
 import AddToCartModal from "../components/AddToCartModal"; 
+import GuestOrderModal from "../components/GuestOrderModal";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 
 const ProductPage = () => {
@@ -27,6 +28,7 @@ const ProductPage = () => {
   const [showContactModal, setShowContactModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showAddToCartModal, setShowAddToCartModal] = useState(false);
+  const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
 
   const [showQuickBuyModal, setShowQuickBuyModal] = useState(false);
   const [buySize, setBuySize] = useState("M");
@@ -84,7 +86,10 @@ const ProductPage = () => {
 
   const handleBuyNow = (e) => {
     e.preventDefault(); e.stopPropagation();
-    if (!user) { toast.error("Vui lòng đăng nhập để mua hàng", { id: "login" }); return; }
+    if (!user) { 
+      setIsGuestModalOpen(true);
+      return; 
+    }
     if (!user.phoneNumber || !user.direction) { toast.error("Vui lòng cập nhật địa chỉ trước!"); setShowUserBox(true); return; }
     setShowQuickBuyModal(true);
   };
@@ -223,8 +228,10 @@ const ProductPage = () => {
       </div>
 
       <div className="mt-16"><PeopleAlsoBought key={id} excludeIds={memoizedExcludeIds} /></div>
+      
       {showContactModal && <ContactModal product={product} onClose={() => setShowContactModal(false)} />}
       {showAddToCartModal && <AddToCartModal product={product} onClose={() => setShowAddToCartModal(false)} />}
+      {isGuestModalOpen && <GuestOrderModal isOpen={isGuestModalOpen} onClose={() => setIsGuestModalOpen(false)} product={product} />}
 
       <AnimatePresence>
         {showQuickBuyModal && (

@@ -2,8 +2,85 @@ import CustomerOrder from "../models/customerOrder.model.js";
 import Order from "../models/orders.model.js"; 
 import User from "../models/user.model.js";
 import Notification from "../models/notification.model.js"; 
+import Product from "../models/product.model.js"; // Import thêm Product Model
 import { io, getReceiverSocketId } from "../lib/socket.js"; 
 
+// --- THEO DÕI IP KHÁCH VÃNG LAI ---
+export const guestOrderTracker = {};
+
+export const createGuestOrder = async (req, res) => {
+  try {
+    const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    const tracker = guestOrderTracker[clientIp] || { count: 0, lockedUntil: null };
+
+    // Kiểm tra IP có đang bị khóa không
+    if (tracker.lockedUntil && Date.now() < tracker.lockedUntil) {
+       return res.status(429).json({ message: "Bạn đã đạt giới hạn 3 đơn hàng/ngày. Vui lòng thử lại sau 24h." });
+    }
+    
+    // Reset nếu đã hết thời gian khóa
+    if (tracker.lockedUntil && Date.now() >= tracker.lockedUntil) {
+       tracker.count = 0;
+       tracker.lockedUntil = null;
+    }
+
+    const { customerName, phone, address, productId, size, quantity } = req.body;
+
+    if (!customerName || !phone || !address || !productId) {
+        return res.status(400).json({ message: "Vui lòng điền đầy đủ thông tin" });
+    }
+
+    const product = await Product.findById(productId);
+    
+    if (!product) return res.status(404).json({ message: "Sản phẩm không tồn tại" });
+
+    const qty = Number(quantity) || 1;
+    const totalAmount = product.price * qty;
+
+    // Lấy orderId tiếp theo
+    const lastOrder = await CustomerOrder.findOne().sort({ orderId: -1 });
+    const nextOrderId = lastOrder && lastOrder.orderId ? lastOrder.orderId + 1 : 1;
+
+    const newOrder = await CustomerOrder.create({
+        customerInfo: {
+            name: customerName,
+            phone: phone,
+            address: address
+        },
+        products: [{
+            product: product._id, // Map đúng Schema hiện tại
+            name: product.name,
+            size: size || "M",
+            quantity: qty,
+            price: product.price,
+            image: product.image
+        }],
+        totalAmount: totalAmount,
+        status: "Pending",
+        paymentMethod: "COD",
+        isPaid: false,
+        orderId: nextOrderId
+    });
+
+    // Phát sự kiện Socket cho Admin
+    if (io) {
+        io.emit("newCustomerOrder", newOrder);
+    }
+
+    // Tăng số đếm, khóa nếu đạt 3 đơn
+    tracker.count += 1;
+    if (tracker.count >= 3) {
+       tracker.lockedUntil = Date.now() + 24 * 60 * 60 * 1000; // Khóa 24h
+    }
+    guestOrderTracker[clientIp] = tracker;
+
+    res.status(201).json({ success: true, message: "Đặt hàng thành công", order: newOrder });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// --- CÁC HÀM CŨ GIỮ NGUYÊN ---
 export const createOrder = async (req, res) => {
   try {
     const { products, totalAmount, note, paymentMethod, isPaid } = req.body;
@@ -22,7 +99,6 @@ export const createOrder = async (req, res) => {
     });
 
     if (existingOrder) {
-      // 1. Gộp sản phẩm mới vào đơn hàng cũ
       products.forEach((newProduct) => {
         const existingItemIndex = existingOrder.products.findIndex(
           (p) =>
@@ -32,19 +108,14 @@ export const createOrder = async (req, res) => {
 
         if (existingItemIndex > -1) {
           existingOrder.products[existingItemIndex].quantity += newProduct.quantity;
-          // Cập nhật giá mới nhất nếu cần (tùy chọn)
-          // existingOrder.products[existingItemIndex].price = newProduct.price; 
         } else {
           existingOrder.products.push(newProduct);
         }
       });
 
-      // --- SỬA LOGIC TÍNH TỔNG TIỀN TẠI ĐÂY ---
-      // Ta tính lại tổng tiền dựa trên danh sách sản phẩm thực tế đang có
       existingOrder.totalAmount = existingOrder.products.reduce((total, item) => {
         return total + (Number(item.price) * Number(item.quantity));
       }, 0);
-      // -----------------------------------------
 
       if (note) existingOrder.note = existingOrder.note ? `${existingOrder.note} | ${note}` : note;
       
@@ -68,13 +139,11 @@ export const createOrder = async (req, res) => {
         await user.save();
       }
 
-      // [UPDATE] Bắn socket cập nhật đơn hàng cũ
       io.emit("newCustomerOrder", existingOrder);
 
       return res.status(200).json(existingOrder);
     }
 
-    // --- LOGIC TẠO ĐƠN MỚI ---
     const calculatedTotal = products.reduce((total, item) => {
         return total + (Number(item.price) * Number(item.quantity));
     }, 0);
@@ -88,7 +157,7 @@ export const createOrder = async (req, res) => {
         address: user.direction,
       },
       products,
-      totalAmount: calculatedTotal, // Dùng số đã tính toán lại
+      totalAmount: calculatedTotal, 
       note,
       paymentMethod: paymentMethod || "COD",
       isPaid: isPaid || false,
@@ -100,7 +169,6 @@ export const createOrder = async (req, res) => {
         await user.save();
     }
 
-    // [UPDATE] Bắn socket cho đơn hàng mới
     io.emit("newCustomerOrder", newOrder);
 
     res.status(201).json(newOrder);
@@ -109,7 +177,6 @@ export const createOrder = async (req, res) => {
     res.status(500).json({ message: "Lỗi tạo đơn hàng", error: error.message });
   }
 };
-
 
 export const getMyOrders = async (req, res) => {
   try {
@@ -157,7 +224,6 @@ export const getMyOrders = async (req, res) => {
     res.status(500).json({ message: "Lỗi tải lịch sử đơn hàng" });
   }
 };
-
 
 export const updateOrderStatus = async (req, res) => {
   try {
@@ -241,7 +307,6 @@ export const updateOrderStatus = async (req, res) => {
   }
 };
 
-
 export const cancelMyOrder = async (req, res) => {
   try {
     const { id } = req.params;
@@ -275,7 +340,6 @@ export const cancelMyOrder = async (req, res) => {
     res.status(500).json({ message: "Lỗi hủy đơn", error: error.message });
   }
 };
-
 
 export const updateOrderAddress = async (req, res) => {
   try {
