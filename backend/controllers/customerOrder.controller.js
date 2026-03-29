@@ -2,28 +2,27 @@ import CustomerOrder from "../models/customerOrder.model.js";
 import Order from "../models/orders.model.js"; 
 import User from "../models/user.model.js";
 import Notification from "../models/notification.model.js"; 
-import Product from "../models/product.model.js"; // Import thêm Product Model
+import Product from "../models/product.model.js"; 
 import { io, getReceiverSocketId } from "../lib/socket.js"; 
-
-// --- THEO DÕI IP KHÁCH VÃNG LAI ---
-export const guestOrderTracker = {};
+import { redis } from "../lib/redis.js"; // IMPORT REDIS ĐỂ LƯU IP CẤM VĨNH VIỄN
 
 export const createGuestOrder = async (req, res) => {
   try {
-    const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-    const tracker = guestOrderTracker[clientIp] || { count: 0, lockedUntil: null };
+    // 1. Lấy IP chính xác của khách hàng
+    let clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    if (clientIp && typeof clientIp === 'string') {
+      clientIp = clientIp.split(',')[0].trim();
+    }
 
-    // Kiểm tra IP có đang bị khóa không
-    if (tracker.lockedUntil && Date.now() < tracker.lockedUntil) {
+    const countKey = `guest_order_count:${clientIp}`;
+    const lockedKey = `guest_order_locked:${clientIp}`;
+
+    // 2. Kiểm tra IP này có đang bị cấm 24h không
+    const isLocked = await redis.get(lockedKey);
+    if (isLocked) {
        return res.status(429).json({ 
            message: "Bạn đã đạt giới hạn 5 đơn hàng vãng lai/ngày. Vui lòng đăng nhập để tiếp tục mua hàng hoặc thử lại sau 24h." 
        });
-    }
-    
-    // Reset nếu đã hết thời gian khóa
-    if (tracker.lockedUntil && Date.now() >= tracker.lockedUntil) {
-       tracker.count = 0;
-       tracker.lockedUntil = null;
     }
 
     const { customerName, phone, address, productId, size, quantity } = req.body;
@@ -32,7 +31,6 @@ export const createGuestOrder = async (req, res) => {
         return res.status(400).json({ message: "Vui lòng điền đầy đủ thông tin" });
     }
 
-    const Product = (await import("../models/product.model.js")).default;
     const product = await Product.findById(productId);
     
     if (!product) return res.status(404).json({ message: "Sản phẩm không tồn tại" });
@@ -41,10 +39,10 @@ export const createGuestOrder = async (req, res) => {
     const totalAmount = product.price * qty;
 
     // Lấy orderId tiếp theo
-    const CustomerOrder = (await import("../models/customerOrder.model.js")).default;
     const lastOrder = await CustomerOrder.findOne().sort({ orderId: -1 });
     const nextOrderId = lastOrder && lastOrder.orderId ? lastOrder.orderId + 1 : 1;
 
+    // 3. Tạo đơn hàng vãng lai
     const newOrder = await CustomerOrder.create({
         customerInfo: {
             name: customerName,
@@ -67,17 +65,21 @@ export const createGuestOrder = async (req, res) => {
     });
 
     // Phát sự kiện Socket cho Admin
-    const { io } = await import("../lib/socket.js");
     if (io) {
         io.emit("newCustomerOrder", newOrder);
     }
 
-    // Tăng số đếm, khóa 24h nếu đạt 5 đơn
-    tracker.count += 1;
-    if (tracker.count >= 5) {
-       tracker.lockedUntil = Date.now() + 24 * 60 * 60 * 1000; // Bắt đầu tính 24h cấm SAU KHI đặt xong đơn thứ 5
+    // 4. TĂNG BỘ ĐẾM REDIS VÀ CẤM IP NẾU ĐẠT 5 ĐƠN
+    const currentCount = await redis.incr(countKey);
+    
+    // Nếu vừa đặt đơn thứ 5 -> Khóa 24h (86400 giây) tính từ thời điểm này, và xóa bộ đếm
+    if (currentCount >= 5) {
+       await redis.set(lockedKey, "true", "EX", 24 * 60 * 60); 
+       await redis.del(countKey);
+    } else if (currentCount === 1) {
+       // Set thời hạn 24h cho bộ đếm phòng trường hợp khách đặt 1 đơn rồi bỏ đi
+       await redis.expire(countKey, 24 * 60 * 60);
     }
-    guestOrderTracker[clientIp] = tracker;
 
     res.status(201).json({ success: true, message: "Đặt hàng thành công", order: newOrder });
   } catch (error) {
@@ -85,7 +87,7 @@ export const createGuestOrder = async (req, res) => {
   }
 };
 
-// --- CÁC HÀM CŨ GIỮ NGUYÊN ---
+// --- CÁC HÀM CŨ BÊN DƯỚI DÀNH CHO KHÁCH ĐÃ ĐĂNG NHẬP GIỮ NGUYÊN ---
 export const createOrder = async (req, res) => {
   try {
     const { products, totalAmount, note, paymentMethod, isPaid } = req.body;
