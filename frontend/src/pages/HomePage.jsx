@@ -7,7 +7,6 @@ import { useCollectionStore } from "../stores/useCollectionStore";
 import FeaturedProducts from "../components/FeaturedProducts";
 import CollectionsSection from "../components/CollectionsSection";
 import axios from "../lib/axios";
-// ✅ Import hàm tối ưu
 import { optimizeUrl, optimizeVideoUrl } from "../lib/cloudinary";
 
 const categories = [
@@ -56,7 +55,6 @@ const HomePage = () => {
                height: "auto",
            };
 
-           // ✅ Tính toán width cần load: Fullsize cần 1200px, thường chỉ cần 800px
            const optimizeWidth = col.isFullSize ? 1200 : 800;
 
            return (
@@ -68,7 +66,6 @@ const HomePage = () => {
                viewport={{ once: true, margin: "-100px" }}
                transition={{ duration: 0.8 }}
              >
-                {/* Phần tiêu đề/mô tả giữ nguyên */}
                 {!col.hideName && (
                     <motion.h2 
                        className="text-4xl md:text-6xl font-extrabold mb-6 tracking-tight px-4 max-w-7xl mx-auto"
@@ -88,7 +85,6 @@ const HomePage = () => {
                     </p>
                 )}
 
-                {/* --- Khối Ảnh/Video --- */}
                 <Link to={`/collection/${col._id}`} className="block group flex justify-center w-full">
                    <motion.div
                        whileHover={{ scale: 1.01, boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)" }}
@@ -104,14 +100,12 @@ const HomePage = () => {
                    >
                        {col.coverMedia?.type === "video" ? (
                            <video
-                               // ✅ Áp dụng tối ưu Video
                                src={optimizeVideoUrl(col.coverMedia.url, optimizeWidth)}
                                autoPlay muted loop playsInline
                                className={col.isFullSize ? "w-full h-auto block" : "w-full h-full object-cover"}
                            />
                        ) : (
                            <img
-                               // ✅ Áp dụng tối ưu Ảnh
                                src={optimizeUrl(col.coverMedia?.url, optimizeWidth)}
                                alt={col.name}
                                className={col.isFullSize ? "w-full h-auto block" : "w-full h-full object-cover"}
@@ -134,7 +128,6 @@ const HomePage = () => {
 
   return (
     <div className="bg-white text-gray-800 overflow-x-hidden">
-      {/* Banner giữ nguyên */}
       {bannerUrl && (
         <section className="relative w-screen h-screen overflow-hidden">
           <img src={bannerUrl} alt="Banner" className="absolute inset-0 w-full h-full object-cover object-center" />
@@ -154,7 +147,21 @@ const HomePage = () => {
         </section>
       )}
 
-      {/* Wrapper chính */}
+      <div className="w-full bg-black overflow-hidden py-3 border-t border-b border-gray-800">
+        <motion.div
+          className="whitespace-nowrap flex w-max"
+          animate={{ x: ["0%", "-50%"] }}
+          transition={{ ease: "linear", duration: 15, repeat: Infinity }}
+        >
+          <span className="text-white font-medium tracking-widest text-sm md:text-base pr-4">
+            {"LUNALE FASHION - SOPHISTICATED - ELEGANT - FASHIONABLE - ".repeat(10)}
+          </span>
+          <span className="text-white font-medium tracking-widest text-sm md:text-base pr-4">
+            {"LUNALE FASHION - SOPHISTICATED - ELEGANT - FASHIONABLE - ".repeat(10)}
+          </span>
+        </motion.div>
+      </div>
+
       <div id="homepage-content" className="py-10 w-full">
         {renderSpecialCollectionsByPosition("below_banner")}
 
