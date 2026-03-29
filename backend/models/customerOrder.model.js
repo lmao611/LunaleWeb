@@ -5,7 +5,7 @@ const customerOrderSchema = new mongoose.Schema(
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: false, // SỬA Ở ĐÂY: Chuyển thành false để cho phép khách vãng lai mua hàng
     },
     customerInfo: {
       name: String,
