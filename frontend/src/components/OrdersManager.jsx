@@ -211,12 +211,16 @@ export default function OrdersManager() {
 
   function openCreate() {
     const today = new Date();
-    let defaultDate = today.toISOString().substring(0, 10); 
-    const currentMonthKey = `${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+    const dd = String(today.getDate()).padStart(2, '0');
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const yyyy = today.getFullYear();
+    let defaultDate = `${dd}/${mm}/${yyyy}`; 
+    
+    const currentMonthKey = `${mm}/${yyyy}`;
 
     if (selectedMonthKey && selectedMonthKey !== "Tất cả" && selectedMonthKey !== currentMonthKey) {
         const [m, y] = selectedMonthKey.split('/');
-        defaultDate = `${y}-${m}-01`;
+        defaultDate = `01/${m}/${y}`;
     }
 
     setEditing({
@@ -240,6 +244,14 @@ export default function OrdersManager() {
     let currentShipFee = order.shipFee !== undefined ? order.shipFee : (savedTotal - itemsTotal);
     if (currentShipFee < 0) currentShipFee = 0;
 
+    const formatForInput = (isoString) => {
+      if (!isoString) return "";
+      const datePart = isoString.split("T")[0];
+      const [y, m, d] = datePart.split("-");
+      if (!y || !m || !d) return "";
+      return `${d}/${m}/${y}`;
+    };
+
     const copy = {
       id: order._id ?? order.id,
       customerId: order.customerId?._id ?? order.customerId,
@@ -254,8 +266,8 @@ export default function OrdersManager() {
         price: it.price,
       })),
       status: order.status,
-      receivedDate: order.receivedDate ? order.receivedDate.split("T")[0] : (order.createdAt ? order.createdAt.split("T")[0] : ""),
-      deliverDate: order.deliverDate ? order.deliverDate.split("T")[0] : "",
+      receivedDate: formatForInput(order.receivedDate || order.createdAt),
+      deliverDate: formatForInput(order.deliverDate),
       paymentMethod: order.paymentMethod || "COD",
       shipFee: currentShipFee,
     };
@@ -316,8 +328,12 @@ export default function OrdersManager() {
       };
 
       if (editing.customerId) payload.customerId = editing.customerId;
-      if (editing.receivedDate) payload.receivedDate = editing.receivedDate;
-      if (editing.deliverDate) payload.deliverDate = editing.deliverDate;
+      
+      const isoRecDate = convertToISO(editing.receivedDate);
+      const isoDelDate = convertToISO(editing.deliverDate);
+
+      if (isoRecDate) payload.receivedDate = isoRecDate;
+      if (isoDelDate) payload.deliverDate = isoDelDate;
 
       if (editing.id) {
         await axios.put(`/orders/${editing.id}`, payload);
@@ -325,7 +341,7 @@ export default function OrdersManager() {
         await axios.post("/orders", payload);
       }
 
-      const d = editing.receivedDate ? new Date(editing.receivedDate) : new Date();
+      const d = isoRecDate ? new Date(isoRecDate) : new Date();
       const newMonthKey = `${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
       setSelectedMonthKey(newMonthKey);
 
@@ -801,11 +817,19 @@ export default function OrdersManager() {
                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs text-blue-600 font-bold uppercase mb-1 block">Ngày nhận đơn</label>
-                    <input type="date" value={editing.receivedDate} onChange={(e) => setEditing({...editing, receivedDate: e.target.value})} className="w-full border border-blue-300 bg-blue-50 rounded px-2 py-2 text-sm text-blue-800 font-medium" />
+                    <MaskedDateInput 
+                        value={editing.receivedDate || ""} 
+                        onChange={(val) => setEditing({...editing, receivedDate: val})} 
+                        className="w-full border border-blue-300 bg-blue-50 rounded px-3 py-2 text-sm text-blue-800 font-medium outline-none focus:ring-2 focus:ring-blue-500" 
+                    />
                   </div>
                    <div>
                     <label className="text-xs text-gray-500 font-bold uppercase mb-1 block">Ngày giao (Dự kiến/Thực tế)</label>
-                    <input type="date" value={editing.deliverDate} onChange={(e) => setEditing({...editing, deliverDate: e.target.value})} className="w-full border border-gray-300 rounded px-2 py-2 text-sm text-gray-600" />
+                    <MaskedDateInput 
+                        value={editing.deliverDate || ""} 
+                        onChange={(val) => setEditing({...editing, deliverDate: val})} 
+                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm text-gray-600 outline-none focus:ring-2 focus:ring-blue-500" 
+                    />
                   </div>
                </div>
 
