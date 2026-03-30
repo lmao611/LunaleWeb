@@ -4,7 +4,6 @@ import jwt from "jsonwebtoken";
 import fetch from "node-fetch";
 import cloudinary from "../lib/cloudinary.js"; 
 import { io } from "../lib/socket.js";
-import { ipTracker } from "./production.controller.js";
 
 const generateTokens = (userId) => {
     const accessToken = jwt.sign({ userId }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "3h" });
@@ -119,16 +118,18 @@ export const signup = async (req, res) => {
 
 export const login = async (req, res) => {
     try {
-        const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-        
-        if (!ipTracker[clientIp]) {
-            ipTracker[clientIp] = { attempts: 0, lockouts: 0, lockedUntil: null };
+        let clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+        if (clientIp && typeof clientIp === 'string') {
+            clientIp = clientIp.split(',')[0].trim();
         }
-        
-        const tracker = ipTracker[clientIp];
 
-        if (tracker.lockedUntil && new Date() < tracker.lockedUntil) {
-            const remainingTime = Math.ceil((tracker.lockedUntil - new Date()) / 1000);
+        const attemptsKey = `login_attempts:${clientIp}`;
+        const lockoutsKey = `login_lockouts:${clientIp}`;
+        const lockedUntilKey = `login_locked_until:${clientIp}`;
+
+        const lockedUntil = await redis.get(lockedUntilKey);
+        if (lockedUntil && Date.now() < parseInt(lockedUntil)) {
+            const remainingTime = Math.ceil((parseInt(lockedUntil) - Date.now()) / 1000);
             return res.status(429).json({ 
                 message: `Đăng nhập bị khóa. Vui lòng thử lại sau ${remainingTime} giây.` 
             });
@@ -138,7 +139,7 @@ export const login = async (req, res) => {
         const user = await User.findOne({ email });
 
         if (user && (await user.comparePassword(password))) {
-            tracker.attempts = 0;
+            await redis.del(attemptsKey);
 
             const { accessToken, refreshToken } = generateTokens(user._id);
             await storeRefreshToken(user._id, refreshToken);
@@ -157,18 +158,19 @@ export const login = async (req, res) => {
                 },
             });
         } else {
-            tracker.attempts += 1;
+            const attempts = await redis.incr(attemptsKey);
+            if (attempts === 1) await redis.expire(attemptsKey, 60 * 60);
 
-            if (tracker.attempts >= 6) {
-                tracker.lockouts += 1;
-                tracker.attempts = 0;
+            if (attempts >= 6) {
+                const lockouts = await redis.incr(lockoutsKey);
+                await redis.del(attemptsKey);
 
                 let penaltyTime = 0;
-                if (tracker.lockouts === 1) penaltyTime = 20 * 1000;
-                else if (tracker.lockouts === 2) penaltyTime = 60 * 1000;
+                if (lockouts === 1) penaltyTime = 20 * 1000;
+                else if (lockouts === 2) penaltyTime = 60 * 1000;
                 else penaltyTime = 60 * 60 * 1000;
 
-                tracker.lockedUntil = new Date(Date.now() + penaltyTime);
+                await redis.set(lockedUntilKey, Date.now() + penaltyTime, "PX", penaltyTime);
 
                 return res.status(429).json({ 
                     message: "Tài khoản bị khóa do nhập sai quá 6 lần."
