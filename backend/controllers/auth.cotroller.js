@@ -223,13 +223,13 @@ export const refreshToken = async (req, res) => {
         const accessToken = jwt.sign(
             { userId: decoded.userId },
             process.env.ACCESS_TOKEN_SECRET,
-            { expiresIn: "15m" }
+            { expiresIn: "3h" }
         );
 
         const options = getCookieOptions();
         res.cookie("accessToken", accessToken, {
             ...options,
-            maxAge: 15 * 60 * 1000,
+            maxAge: 3 * 60 * 60 * 1000,
         });
 
         res.json({ message: "Token refreshed successfully", accessToken });
