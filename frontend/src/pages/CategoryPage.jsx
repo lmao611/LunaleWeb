@@ -68,7 +68,7 @@ const CategoryPage = () => {
 
   return (
     <div className="min-h-screen bg-white text-gray-900 pt-5">
-      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-35">
         {/* ✅ Centered title */}
         <h1 className="text-4xl font-bold text-blue-990 mb-10 mx-auto text-center">
           {displayTitle}
