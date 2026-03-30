@@ -23,9 +23,20 @@ export const protectProductionRoute = async (req, res, next) => {
 };
 
 // ==========================================
-// 2. API KIỂM TRA PHIÊN (Cho Frontend)
+// 2. API KIỂM TRA & XÓA PHIÊN (Cho Frontend)
 // ==========================================
 export const checkAuth = async (req, res) => {
+    res.status(200).json({ success: true });
+};
+
+// API TỰ ĐỘNG XÓA COOKIE KHI THOÁT TRANG
+export const clearAuth = async (req, res) => {
+    res.clearCookie("prod_token", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        path: "/"
+    });
     res.status(200).json({ success: true });
 };
 
@@ -86,7 +97,7 @@ export const saveProduction = async (req, res) => {
 };
 
 // ==========================================
-// 4. API XÁC THỰC MẬT KHẨU (Dùng Redis chống DDoS)
+// 4. API XÁC THỰC MẬT KHẨU 
 // ==========================================
 export const verifyPassword = async (req, res) => {
   try {
@@ -122,8 +133,8 @@ export const verifyPassword = async (req, res) => {
       res.cookie("prod_token", token, {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
-          sameSite: "strict",
-          maxAge: 2 * 60 * 60 * 1000 
+          sameSite: "strict"
+          // Không dùng maxAge nữa -> Biến thành Session Cookie (Tắt trình duyệt tự xóa)
       });
 
       return res.status(200).json({ success: true });
