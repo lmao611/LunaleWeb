@@ -55,6 +55,7 @@ const ProductionDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState("saved");
   
+  // --- BẢO MẬT MỚI: State kiểm tra quyền từ Server ---
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
 
@@ -64,6 +65,7 @@ const ProductionDetailPage = () => {
   const initialLoadRef = useRef(true);
   const timeoutRef = useRef(null);
 
+  // KIỂM TRA BẢO MẬT VỚI BACKEND TRƯỚC KHI RENDER
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -216,10 +218,16 @@ const ProductionDetailPage = () => {
 
   const addBatch = () => {
     setBatches(prev => {
-      if (prev.length === 0) return [{ items: [] }]; 
+      if (prev.length === 0) {
+        return [{ items: [] }]; 
+      }
       const lastBatch = prev[prev.length - 1];
       const newItems = lastBatch.items.map(item => ({
-        name: item.name, nguonNhap: "", ngayNhap: "-", soLuong: 0, gia: 0
+        name: item.name,
+        nguonNhap: "",
+        ngayNhap: "-",
+        soLuong: 0,
+        gia: 0
       }));
       return [...prev, { items: newItems }];
     });
@@ -233,7 +241,13 @@ const ProductionDetailPage = () => {
 
   const addBatchItem = (batchIndex) => {
     const newBatches = [...batches];
-    newBatches[batchIndex].items.push({ name: "", nguonNhap: "", ngayNhap: "-", soLuong: 0, gia: 0 });
+    newBatches[batchIndex].items.push({
+      name: "",
+      nguonNhap: "",
+      ngayNhap: "-",
+      soLuong: 0,
+      gia: 0
+    });
     setBatches(newBatches);
   };
 
@@ -248,6 +262,7 @@ const ProductionDetailPage = () => {
     return new Intl.NumberFormat('vi-VN').format(amount);
   };
 
+  // Màn hình chờ kiểm tra phiên
   if (isChecking) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#FDFBF7]">
@@ -299,8 +314,12 @@ const ProductionDetailPage = () => {
     <div className="min-h-screen bg-[#FDFBF7] text-gray-900 p-3 sm:p-4 pt-20 sm:pt-24 text-xs sm:text-sm pb-20">
       <div className="max-w-[1800px] mx-auto">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 mb-4 sm:mb-6">
-          <button onClick={() => navigate("/admin/production")} className="flex items-center text-blue-600 hover:text-blue-800 transition-colors font-semibold text-sm sm:text-base">
-            <ArrowLeft className="mr-1.5 sm:mr-2" size={18} /> Quay lại
+          <button
+            onClick={() => navigate("/admin/production")}
+            className="flex items-center text-blue-600 hover:text-blue-800 transition-colors font-semibold text-sm sm:text-base"
+          >
+            <ArrowLeft className="mr-1.5 sm:mr-2" size={18} />
+            Quay lại
           </button>
           
           <div className="flex items-center gap-2 text-xs sm:text-sm font-medium w-full sm:w-auto">
@@ -325,7 +344,12 @@ const ProductionDetailPage = () => {
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <div className="w-full sm:w-40 md:w-48 border-2 border-black bg-white flex flex-col items-center justify-center p-2 shadow-sm shrink-0">
                 <span className="font-bold text-center uppercase mb-2 text-sm sm:text-base">{product.name}</span>
-                <img src={product.thumbnail || product.image} alt={product.name} loading="lazy" className="w-24 sm:w-full object-contain" />
+                <img 
+                  src={product.thumbnail || product.image} 
+                  alt={product.name}
+                  loading="lazy"
+                  className="w-24 sm:w-full object-contain"
+                />
               </div>
 
               <div className="flex-1 overflow-x-auto shadow-sm min-w-0">
@@ -375,7 +399,11 @@ const ProductionDetailPage = () => {
                         
                         <td className="border border-black p-0 align-middle">
                           {index > 0 && (
-                            <button onClick={() => removeInventoryRow(index)} className="text-red-500 hover:text-red-700 w-full h-full flex items-center justify-center py-1.5 sm:py-2" title="Xóa hàng này">
+                            <button
+                              onClick={() => removeInventoryRow(index)}
+                              className="text-red-500 hover:text-red-700 w-full h-full flex items-center justify-center py-1.5 sm:py-2"
+                              title="Xóa hàng này"
+                            >
                               <Trash2 size={12} className="sm:w-[14px] sm:h-[14px]" />
                             </button>
                           )}
@@ -385,7 +413,10 @@ const ProductionDetailPage = () => {
                   </tbody>
                 </table>
                 <div className="bg-white p-2 border-t-0 border-2 border-black">
-                  <button onClick={addInventoryRow} className="flex items-center text-blue-600 hover:text-blue-800 text-xs sm:text-sm font-semibold transition-colors">
+                  <button 
+                    onClick={addInventoryRow}
+                    className="flex items-center text-blue-600 hover:text-blue-800 text-xs sm:text-sm font-semibold transition-colors"
+                  >
                     <Plus size={14} className="mr-1 sm:w-4 sm:h-4" /> Thêm dòng xuất/nhập
                   </button>
                 </div>
@@ -401,7 +432,10 @@ const ProductionDetailPage = () => {
                 <div key={batchIndex} className="overflow-x-auto shadow-sm min-w-0 relative">
                   <div className="flex justify-between items-end mb-1 sm:mb-1.5">
                     <span className="text-[10px] sm:text-xs font-semibold text-gray-500">Bảng đợt {batchIndex + 1}</span>
-                    <button onClick={() => removeBatch(batchIndex)} className="text-red-500 hover:text-red-700 text-[10px] sm:text-xs font-semibold flex items-center transition-colors">
+                    <button 
+                      onClick={() => removeBatch(batchIndex)} 
+                      className="text-red-500 hover:text-red-700 text-[10px] sm:text-xs font-semibold flex items-center transition-colors"
+                    >
                       <Trash2 size={10} className="mr-1 sm:w-3 sm:h-3"/> Xóa đợt này
                     </button>
                   </div>
@@ -409,7 +443,9 @@ const ProductionDetailPage = () => {
                   <table className="w-full border-collapse text-center border-2 border-black bg-white whitespace-nowrap text-[10px] sm:text-xs">
                     <thead>
                       <tr>
-                        <th className="border border-black p-2 sm:p-3 bg-[#FFC000] text-red-600 uppercase min-w-[120px] sm:w-48 font-bold">{product.name} ĐỢT {batchIndex + 1}</th>
+                        <th className="border border-black p-2 sm:p-3 bg-[#FFC000] text-red-600 uppercase min-w-[120px] sm:w-48 font-bold">
+                          {product.name} ĐỢT {batchIndex + 1}
+                        </th>
                         <th className="border border-black p-2 sm:p-3 bg-[#FFC000] min-w-[80px] sm:w-32 font-bold">NGUỒN NHẬP</th>
                         <th className="border border-black p-2 sm:p-3 bg-[#FFC000] min-w-[80px] sm:w-32 font-bold">NGÀY NHẬP</th>
                         <th className="border border-black p-2 sm:p-3 bg-[#FFC000] min-w-[90px] sm:w-32 font-bold">SỐ LƯỢNG (MÉT)</th>
@@ -422,23 +458,59 @@ const ProductionDetailPage = () => {
                       {batch.items.map((item, itemIndex) => (
                         <tr key={itemIndex} className="hover:bg-gray-50 transition-colors">
                           <td className="border border-black p-0">
-                            <input type="text" value={item.name || ""} placeholder="Tên nguyên liệu" onChange={(e) => handleBatchItemChange(batchIndex, itemIndex, "name", e.target.value)} className="w-full h-full text-center bg-transparent outline-none py-1.5 sm:py-2 font-semibold" />
+                            <input 
+                              type="text" 
+                              value={item.name || ""} 
+                              placeholder="Tên nguyên liệu"
+                              onChange={(e) => handleBatchItemChange(batchIndex, itemIndex, "name", e.target.value)}
+                              className="w-full h-full text-center bg-transparent outline-none py-1.5 sm:py-2 font-semibold"
+                            />
                           </td>
                           <td className="border border-black p-0">
-                            <input type="text" value={item.nguonNhap || ""} placeholder="-" onChange={(e) => handleBatchItemChange(batchIndex, itemIndex, "nguonNhap", e.target.value)} className="w-full h-full text-center bg-transparent outline-none py-1.5 sm:py-2" />
+                            <input 
+                              type="text" 
+                              value={item.nguonNhap || ""} 
+                              placeholder="-"
+                              onChange={(e) => handleBatchItemChange(batchIndex, itemIndex, "nguonNhap", e.target.value)}
+                              className="w-full h-full text-center bg-transparent outline-none py-1.5 sm:py-2"
+                            />
                           </td>
                           <td className="border border-black p-0">
-                            <MaskedDateInput value={item.ngayNhap || "-"} onChange={(val) => handleBatchItemChange(batchIndex, itemIndex, "ngayNhap", val)} className="w-full h-full text-center bg-transparent outline-none py-1.5 sm:py-2" />
+                            <MaskedDateInput 
+                              value={item.ngayNhap || "-"} 
+                              onChange={(val) => handleBatchItemChange(batchIndex, itemIndex, "ngayNhap", val)}
+                              className="w-full h-full text-center bg-transparent outline-none py-1.5 sm:py-2"
+                            />
                           </td>
                           <td className="border border-black p-0">
-                            <input type="number" value={item.soLuong || ""} placeholder="-" onChange={(e) => handleBatchItemChange(batchIndex, itemIndex, "soLuong", e.target.value)} className="w-full h-full text-center bg-transparent outline-none py-1.5 sm:py-2" />
+                            <input 
+                              type="number" 
+                              value={item.soLuong || ""} 
+                              placeholder="-"
+                              onChange={(e) => handleBatchItemChange(batchIndex, itemIndex, "soLuong", e.target.value)}
+                              className="w-full h-full text-center bg-transparent outline-none py-1.5 sm:py-2"
+                            />
                           </td>
                           <td className="border border-black p-0">
-                            <input type="text" value={item.gia ? new Intl.NumberFormat('vi-VN').format(item.gia) : ""} placeholder="-" onChange={(e) => { const rawValue = e.target.value.replace(/\D/g, ""); handleBatchItemChange(batchIndex, itemIndex, "gia", rawValue ? Number(rawValue) : 0); }} className="w-full h-full text-center bg-transparent outline-none py-1.5 sm:py-2" />
+                            <input 
+                              type="text" 
+                              value={item.gia ? new Intl.NumberFormat('vi-VN').format(item.gia) : ""} 
+                              placeholder="-"
+                              onChange={(e) => {
+                                const rawValue = e.target.value.replace(/\D/g, "");
+                                handleBatchItemChange(batchIndex, itemIndex, "gia", rawValue ? Number(rawValue) : 0);
+                              }}
+                              className="w-full h-full text-center bg-transparent outline-none py-1.5 sm:py-2"
+                            />
                           </td>
-                          <td className="border border-black p-1.5 sm:p-2 font-medium">{formatCurrency(Number(item.soLuong) * Number(item.gia) || 0)}</td>
+                          <td className="border border-black p-1.5 sm:p-2 font-medium">
+                            {formatCurrency(Number(item.soLuong) * Number(item.gia) || 0)}
+                          </td>
                           <td className="border border-black p-0 align-middle">
-                            <button onClick={() => removeBatchItem(batchIndex, itemIndex)} className="text-red-500 hover:text-red-700 w-full h-full flex items-center justify-center py-1.5 sm:py-2">
+                            <button
+                              onClick={() => removeBatchItem(batchIndex, itemIndex)}
+                              className="text-red-500 hover:text-red-700 w-full h-full flex items-center justify-center py-1.5 sm:py-2"
+                            >
                               <Trash2 size={12} className="sm:w-[14px] sm:h-[14px]" />
                             </button>
                           </td>
@@ -446,7 +518,10 @@ const ProductionDetailPage = () => {
                       ))}
                       <tr className="bg-gray-50">
                         <td colSpan="7" className="border border-black p-1.5 sm:p-2">
-                          <button onClick={() => addBatchItem(batchIndex)} className="flex items-center text-blue-600 hover:text-blue-800 text-[10px] sm:text-sm font-semibold transition-colors mx-auto">
+                          <button 
+                            onClick={() => addBatchItem(batchIndex)}
+                            className="flex items-center text-blue-600 hover:text-blue-800 text-[10px] sm:text-sm font-semibold transition-colors mx-auto"
+                          >
                             <Plus size={14} className="mr-1 sm:w-4 sm:h-4" /> Thêm nguyên liệu
                           </button>
                         </td>
@@ -462,7 +537,10 @@ const ProductionDetailPage = () => {
             })}
             
             <div className="flex flex-col sm:flex-row justify-between items-stretch gap-3 sm:gap-4 mt-2">
-              <button onClick={addBatch} className="bg-[#A9D08E] border-2 border-black text-black p-2 sm:p-3 font-bold hover:bg-[#96c179] transition-all rounded-sm flex-1 shadow-sm text-xs sm:text-sm">
+              <button 
+                onClick={addBatch}
+                className="bg-[#A9D08E] border-2 border-black text-black p-2 sm:p-3 font-bold hover:bg-[#96c179] transition-all rounded-sm flex-1 shadow-sm text-xs sm:text-sm"
+              >
                 THÊM ĐỢT MỚI ( + )
               </button>
               <div className="flex-1 bg-[#FFC000] border-2 border-black text-black p-2 sm:p-3 font-bold flex items-center justify-between shadow-sm text-sm sm:text-lg px-4 sm:px-6 uppercase">
