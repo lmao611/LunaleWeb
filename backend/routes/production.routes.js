@@ -1,14 +1,20 @@
 import express from "express";
-import { getProduction, saveProduction, getAllProductions, verifyPassword } from "../controllers/production.controller.js";
+import { 
+  getProduction, saveProduction, getAllProductions, verifyPassword, 
+  protectProductionRoute, checkAuth 
+} from "../controllers/production.controller.js";
 
 const router = express.Router();
 
-router.get("/", getAllProductions);
-
-// Route cố định phải nằm TRÊN các route có tham số (/:productId)
+// Route cho phép truy cập tự do
 router.post("/verify-password", verifyPassword);
 
-router.get("/:productId", getProduction);
-router.post("/:productId", saveProduction);
+// API kiểm tra session cho Frontend
+router.get("/check-auth", protectProductionRoute, checkAuth);
+
+// CÁC ROUTE ĐÃ BỊ KHÓA CHẶT 🔒
+router.get("/", protectProductionRoute, getAllProductions);
+router.get("/:productId", protectProductionRoute, getProduction);
+router.post("/:productId", protectProductionRoute, saveProduction);
 
 export default router;
