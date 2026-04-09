@@ -3,8 +3,9 @@ import axios from "../lib/axios";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
 
+// Mở rộng BASE_URL để tự động nhận dạng IP LAN nếu bạn test trên đt
 const BASE_URL = import.meta.env.MODE === "development" 
-  ? "http://localhost:5000" 
+  ? window.location.origin.replace(/:5173$/, ":5000") // Tự chuyển port 5173 thành 5000
   : "https://api.lunale.com.vn"; 
 
 export const useUserStore = create((set, get) => ({
@@ -85,6 +86,7 @@ export const useUserStore = create((set, get) => ({
 
   connectSocket: () => {
     const { user, socket } = get();
+    // Đảm bảo user tồn tại mới kết nối
     if (!user || (socket && socket.connected)) return;
 
     const newSocket = io(BASE_URL, {
@@ -94,20 +96,17 @@ export const useUserStore = create((set, get) => ({
     });
 
     newSocket.on("connect", () => {
-        console.log("🟢 Socket connected:", newSocket.id);
+        console.log("🟢 Frontend Socket connected:", newSocket.id);
     });
 
-    // --- BỔ SUNG QUAN TRỌNG: Nghe sự kiện cập nhật profile để update Navbar ---
     newSocket.on("userProfileUpdated", (updatedUser) => {
-        // Chỉ cập nhật nếu đúng là user hiện tại
         if (updatedUser._id === user._id) {
             set({ user: { ...user, ...updatedUser } });
         }
     });
-    // -------------------------------------------------------------------------
 
     newSocket.on("connect_error", (err) => {
-        console.error("🔴 Socket connection error:", err);
+        console.error("🔴 Frontend Socket connection error:", err.message);
     });
 
     set({ socket: newSocket });
