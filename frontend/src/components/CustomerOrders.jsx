@@ -11,9 +11,7 @@ const CustomerOrders = () => {
   const [uncheckedOrders, setUncheckedOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(null);
-  
   const [receiptData, setReceiptData] = useState(null); 
-  
   const { socket } = useUserStore();
 
   const formatCurrency = (amount) => {
@@ -31,7 +29,11 @@ const CustomerOrders = () => {
     try {
       const res = await axios.get("/customer-orders");
       setOrders(res.data);
-      setUncheckedOrders(res.data.filter(o => o.status === "Pending"));
+      
+      const checkedOrdersStr = localStorage.getItem('checked_orders');
+      const checkedOrdersList = checkedOrdersStr ? JSON.parse(checkedOrdersStr) : [];
+
+      setUncheckedOrders(res.data.filter(o => o.status === "Pending" && !checkedOrdersList.includes(o._id)));
       setLoading(false);
     } catch (error) {
       toast.error("Lỗi tải danh sách đơn hàng");
@@ -65,8 +67,12 @@ const CustomerOrders = () => {
         });
 
         setUncheckedOrders((prev) => {
+            const checkedOrdersStr = localStorage.getItem('checked_orders');
+            const checkedOrdersList = checkedOrdersStr ? JSON.parse(checkedOrdersStr) : [];
             const exists = prev.find(o => o._id === newOrder._id);
-            if (!exists) return [newOrder, ...prev];
+            const isChecked = checkedOrdersList.includes(newOrder._id);
+
+            if (!exists && !isChecked) return [newOrder, ...prev];
             return prev;
         });
     };
@@ -80,7 +86,20 @@ const CustomerOrders = () => {
 
   const handleCheckOrder = (order, e) => {
     if (e) e.stopPropagation();
+    
     setUncheckedOrders(prev => prev.filter(o => o._id !== order._id));
+  
+    const checkedOrdersStr = localStorage.getItem('checked_orders');
+    let checkedOrdersList = checkedOrdersStr ? JSON.parse(checkedOrdersStr) : [];
+    
+    if (!checkedOrdersList.includes(order._id)) {
+        checkedOrdersList.push(order._id);
+        
+        if (checkedOrdersList.length > 200) {
+            checkedOrdersList.shift(); 
+        }
+        localStorage.setItem('checked_orders', JSON.stringify(checkedOrdersList));
+    }
   };
 
   const scrollToOrder = (order) => {

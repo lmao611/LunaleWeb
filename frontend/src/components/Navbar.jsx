@@ -11,7 +11,7 @@ import axios from "../lib/axios";
 const Navbar = () => {
   const { user, logout, showUserBox, setShowUserBox, socket, setUser } = useUserStore();
   const { cart } = useCartStore();
-  const { notifications, unreadCount, fetchNotifications, markAsRead, addRealtimeNotification } = useNotificationStore();
+  const { notifications, unreadCount, fetchNotifications, markAsRead, addRealtimeNotification, deleteNotification, deleteAllNotifications } = useNotificationStore();
   const { openChat, setSelectedUser } = useChatStore();
   
   const isAdmin = user?.role === "admin" || user?.role === "controller";
@@ -77,7 +77,6 @@ const Navbar = () => {
                 setVisitorCount(res.data.count);
                 setVisitorsData(res.data.visitors);
             } else {
-                // Gửi request track lượt xem mỗi khi component mount hoặc khi user thay đổi (đăng nhập)
                 const res = await axios.post("/analytics/track", {
                     name: user?.name || "", 
                     email: user?.email || ""
@@ -87,7 +86,7 @@ const Navbar = () => {
         } catch (error) {}
     };
     fetchAnalytics();
-  }, [isAdmin, user]); // Phụ thuộc vào user để gọi lại API nếu khách vừa đăng nhập
+  }, [isAdmin, user]); 
 
   useEffect(() => {
     if (showVisitorsList && isAdmin) {
@@ -536,7 +535,17 @@ const Navbar = () => {
                 >
                     <div className="p-3 border-b bg-gray-50 flex justify-between items-center">
                         <h3 className="font-semibold text-gray-700">Thông báo</h3>
-                        <span className="text-xs text-gray-500">{notifications.length} tin</span>
+                        <div className="flex items-center gap-3">
+                            <span className="text-xs text-gray-500">{notifications.length} tin</span>
+                            {notifications.length > 0 && (
+                                <button 
+                                    onClick={deleteAllNotifications}
+                                    className="text-xs text-red-500 hover:text-red-700 font-medium transition"
+                                >
+                                    Xóa tất cả
+                                </button>
+                            )}
+                        </div>
                     </div>
                     <div className="max-h-[60vh] overflow-y-auto">
                         {notifications.length === 0 ? (
@@ -546,7 +555,7 @@ const Navbar = () => {
                                 <div 
                                     key={notif._id} 
                                     onClick={() => handleNotificationClick(notif)}
-                                    className={`p-3 border-b last:border-0 cursor-pointer hover:bg-gray-50 transition flex gap-3 ${!notif.isRead ? 'bg-blue-50/50' : ''}`}
+                                    className={`relative p-3 border-b last:border-0 cursor-pointer hover:bg-gray-50 transition flex gap-3 group ${!notif.isRead ? 'bg-blue-50/50' : ''}`}
                                 >
                                     {notif.image ? (
                                         <img src={notif.image} alt="img" className="w-12 h-12 rounded object-cover flex-shrink-0 bg-gray-200" />
@@ -555,7 +564,7 @@ const Navbar = () => {
                                             <Bell size={20} />
                                         </div>
                                     )}
-                                    <div className="flex-1 min-w-0">
+                                    <div className="flex-1 min-w-0 pr-6">
                                         <p className={`text-sm line-clamp-2 ${!notif.isRead ? 'font-semibold text-gray-800' : 'text-gray-600'}`}>
                                             {notif.message}
                                         </p>
@@ -563,7 +572,18 @@ const Navbar = () => {
                                             {new Date(notif.createdAt).toLocaleDateString("vi-VN")}
                                         </p>
                                     </div>
-                                    {!notif.isRead && <div className="w-2 h-2 bg-blue-600 rounded-full mt-2"></div>}
+                                    {!notif.isRead && <div className="absolute right-3 top-1/2 -translate-y-1/2 w-2 h-2 bg-blue-600 rounded-full group-hover:opacity-0 transition-opacity"></div>}
+                                    
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            deleteNotification(notif._id);
+                                        }}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100 transition-all"
+                                        title="Xóa"
+                                    >
+                                        <X size={16} />
+                                    </button>
                                 </div>
                             ))
                         )}

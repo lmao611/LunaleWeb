@@ -11,7 +11,6 @@ export const useNotificationStore = create((set, get) => ({
     set({ loading: true });
     try {
       const res = await axios.get("/notifications");
-      // Tính toán số lượng chưa đọc từ danh sách DB
       const unread = res.data.filter((n) => !n.isRead).length;
       set({ notifications: res.data, unreadCount: unread, loading: false });
     } catch (error) {
@@ -26,7 +25,6 @@ export const useNotificationStore = create((set, get) => ({
         const updatedNotifications = state.notifications.map((n) =>
           n._id === id ? { ...n, isRead: true } : n
         );
-        // Tính lại sau khi đọc
         const unread = updatedNotifications.filter((n) => !n.isRead).length;
         return { notifications: updatedNotifications, unreadCount: unread };
       });
@@ -49,6 +47,16 @@ export const useNotificationStore = create((set, get) => ({
       }
   },
 
+  deleteAllNotifications: async () => {
+      try {
+          await axios.delete(`/notifications/all`);
+          set({ notifications: [], unreadCount: 0 });
+          toast.success("Đã xóa tất cả thông báo");
+      } catch (error) {
+          toast.error("Lỗi khi xóa tất cả");
+      }
+  },
+
   sendNotification: async (formData) => {
     set({ loading: true });
     try {
@@ -63,29 +71,24 @@ export const useNotificationStore = create((set, get) => ({
     }
   },
 
-  // --- LOGIC CẬP NHẬT REALTIME (Đã sửa đổi) ---
   addRealtimeNotification: (newNotification) => {
       set((state) => {
-          // 1. Kiểm tra trùng lặp (nếu tin có ID và đã tồn tại thì bỏ qua)
           if (newNotification._id && state.notifications.some(n => n._id === newNotification._id)) {
               return state;
           }
 
-          // 2. Gán ID tạm nếu thiếu (quan trọng cho tin Broadcast để tránh lỗi React key)
           const notificationWithId = {
               ...newNotification,
               _id: newNotification._id || `temp-${Date.now()}`, 
-              isRead: false // Mặc định là chưa đọc
+              isRead: false
           };
 
-          // 3. Cập nhật State: Thêm vào đầu list và tăng biến đếm lên 1
           return {
               notifications: [notificationWithId, ...state.notifications],
-              unreadCount: state.unreadCount + 1, // Cộng trực tiếp cho chắc chắn
+              unreadCount: state.unreadCount + 1,
           };
       });
 
-      // Âm thanh và Toast
       const audio = new Audio("/notification.mp3"); 
       audio.play().catch(() => {}); 
       

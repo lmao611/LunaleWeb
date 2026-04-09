@@ -1,7 +1,7 @@
 import Notification from "../models/notification.model.js";
 import User from "../models/user.model.js";
 import cloudinary from "../lib/cloudinary.js";
-import { io, getReceiverSocketId } from "../lib/socket.js"; // IMPORT QUAN TRỌNG
+import { io, getReceiverSocketId } from "../lib/socket.js";
 
 export const sendNotification = async (req, res) => {
   try {
@@ -17,7 +17,6 @@ export const sendNotification = async (req, res) => {
     }
 
     if (sendToAll === "true" || sendToAll === true) {
-      // 1. Gửi cho tất cả khách hàng
       const customers = await User.find({ role: "customer" });
       
       const notifications = customers.map((customer) => ({
@@ -28,7 +27,6 @@ export const sendNotification = async (req, res) => {
 
       await Notification.insertMany(notifications);
       
-      // --- SOCKET: BẮN TIN CHO TẤT CẢ ---
       io.emit("newNotification", {
         message,
         image: imageUrl,
@@ -40,7 +38,6 @@ export const sendNotification = async (req, res) => {
       return res.status(201).json({ message: `Đã gửi đến ${customers.length} khách hàng.` });
 
     } else {
-      // 2. Gửi riêng cho 1 người
       if (!userId) return res.status(400).json({ message: "Vui lòng chọn khách hàng." });
 
       const notification = await Notification.create({
@@ -49,7 +46,6 @@ export const sendNotification = async (req, res) => {
         image: imageUrl,
       });
 
-      // --- SOCKET: BẮN TIN RIÊNG ---
       const receiverSocketId = getReceiverSocketId(userId);
       if (receiverSocketId) {
         io.to(receiverSocketId).emit("newNotification", notification);
@@ -58,7 +54,6 @@ export const sendNotification = async (req, res) => {
       return res.status(201).json(notification);
     }
   } catch (error) {
-    console.error("Error sending notification:", error);
     res.status(500).json({ message: "Lỗi server khi gửi thông báo." });
   }
 };
@@ -100,14 +95,34 @@ export const deleteNotification = async (req, res) => {
         const publicId = notification.image.split("/").slice(-2).join("/").split(".")[0];
         await cloudinary.uploader.destroy(publicId);
       } catch (error) {
-        console.log("Lỗi xóa ảnh trên Cloudinary:", error);
       }
     }
     await Notification.findByIdAndDelete(id);
     
     res.json({ message: "Đã xóa thông báo và ảnh đính kèm" });
   } catch (error) {
-    console.error("Lỗi controller:", error);
     res.status(500).json({ message: "Lỗi server khi xóa thông báo" });
+  }
+};
+
+export const deleteAllNotifications = async (req, res) => {
+  try {
+    const notifications = await Notification.find({ recipient: req.user._id });
+    
+    for (const notif of notifications) {
+      if (notif.image) {
+        try {
+          const publicId = notif.image.split("/").slice(-2).join("/").split(".")[0];
+          await cloudinary.uploader.destroy(publicId);
+        } catch (error) {
+        }
+      }
+    }
+    
+    await Notification.deleteMany({ recipient: req.user._id });
+    
+    res.json({ message: "Đã xóa tất cả thông báo" });
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi server khi xóa tất cả thông báo" });
   }
 };

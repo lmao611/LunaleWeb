@@ -11,8 +11,8 @@ const router = express.Router();
 // User routes
 router.get("/", protectRoute, getUserNotifications);
 router.put("/:id/read", protectRoute, markAsRead);
+router.delete("/all", protectRoute, deleteAllNotifications);
 router.delete("/:id", protectRoute, deleteNotification);
-
 // Admin routes
 router.post("/send", protectRoute, adminRoute, upload.single("image"), sendNotification);
 
