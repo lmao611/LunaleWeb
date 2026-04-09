@@ -4,11 +4,42 @@ import User from "../models/user.model.js";
 import Notification from "../models/notification.model.js"; 
 import Product from "../models/product.model.js"; 
 import { io, getReceiverSocketId } from "../lib/socket.js"; 
-import { redis } from "../lib/redis.js"; // IMPORT REDIS ĐỂ LƯU IP CẤM VĨNH VIỄN
+import { redis } from "../lib/redis.js";
+
+// === HÀM BẮN THÔNG BÁO CHO ADMIN & CONTROLLER ===
+const notifyAdminsAboutOrder = async (order, customerName) => {
+  try {
+    const admins = await User.find({ role: { $in: ["admin", "controller"] } });
+    
+    if (!admins || admins.length === 0) return;
+
+    const displayId = order.orderId ? `#LN${order.orderId.toString().padStart(4, '0')}` : `#${order._id.toString().slice(-6).toUpperCase()}`;
+    
+    const notifsToInsert = admins.map(admin => ({
+        recipient: admin._id,
+        message: `Có đơn hàng mới ${displayId} từ ${customerName}`,
+        type: "order",
+        relatedId: order._id
+    }));
+    
+    if (notifsToInsert.length > 0) {
+        const savedNotifs = await Notification.insertMany(notifsToInsert);
+        
+        admins.forEach((admin, idx) => {
+            const receiverSocketId = getReceiverSocketId(admin._id.toString()); 
+            if (receiverSocketId) {
+                io.to(receiverSocketId).emit("newNotification", savedNotifs[idx]);
+            }
+        });
+    }
+  } catch (err) {
+    console.error("Lỗi khi gửi thông báo cho admin:", err);
+  }
+};
+// =================================================
 
 export const createGuestOrder = async (req, res) => {
   try {
-    // 1. Lấy IP chính xác của khách hàng
     let clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
     if (clientIp && typeof clientIp === 'string') {
       clientIp = clientIp.split(',')[0].trim();
@@ -17,7 +48,6 @@ export const createGuestOrder = async (req, res) => {
     const countKey = `guest_order_count:${clientIp}`;
     const lockedKey = `guest_order_locked:${clientIp}`;
 
-    // 2. Kiểm tra IP này có đang bị cấm 24h không
     const isLocked = await redis.get(lockedKey);
     if (isLocked) {
        return res.status(429).json({ 
@@ -38,11 +68,9 @@ export const createGuestOrder = async (req, res) => {
     const qty = Number(quantity) || 1;
     const totalAmount = product.price * qty;
 
-    // Lấy orderId tiếp theo
     const lastOrder = await CustomerOrder.findOne().sort({ orderId: -1 });
     const nextOrderId = lastOrder && lastOrder.orderId ? lastOrder.orderId + 1 : 1;
 
-    // 3. Tạo đơn hàng vãng lai
     const newOrder = await CustomerOrder.create({
         customerInfo: {
             name: customerName,
@@ -64,20 +92,19 @@ export const createGuestOrder = async (req, res) => {
         orderId: nextOrderId
     });
 
-    // Phát sự kiện Socket cho Admin
     if (io) {
         io.emit("newCustomerOrder", newOrder);
     }
 
-    // 4. TĂNG BỘ ĐẾM REDIS VÀ CẤM IP NẾU ĐẠT 5 ĐƠN
+    // GỌI HÀM THÔNG BÁO Ở ĐÂY
+    await notifyAdminsAboutOrder(newOrder, customerName);
+
     const currentCount = await redis.incr(countKey);
     
-    // Nếu vừa đặt đơn thứ 5 -> Khóa 24h (86400 giây) tính từ thời điểm này, và xóa bộ đếm
     if (currentCount >= 5) {
        await redis.set(lockedKey, "true", "EX", 24 * 60 * 60); 
        await redis.del(countKey);
     } else if (currentCount === 1) {
-       // Set thời hạn 24h cho bộ đếm phòng trường hợp khách đặt 1 đơn rồi bỏ đi
        await redis.expire(countKey, 24 * 60 * 60);
     }
 
@@ -87,7 +114,6 @@ export const createGuestOrder = async (req, res) => {
   }
 };
 
-// --- CÁC HÀM CŨ BÊN DƯỚI DÀNH CHO KHÁCH ĐÃ ĐĂNG NHẬP GIỮ NGUYÊN ---
 export const createOrder = async (req, res) => {
   try {
     const { products, totalAmount, note, paymentMethod, isPaid } = req.body;
@@ -147,6 +173,9 @@ export const createOrder = async (req, res) => {
       }
 
       io.emit("newCustomerOrder", existingOrder);
+      
+      // GỌI HÀM THÔNG BÁO Ở ĐÂY
+      await notifyAdminsAboutOrder(existingOrder, user.name);
 
       return res.status(200).json(existingOrder);
     }
@@ -177,6 +206,9 @@ export const createOrder = async (req, res) => {
     }
 
     io.emit("newCustomerOrder", newOrder);
+    
+    // GỌI HÀM THÔNG BÁO Ở ĐÂY
+    await notifyAdminsAboutOrder(newOrder, user.name);
 
     res.status(201).json(newOrder);
   } catch (error) {
