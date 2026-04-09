@@ -1,6 +1,6 @@
 import express from "express";
 import { protectRoute, adminRoute } from "../middleware/auth.middleware.js";
-import { getUserNotifications, sendNotification, markAsRead, deleteNotification } from "../controllers/notification.controller.js";
+import { getUserNotifications, sendNotification, markAsRead, deleteNotification, deleteAllNotifications } from "../controllers/notification.controller.js";
 // Import cấu hình multer của bạn (thường nằm ở lib hoặc middleware)
 // Nếu chưa có file riêng, bạn có thể dùng code mẫu dưới đây để test nhanh:
 import multer from "multer";
