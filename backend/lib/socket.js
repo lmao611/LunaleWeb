@@ -7,7 +7,8 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5173"],
+    origin: true, // SỬA Ở ĐÂY: Cho phép mọi origin để tránh lỗi ngầm CORS
+    credentials: true, // RẤT QUAN TRỌNG: Khớp với cấu hình Frontend
   },
 });
 
@@ -26,7 +27,12 @@ io.on("connection", (socket) => {
   const userId = socket.handshake.query.userId;
   const userName = socket.handshake.query.userName;
   
-  if (userId) userSocketMap[userId] = socket.id;
+  // MAP ID CỦA USER VÀO SOCKET
+  if (userId && userId !== "undefined") {
+      userSocketMap[userId] = socket.id;
+      // In ra terminal backend để bạn dễ kiểm tra:
+      console.log(`🟢 [Socket] User/Admin online -> ID: ${userId} | SocketID: ${socket.id}`);
+  }
 
   io.emit("getOnlineUsers", Object.keys(userSocketMap));
   socket.emit("viewersUpdated", chatViewers);
@@ -61,6 +67,7 @@ io.on("connection", (socket) => {
 
     if (userId) {
         delete userSocketMap[userId];
+        console.log(`🔴 [Socket] User/Admin offline -> ID: ${userId}`);
         io.emit("getOnlineUsers", Object.keys(userSocketMap));
     }
 
