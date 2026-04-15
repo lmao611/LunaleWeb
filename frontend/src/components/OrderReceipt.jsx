@@ -77,14 +77,12 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
   useEffect(() => {
     const loadLogo = async () => {
       try {
-        const response = await fetch(`/lunale.png?t=${Date.now()}`);
+        const response = await fetch("/lunale.png");
         const blob = await response.blob();
         const reader = new FileReader();
         reader.onloadend = () => setLogoBase64(reader.result);
         reader.readAsDataURL(blob);
-      } catch (e) {
-        console.error(e);
-      }
+      } catch (e) {}
     };
     loadLogo();
   }, []);
@@ -99,9 +97,7 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
           ]);
           setCustomers(Array.isArray(custRes.data) ? custRes.data : (custRes.data.users || []));
           setProducts(prodRes.data.products || (Array.isArray(prodRes.data) ? prodRes.data : []));
-        } catch (err) {
-          console.error(err);
-        }
+        } catch (err) {}
       };
       fetchData();
     }
@@ -192,7 +188,6 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
       toast.success("Đã lưu đơn hàng vào hệ thống!");
       return true;
     } catch (error) {
-      console.error("Save error", error);
       toast.error("Lỗi khi lưu đơn hàng: " + (error.response?.data?.message || error.message));
       return false;
     }
@@ -201,6 +196,21 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
   const waitForImages = async (element) => {
     const images = element.querySelectorAll('img');
     const promises = Array.from(images).map(async (img) => {
+       if (img.src && !img.src.startsWith('data:')) {
+           try {
+               const res = await fetch(img.src);
+               const blob = await res.blob();
+               const reader = new FileReader();
+               await new Promise((resolve) => {
+                   reader.onloadend = () => {
+                       img.src = reader.result;
+                       resolve();
+                   };
+                   reader.readAsDataURL(blob);
+               });
+           } catch (e) {}
+       }
+
        if (!img.complete) {
            await new Promise((resolve) => {
                img.onload = resolve;
@@ -208,7 +218,7 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
            });
        }
        if (img.decode) {
-           await img.decode().catch((e) => console.log(e));
+           await img.decode().catch(() => {});
        }
     });
     await Promise.all(promises);
@@ -270,7 +280,6 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
       }
 
     } catch (err) {
-      console.error(err);
     } finally {
       if (printRef.current) {
         el.style.opacity = "0";
@@ -301,9 +310,7 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
         link.download = `don_hang_${Date.now()}.png`;
         link.click();
       }
-    } catch (error) {
-      console.log(error);
-    }
+    } catch (error) {}
   };
 
   const selectClass = "w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 text-base focus:ring-2 focus:ring-blue-500 outline-none appearance-none relative z-10";
@@ -633,7 +640,7 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
 
         <div className="flex justify-between items-end mt-24 pt-10 border-t-2 border-gray-300">
            <div className="pl-4">
-              <img id="print-logo" src={logoBase64 || "/lunale.png"} alt="Logo" className="w-56 block object-contain" />
+              <img id="print-logo" src={logoBase64 || "/lunale.png"} alt="Logo" className="w-56 block object-contain" crossOrigin="anonymous" loading="eager" />
               <p className="text-gray-400 text-sm mt-2 italic font-medium">Cảm ơn bạn đã lựa chọn Lunale!</p>
            </div>
            <div className="w-[450px] space-y-3 text-right pr-4">
