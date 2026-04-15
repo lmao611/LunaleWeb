@@ -227,26 +227,57 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
       el.style.left = "0px";
 
       await document.fonts.ready;
-      await new Promise((r) => setTimeout(r, 800)); 
+      await new Promise((r) => setTimeout(r, 500)); 
 
       const dataUrl = await toPng(el, {
         quality: 1.0,
-        pixelRatio: 3, 
+        pixelRatio: 2, 
         skipAutoScale: true,
         backgroundColor: '#ffffff',
       });
 
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      
+      const baseImage = new Image();
+      baseImage.src = dataUrl;
+      await new Promise((r) => { baseImage.onload = r; });
+
+      canvas.width = baseImage.width;
+      canvas.height = baseImage.height;
+      ctx.drawImage(baseImage, 0, 0);
+
+      if (logoBase64 && logoStatus === "Sẵn sàng") {
+          const logoImg = new Image();
+          logoImg.src = logoBase64;
+          await new Promise((r) => { logoImg.onload = r; });
+
+          const parentRect = el.getBoundingClientRect();
+          const placeholderRect = document.getElementById("logo-placeholder").getBoundingClientRect();
+
+          const scaleX = canvas.width / parentRect.width;
+          const scaleY = canvas.height / parentRect.height;
+
+          const x = (placeholderRect.left - parentRect.left) * scaleX;
+          const y = (placeholderRect.top - parentRect.top) * scaleY;
+          const w = placeholderRect.width * scaleX;
+          const h = (logoImg.height / logoImg.width) * w; 
+
+          ctx.drawImage(logoImg, x, y, w, h);
+      }
+
+      const finalDataUrl = canvas.toDataURL("image/png", 1.0);
       const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
 
       if (isDesktop && !inputOrder) {
         const link = document.createElement("a");
-        link.href = dataUrl;
+        link.href = finalDataUrl;
         link.download = `don_hang_${form.customerName || 'khach'}_${Date.now()}.png`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
       } else {
-        setGeneratedImage(dataUrl);
+        setGeneratedImage(finalDataUrl);
       }
 
     } catch (err) {
@@ -615,20 +646,7 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
 
         <div className="flex justify-between items-end mt-24 pt-10 border-t-2 border-gray-300">
            <div className="pl-4">
-              {logoBase64 ? (
-                <div 
-                    style={{
-                        backgroundImage: `url(${logoBase64})`,
-                        backgroundSize: 'contain',
-                        backgroundRepeat: 'no-repeat',
-                        backgroundPosition: 'left center',
-                        width: '224px', 
-                        height: '90px'
-                    }}
-                />
-              ) : (
-                <div className="w-56 h-[90px] border-2 border-dashed border-red-300 flex items-center justify-center text-red-500 font-bold">LỖI LOGO</div>
-              )}
+              <div id="logo-placeholder" className="w-56 h-[90px]"></div>
               <p className="text-gray-400 text-sm mt-2 italic font-medium">Cảm ơn bạn đã lựa chọn Lunale!</p>
            </div>
            <div className="w-[450px] space-y-3 text-right pr-4">
