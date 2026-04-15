@@ -203,19 +203,6 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
     }
   };
 
-  const waitForImages = async (element) => {
-    const images = element.querySelectorAll('img');
-    const promises = Array.from(images).map(async (img) => {
-       if (!img.complete) {
-           await new Promise((resolve) => {
-               img.onload = resolve;
-               img.onerror = resolve; 
-           });
-       }
-    });
-    await Promise.all(promises);
-  };
-
   const handleGenerateImage = async () => {
     if (!printRef.current) return;
     setIsGenerating(true);
@@ -235,12 +222,11 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
     const el = printRef.current;
     
     try {
-      el.style.display = "block";
       el.style.opacity = "1";
       el.style.zIndex = "-10"; 
-      el.style.backgroundColor = "#ffffff";
+      el.style.left = "0px";
 
-      await waitForImages(el); 
+      await document.fonts.ready;
       await new Promise((r) => setTimeout(r, 800)); 
 
       const dataUrl = await toPng(el, {
@@ -248,10 +234,6 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
         pixelRatio: 3, 
         skipAutoScale: true,
         backgroundColor: '#ffffff',
-        style: {
-            transform: 'scale(1)',
-            transformOrigin: 'top left'
-        }
       });
 
       const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
@@ -271,8 +253,9 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
       toast.error("Lỗi tạo ảnh: " + err.message);
     } finally {
       if (printRef.current) {
-        el.style.opacity = "0.01";
+        el.style.opacity = "0";
         el.style.zIndex = "-50";
+        el.style.left = "-20000px";
       }
       setIsGenerating(false);
     }
@@ -580,7 +563,7 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
       <div
         id="print-area"
         ref={printRef}
-        style={{ position: "absolute", top: 0, left: 0, opacity: 0.01, pointerEvents: "none", zIndex: -50 }}
+        style={{ position: "absolute", top: 0, left: "-20000px", opacity: 0, pointerEvents: "none", zIndex: -50 }}
         className="w-[1100px] bg-white text-gray-900 font-sans p-10"
       >
         <div className="mb-10 text-center">
@@ -633,9 +616,18 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
         <div className="flex justify-between items-end mt-24 pt-10 border-t-2 border-gray-300">
            <div className="pl-4">
               {logoBase64 ? (
-                <img src={logoBase64} alt="Logo" className="w-56 block object-contain" />
+                <div 
+                    style={{
+                        backgroundImage: `url(${logoBase64})`,
+                        backgroundSize: 'contain',
+                        backgroundRepeat: 'no-repeat',
+                        backgroundPosition: 'left center',
+                        width: '224px', 
+                        height: '90px'
+                    }}
+                />
               ) : (
-                <div className="w-56 h-16 border-2 border-dashed border-red-300 flex items-center justify-center text-red-500 font-bold">LỖI LOGO</div>
+                <div className="w-56 h-[90px] border-2 border-dashed border-red-300 flex items-center justify-center text-red-500 font-bold">LỖI LOGO</div>
               )}
               <p className="text-gray-400 text-sm mt-2 italic font-medium">Cảm ơn bạn đã lựa chọn Lunale!</p>
            </div>
