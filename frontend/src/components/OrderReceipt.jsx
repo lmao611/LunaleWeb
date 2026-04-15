@@ -10,6 +10,7 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
   const [customers, setCustomers] = useState([]);
   const [products, setProducts] = useState([]);
   const [logoBase64, setLogoBase64] = useState("");
+  const [logoStatus, setLogoStatus] = useState("Đang tải...");
   
   const [generatedImage, setGeneratedImage] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -77,12 +78,21 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
   useEffect(() => {
     const loadLogo = async () => {
       try {
-        const response = await fetch("/lunale.png");
+        const response = await fetch(`/lunale.png?v=${Date.now()}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const blob = await response.blob();
         const reader = new FileReader();
-        reader.onloadend = () => setLogoBase64(reader.result);
+        reader.onloadend = () => {
+            setLogoBase64(reader.result);
+            setLogoStatus("Sẵn sàng");
+        };
+        reader.onerror = () => {
+            setLogoStatus("Lỗi đọc file");
+        };
         reader.readAsDataURL(blob);
-      } catch (e) {}
+      } catch (e) {
+        setLogoStatus("Lỗi tải: " + e.message);
+      }
     };
     loadLogo();
   }, []);
@@ -188,7 +198,7 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
       toast.success("Đã lưu đơn hàng vào hệ thống!");
       return true;
     } catch (error) {
-      toast.error("Lỗi khi lưu đơn hàng: " + (error.response?.data?.message || error.message));
+      toast.error("Lỗi khi lưu đơn hàng.");
       return false;
     }
   };
@@ -196,29 +206,11 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
   const waitForImages = async (element) => {
     const images = element.querySelectorAll('img');
     const promises = Array.from(images).map(async (img) => {
-       if (img.src && !img.src.startsWith('data:')) {
-           try {
-               const res = await fetch(img.src);
-               const blob = await res.blob();
-               const reader = new FileReader();
-               await new Promise((resolve) => {
-                   reader.onloadend = () => {
-                       img.src = reader.result;
-                       resolve();
-                   };
-                   reader.readAsDataURL(blob);
-               });
-           } catch (e) {}
-       }
-
        if (!img.complete) {
            await new Promise((resolve) => {
                img.onload = resolve;
                img.onerror = resolve; 
            });
-       }
-       if (img.decode) {
-           await img.decode().catch(() => {});
        }
     });
     await Promise.all(promises);
@@ -245,25 +237,21 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
     try {
       el.style.display = "block";
       el.style.opacity = "1";
-      el.style.top = "0";
-      el.style.left = "0";
       el.style.zIndex = "-10"; 
       el.style.backgroundColor = "#ffffff";
-      el.style.fontFamily = '"Varela Round", sans-serif';
 
-      await document.fonts.ready;
       await waitForImages(el); 
-      await new Promise((r) => setTimeout(r, 500)); 
-
-      await toPng(el, { quality: 0.01, pixelRatio: 1, skipAutoScale: true });
-      await new Promise((r) => setTimeout(r, 100));
+      await new Promise((r) => setTimeout(r, 800)); 
 
       const dataUrl = await toPng(el, {
         quality: 1.0,
-        cacheBust: true,
         pixelRatio: 3, 
         skipAutoScale: true,
         backgroundColor: '#ffffff',
+        style: {
+            transform: 'scale(1)',
+            transformOrigin: 'top left'
+        }
       });
 
       const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
@@ -280,12 +268,11 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
       }
 
     } catch (err) {
+      toast.error("Lỗi tạo ảnh: " + err.message);
     } finally {
       if (printRef.current) {
-        el.style.opacity = "0";
-        el.style.top = "-9999px";
-        el.style.left = "-9999px";
-        el.style.zIndex = "-1";
+        el.style.opacity = "0.01";
+        el.style.zIndex = "-50";
       }
       setIsGenerating(false);
     }
@@ -322,11 +309,16 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
       className={`relative bg-white ${inputOrder ? '' : 'border border-gray-200 shadow-md rounded-2xl'} p-4 sm:p-6 max-w-4xl mx-auto`}
     >
       <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm py-2 border-b border-gray-100 mb-6 -mx-4 px-4 sm:-mx-6 sm:px-6 flex justify-between items-center shadow-sm">
-        {onClose ? (
-            <button onClick={onClose} className="flex items-center gap-2 text-gray-600 hover:text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-50 transition font-medium text-sm">
-                <X size={18} /> Thoát
-            </button>
-        ) : <div></div>}
+        <div className="flex flex-col">
+            {onClose && (
+                <button onClick={onClose} className="flex items-center gap-2 text-gray-600 hover:text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-50 transition font-medium text-sm">
+                    <X size={18} /> Thoát
+                </button>
+            )}
+            <span className={`text-xs px-3 mt-1 font-mono ${logoStatus === "Sẵn sàng" ? "text-green-600" : "text-red-500"}`}>
+                Trạng thái Logo: {logoStatus}
+            </span>
+        </div>
 
         <button
           onClick={handleGenerateImage}
@@ -588,7 +580,7 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
       <div
         id="print-area"
         ref={printRef}
-        style={{ position: "absolute", top: "-9999px", left: "-9999px", opacity: 0, pointerEvents: "none", zIndex: -1 }}
+        style={{ position: "absolute", top: 0, left: 0, opacity: 0.01, pointerEvents: "none", zIndex: -50 }}
         className="w-[1100px] bg-white text-gray-900 font-sans p-10"
       >
         <div className="mb-10 text-center">
@@ -640,7 +632,11 @@ const OrderReceipt = ({ inputOrder = null, onClose = null }) => {
 
         <div className="flex justify-between items-end mt-24 pt-10 border-t-2 border-gray-300">
            <div className="pl-4">
-              <img id="print-logo" src={logoBase64 || "/lunale.png"} alt="Logo" className="w-56 block object-contain" crossOrigin="anonymous" loading="eager" />
+              {logoBase64 ? (
+                <img src={logoBase64} alt="Logo" className="w-56 block object-contain" />
+              ) : (
+                <div className="w-56 h-16 border-2 border-dashed border-red-300 flex items-center justify-center text-red-500 font-bold">LỖI LOGO</div>
+              )}
               <p className="text-gray-400 text-sm mt-2 italic font-medium">Cảm ơn bạn đã lựa chọn Lunale!</p>
            </div>
            <div className="w-[450px] space-y-3 text-right pr-4">
