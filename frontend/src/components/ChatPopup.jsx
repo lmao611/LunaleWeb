@@ -3,6 +3,7 @@ import { useChatStore } from "../stores/useChatStore";
 import { useUserStore } from "../stores/useUserStore";
 import { MessageCircle, X, Send, Image as ImageIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
 const ChatPopup = () => {
   const { isChatOpen, toggleChat, closeChat, messages, getMessages, sendMessage, subscribeToMessages, unsubscribeFromMessages, setSelectedUser, users, getUsers } = useChatStore();
@@ -20,6 +21,7 @@ const ChatPopup = () => {
   const { user, socket } = useUserStore();
   const messagesEndRef = useRef(null);
   const [adminId, setAdminId] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const storedGuest = localStorage.getItem("chatGuestInfo");
@@ -138,6 +140,16 @@ const ChatPopup = () => {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const handlePopupClick = () => {
+    if (user && (user.role === "admin" || user.role === "controller")) {
+      navigate("/secret-dashboard");
+    } else {
+      toggleChat();
+    }
+  };
+
+  const isAdminOrController = user && (user.role === "admin" || user.role === "controller");
+
   return (
     <div className="fixed bottom-4 right-4 z-[200]">
       <AnimatePresence>
@@ -146,7 +158,7 @@ const ChatPopup = () => {
                 initial={{ opacity: 0, y: 10, scale: 0.8 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
-                onClick={toggleChat}
+                onClick={handlePopupClick}
                 className="absolute bottom-full right-full mb-2 mr-2 bg-white px-4 py-3 rounded-2xl rounded-br-none shadow-xl border border-blue-100 max-w-[200px] cursor-pointer hover:bg-gray-50 transition"
                 style={{ minWidth: '180px' }}
             >
@@ -165,7 +177,7 @@ const ChatPopup = () => {
       </AnimatePresence>
 
       <AnimatePresence>
-        {isChatOpen && (
+        {isChatOpen && !isAdminOrController && (
           <motion.div
             initial={{ opacity: 0, y: 20, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -276,10 +288,10 @@ const ChatPopup = () => {
       </AnimatePresence>
 
       <button
-        onClick={toggleChat}
+        onClick={handlePopupClick}
         className="bg-gray-950 hover:bg-gray-800 text-white p-4 rounded-full shadow-lg transition-all hover:scale-110 flex items-center justify-center relative z-10"
       >
-        {isChatOpen ? <X size={24} /> : <MessageCircle size={28} />}
+        {isChatOpen && !isAdminOrController ? <X size={24} /> : <MessageCircle size={28} />}
         {!isChatOpen && unreadBubble && (
             <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
         )}
