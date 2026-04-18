@@ -5,12 +5,16 @@ import { MessageCircle, X, Send, Image as ImageIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const ChatPopup = () => {
-  // 🛑 THAY ĐỔI: Dùng state từ Store thay vì local state
   const { isChatOpen, toggleChat, closeChat, messages, getMessages, sendMessage, subscribeToMessages, unsubscribeFromMessages, setSelectedUser, users, getUsers } = useChatStore();
   
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
   const [unreadBubble, setUnreadBubble] = useState(null); 
+
+  const [guestName, setGuestName] = useState("");
+  const [guestPhone, setGuestPhone] = useState("");
+  const [guestAddress, setGuestAddress] = useState("");
+  const [isGuestRegistered, setIsGuestRegistered] = useState(false);
 
   const fileInputRef = useRef(null);
   const { user, socket } = useUserStore();
@@ -18,16 +22,27 @@ const ChatPopup = () => {
   const [adminId, setAdminId] = useState(null);
 
   useEffect(() => {
-    if (user && user.role === "customer") getUsers();
-  }, [user, getUsers]);
+    const storedGuest = localStorage.getItem("chatGuestInfo");
+    if (storedGuest) {
+      const parsed = JSON.parse(storedGuest);
+      setGuestName(parsed.name);
+      setGuestPhone(parsed.phone);
+      setGuestAddress(parsed.address);
+      setIsGuestRegistered(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    getUsers();
+  }, [getUsers]);
   
   useEffect(() => {
-      if (!user || user.role === "admin" || user.role === "controller") return;
-
-      const admin = users.find(u => u.role === 'admin' || u.role === 'controller');
-      if (admin) {
-          setAdminId(admin._id);
-          setSelectedUser(admin);
+      if (!user || user.role === "customer") {
+          const admin = users.find(u => u.role === 'admin' || u.role === 'controller');
+          if (admin) {
+              setAdminId(admin._id);
+              setSelectedUser(admin);
+          }
       }
   }, [users, setSelectedUser, user]);
 
@@ -35,8 +50,6 @@ const ChatPopup = () => {
     if (!socket) return;
 
     const handleNewMessage = (newMessage) => {
-        // Logic âm thanh đã chuyển qua store hoặc global nên ở đây chỉ lo UI
-        // Nếu chat ĐÓNG và là admin gửi -> Hiện bubble
         if (!isChatOpen && newMessage.senderId === adminId) {
             const previewText = newMessage.image ? "Đã gửi một ảnh 📷" : newMessage.text;
             setUnreadBubble(previewText);
@@ -45,22 +58,22 @@ const ChatPopup = () => {
 
     socket.on("newMessage", handleNewMessage);
     return () => socket.off("newMessage", handleNewMessage);
-  }, [socket, isChatOpen, adminId]); // Thay isOpen bằng isChatOpen
+  }, [socket, isChatOpen, adminId]);
 
   useEffect(() => {
-    if (isChatOpen && adminId) {
+    if (isChatOpen && adminId && (user || isGuestRegistered)) {
       setUnreadBubble(null);
       getMessages(adminId);
       subscribeToMessages();
       return () => unsubscribeFromMessages();
     }
-  }, [isChatOpen, adminId, getMessages, subscribeToMessages, unsubscribeFromMessages]); // Thay isOpen bằng isChatOpen
+  }, [isChatOpen, adminId, getMessages, subscribeToMessages, unsubscribeFromMessages, user, isGuestRegistered]);
 
   useEffect(() => {
     if (messagesEndRef.current && isChatOpen) {
         messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages, isChatOpen, imagePreview]); // Thay isOpen bằng isChatOpen
+  }, [messages, isChatOpen, imagePreview]);
 
   const compressImage = (file, callback) => {
     const reader = new FileReader();
@@ -101,27 +114,39 @@ const ChatPopup = () => {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const handleGuestSubmit = (e) => {
+    e.preventDefault();
+    if (!guestName.trim() || !guestPhone.trim() || !guestAddress.trim()) return;
+    const guestInfo = { name: guestName.trim(), phone: guestPhone.trim(), address: guestAddress.trim() };
+    localStorage.setItem("chatGuestInfo", JSON.stringify(guestInfo));
+    setIsGuestRegistered(true);
+  };
+
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!text.trim() && !imagePreview) return;
-    await sendMessage({ text: text.trim(), image: imagePreview });
+    
+    const messagePayload = { text: text.trim(), image: imagePreview };
+    
+    if (!user && isGuestRegistered) {
+        messagePayload.guestInfo = { name: guestName, phone: guestPhone, address: guestAddress };
+    }
+
+    await sendMessage(messagePayload);
     setText("");
     setImagePreview(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  if (!user || user.role === "admin" || user.role === "controller") return null;
-
   return (
     <div className="fixed bottom-4 right-4 z-[200]">
-      
       <AnimatePresence>
         {!isChatOpen && unreadBubble && (
             <motion.div
                 initial={{ opacity: 0, y: 10, scale: 0.8 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
-                onClick={toggleChat} // Thay đổi hàm
+                onClick={toggleChat}
                 className="absolute bottom-full right-full mb-2 mr-2 bg-white px-4 py-3 rounded-2xl rounded-br-none shadow-xl border border-blue-100 max-w-[200px] cursor-pointer hover:bg-gray-50 transition"
                 style={{ minWidth: '180px' }}
             >
@@ -157,73 +182,101 @@ const ChatPopup = () => {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-              {messages.length === 0 ? (
-                 <div className="text-center text-gray-400 text-sm mt-10">
-                    Xin chào! Chúng tôi có thể giúp gì cho bạn?
-                 </div>
-              ) : (
-                messages.map((msg) => (
-                  <div
-                    key={msg._id}
-                    className={`flex ${msg.senderId === user._id ? "justify-end" : "justify-start"}`}
-                  >
-                    <div
-                      className={`max-w-[80%] px-4 py-2 rounded-lg text-sm ${
-                        msg.senderId === user._id
-                          ? "bg-sky-600 text-white rounded-br-none" 
-                          : "bg-gray-200 text-gray-800 rounded-bl-none" 
-                      } ${msg.isOptimistic ? "opacity-70" : "opacity-100"}`}
-                    >
-                      {msg.image && (
-                        <img src={msg.image} alt="Attachment" className="sm:max-w-[200px] rounded-md mb-2 object-cover border border-white/20" />
-                      )}
-                      
-                      {msg.text && <p className="whitespace-pre-wrap break-all">{msg.text}</p>}
-                      
-                      <span className={`text-[10px] block text-right mt-1 ${msg.senderId === user._id ? "text-blue-200" : "text-gray-500"}`}>
-                        {new Date(msg.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-
-            <div className="bg-white border-t shrink-0">
-                {imagePreview && (
-                <div className="px-4 py-2 bg-gray-50 border-b flex items-center gap-2">
-                    <div className="relative">
-                    <img src={imagePreview} alt="Preview" className="w-16 h-16 object-cover rounded border border-gray-300"/>
-                    <button onClick={removeImage} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"><X size={12} /></button>
-                    </div>
-                    <span className="text-xs text-gray-500">Đang gửi ảnh...</span>
+            {!user && !isGuestRegistered ? (
+              <div className="flex-1 overflow-y-auto p-5 bg-gray-50 flex flex-col justify-center">
+                <div className="text-center mb-6">
+                  <h3 className="text-lg font-bold text-gray-800">Chào bạn!</h3>
+                  <p className="text-sm text-gray-500 mt-1">Vui lòng để lại thông tin để chúng tôi hỗ trợ bạn tốt nhất.</p>
                 </div>
-                )}
-
-                <form onSubmit={handleSendMessage} className="p-3 flex gap-2 items-center">
-                <button type="button" onClick={() => fileInputRef.current?.click()} className="text-gray-500 hover:text-blue-600 p-2 rounded-full hover:bg-gray-100 transition"><ImageIcon size={20} /></button>
-                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageChange}/>
-
-                <input
-                    type="text"
-                    value={text}
-                    onChange={(e) => setText(e.target.value)}
-                    placeholder="Nhập tin nhắn..."
-                    className="flex-1 border rounded-full px-4 py-2 text-sm focus:outline-none focus:border-blue-500"
-                />
-                <button type="submit" className="bg-gray-950 text-white p-2 rounded-full hover:bg-gray-800 transition disabled:opacity-50" disabled={!text.trim() && !imagePreview}>
-                    <Send size={18} />
-                </button>
+                <form onSubmit={handleGuestSubmit} className="space-y-4">
+                  <div>
+                    <input type="text" required placeholder="Tên của bạn *" value={guestName} onChange={(e) => setGuestName(e.target.value)} className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm px-4 py-2.5 border outline-none" />
+                  </div>
+                  <div>
+                    <input type="tel" required placeholder="Số điện thoại *" value={guestPhone} onChange={(e) => setGuestPhone(e.target.value)} className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm px-4 py-2.5 border outline-none" />
+                  </div>
+                  <div>
+                    <input type="text" required placeholder="Địa chỉ *" value={guestAddress} onChange={(e) => setGuestAddress(e.target.value)} className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm px-4 py-2.5 border outline-none" />
+                  </div>
+                  <button type="submit" className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-gray-950 hover:bg-gray-800 transition-colors mt-2">
+                    Bắt đầu chat
+                  </button>
                 </form>
-            </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+                  {messages.length === 0 ? (
+                    <div className="text-center text-gray-400 text-sm mt-10">
+                        Xin chào! Chúng tôi có thể giúp gì cho bạn?
+                    </div>
+                  ) : (
+                    messages.map((msg) => {
+                      const isMine = user ? msg.senderId === user._id : msg.senderId !== adminId;
+                      return (
+                        <div
+                          key={msg._id}
+                          className={`flex ${isMine ? "justify-end" : "justify-start"}`}
+                        >
+                          <div
+                            className={`max-w-[80%] px-4 py-2 rounded-lg text-sm ${
+                              isMine
+                                ? "bg-sky-600 text-white rounded-br-none" 
+                                : "bg-gray-200 text-gray-800 rounded-bl-none" 
+                            } ${msg.isOptimistic ? "opacity-70" : "opacity-100"}`}
+                          >
+                            {msg.image && (
+                              <img src={msg.image} alt="Attachment" className="sm:max-w-[200px] rounded-md mb-2 object-cover border border-white/20" />
+                            )}
+                            
+                            {msg.text && <p className="whitespace-pre-wrap break-all">{msg.text}</p>}
+                            
+                            <span className={`text-[10px] block text-right mt-1 ${isMine ? "text-blue-200" : "text-gray-500"}`}>
+                              {new Date(msg.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+
+                <div className="bg-white border-t shrink-0">
+                    {imagePreview && (
+                    <div className="px-4 py-2 bg-gray-50 border-b flex items-center gap-2">
+                        <div className="relative">
+                        <img src={imagePreview} alt="Preview" className="w-16 h-16 object-cover rounded border border-gray-300"/>
+                        <button onClick={removeImage} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"><X size={12} /></button>
+                        </div>
+                        <span className="text-xs text-gray-500">Đang gửi ảnh...</span>
+                    </div>
+                    )}
+
+                    <form onSubmit={handleSendMessage} className="p-3 flex gap-2 items-center">
+                    <button type="button" onClick={() => fileInputRef.current?.click()} className="text-gray-500 hover:text-blue-600 p-2 rounded-full hover:bg-gray-100 transition"><ImageIcon size={20} /></button>
+                    <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageChange}/>
+
+                    <input
+                        type="text"
+                        value={text}
+                        onChange={(e) => setText(e.target.value)}
+                        placeholder="Nhập tin nhắn..."
+                        className="flex-1 border rounded-full px-4 py-2 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                    <button type="submit" className="bg-gray-950 text-white p-2 rounded-full hover:bg-gray-800 transition disabled:opacity-50" disabled={!text.trim() && !imagePreview}>
+                        <Send size={18} />
+                    </button>
+                    </form>
+                </div>
+              </>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
 
       <button
-        onClick={toggleChat} // Thay đổi hàm
+        onClick={toggleChat}
         className="bg-gray-950 hover:bg-gray-800 text-white p-4 rounded-full shadow-lg transition-all hover:scale-110 flex items-center justify-center relative z-10"
       >
         {isChatOpen ? <X size={24} /> : <MessageCircle size={28} />}
