@@ -7,8 +7,11 @@ import User from "../models/user.model.js";
 const router = express.Router();
 
 const handleGuestAuth = async (req, res, next) => {
-    const token = req.cookies?.jwt;
+    const authHeader = req.headers.authorization;
+    const token = (authHeader && authHeader.startsWith("Bearer ")) ? authHeader.split(" ")[1] : req.cookies?.jwt;
+
     if (token) {
+        req.headers.authorization = `Bearer ${token}`;
         return protectRoute(req, res, next);
     }
 
@@ -27,9 +30,7 @@ const handleGuestAuth = async (req, res, next) => {
                 });
             }
 
-            const newToken = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-                expiresIn: "7d",
-            });
+            const newToken = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
             res.cookie("jwt", newToken, {
                 maxAge: 7 * 24 * 60 * 60 * 1000,
@@ -39,6 +40,7 @@ const handleGuestAuth = async (req, res, next) => {
             });
 
             req.user = user;
+            req.guestToken = newToken;
             return next();
         } catch (error) {
             return res.status(500).json({ error: "Internal server error" });

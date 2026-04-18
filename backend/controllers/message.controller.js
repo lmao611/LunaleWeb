@@ -116,7 +116,11 @@ export const sendMessage = async (req, res) => {
     } catch (notifError) {
     }
 
-    res.status(201).json(newMessage);
+    if (req.guestToken) {
+        res.status(201).json({ message: newMessage, accessToken: req.guestToken });
+    } else {
+        res.status(201).json(newMessage);
+    }
 
     if (req.user.role === "customer") {
         const messageCount = await Message.countDocuments({

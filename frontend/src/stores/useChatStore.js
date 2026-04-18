@@ -56,7 +56,7 @@ export const useChatStore = create((set, get) => ({
     const tempId = Date.now().toString(); 
     const optimisticMessage = {
       _id: tempId,
-      senderId: currentUser._id,
+      senderId: currentUser?._id || "guest",
       receiverId: selectedUser._id,
       text: messageData.text,
       image: messageData.image,
@@ -68,8 +68,16 @@ export const useChatStore = create((set, get) => ({
 
     try {
       const res = await axios.post(`/messages/send/${selectedUser._id}`, messageData);
+      
+      const responseData = res.data.message ? res.data.message : res.data;
+
+      if (res.data.accessToken) {
+          localStorage.setItem("accessToken", res.data.accessToken);
+          useUserStore.getState().checkAuth(); 
+      }
+
       set((state) => ({
-        messages: state.messages.map((msg) => msg._id === tempId ? res.data : msg),
+        messages: state.messages.map((msg) => msg._id === tempId ? responseData : msg),
       }));
     } catch (error) {
       set((state) => ({
@@ -79,7 +87,6 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
-  // --- HÀM MỚI: Lắng nghe cập nhật User toàn cục (dành cho Admin) ---
   subscribeToUserUpdates: () => {
     const socket = useUserStore.getState().socket;
     if (!socket) return;
@@ -98,7 +105,6 @@ export const useChatStore = create((set, get) => ({
         socket.off("userProfileUpdated");
     }
   },
-  // ------------------------------------------------------------------
 
   subscribeToMessages: () => {
     const socket = useUserStore.getState().socket;
