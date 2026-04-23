@@ -120,32 +120,6 @@ export default function OrdersManager() {
 
   const groupedOrders = {};
 
-  if (filteredOrders.length > 0) {
-    let minDate = new Date(filteredOrders[0].receivedDate || filteredOrders[0].createdAt);
-    let maxDate = new Date(filteredOrders[0].receivedDate || filteredOrders[0].createdAt);
-
-    filteredOrders.forEach(o => {
-      const d = new Date(o.receivedDate || o.createdAt);
-      if (d < minDate) minDate = d;
-      if (d > maxDate) maxDate = d;
-    });
-
-    let currentY = minDate.getFullYear();
-    let currentM = minDate.getMonth();
-    const endY = maxDate.getFullYear();
-    const endM = maxDate.getMonth();
-
-    while (currentY < endY || (currentY === endY && currentM <= endM)) {
-      const mKey = `${String(currentM + 1).padStart(2, '0')}/${currentY}`;
-      groupedOrders[mKey] = [];
-      currentM++;
-      if (currentM > 11) {
-        currentM = 0;
-        currentY++;
-      }
-    }
-  }
-
   filteredOrders.forEach(order => {
     const d = order.receivedDate ? new Date(order.receivedDate) : new Date(order.createdAt);
     const monthKey = `${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
@@ -418,6 +392,13 @@ export default function OrdersManager() {
 
   return (
     <div className="p-4 max-w-[98%] mx-auto min-h-screen flex flex-col">
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+      `}</style>
+      
       <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between mb-6 gap-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <div>
