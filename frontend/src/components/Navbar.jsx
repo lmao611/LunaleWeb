@@ -69,6 +69,8 @@ const Navbar = () => {
     if (selectElement) {
       selectElement.value = langCode;
       selectElement.dispatchEvent(new Event("change"));
+    } else {
+      alert("Không tìm thấy trình dịch. Vui lòng tắt Adblocker hoặc khiên bảo vệ của trình duyệt và thử lại.");
     }
     setShowLangMenu(false);
   };
@@ -439,7 +441,7 @@ const Navbar = () => {
                   onClick={() => setShowLangMenu(!showLangMenu)}
                   className={`transition flex items-end mb-0.5 ${isHome && !isScrolled ? "text-white hover:text-gray-200" : "text-black hover:text-blue-700"}`}
                 >
-                  <Globe size={20} strokeWidth={2.2} />
+                  <Globe size={20} strokeWidth={2.2} className="pointer-events-none" />
                 </button>
                 <AnimatePresence>
                   {showLangMenu && (
@@ -457,8 +459,8 @@ const Navbar = () => {
                             onClick={() => handleLanguageChange(lang.code)}
                             className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 flex items-center gap-2 transition"
                           >
-                            <span>{lang.flag}</span>
-                            <span>{lang.label}</span>
+                            <span className="pointer-events-none">{lang.flag}</span>
+                            <span className="pointer-events-none">{lang.label}</span>
                           </button>
                         ))}
                       </motion.div>
