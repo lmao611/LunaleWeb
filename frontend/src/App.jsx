@@ -25,6 +25,7 @@ import ChatPopup from "./components/ChatPopup";
 
 import ProductionPage from "./pages/ProductionPage";
 import ProductionDetailPage from "./pages/ProductionDetailPage";
+import AutoTranslator from "./components/AutoTranslator";
 
 function App() {
   const { user, checkAuth, checkingAuth } = useUserStore();
@@ -62,6 +63,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-white text-gray-900 flex flex-col relative">
+      <AutoTranslator />
       <Navbar />
       <ScrollToTop/>
       <ChatPopup />

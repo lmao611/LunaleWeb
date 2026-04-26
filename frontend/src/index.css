@@ -15,17 +15,14 @@ html, body {
 @layer base {
   h1, h2, h3, h4, h5, h6 {
     @apply tracking-[0em];
-    /* ĐÃ SỬA: Dùng font Varela Round */
     font-family: "Varela Round", sans-serif !important;
     text-transform: uppercase;
     letter-spacing: 0em;
 
-    /* Mobile mặc định */
     font-size: 1.5rem;
     line-height: 2rem;
 
-    /* Tailwind responsive */
-    @apply md:text-2xl md:leading-snug; /* chữ lớn hơn trên màn hình >= md */
+    @apply md:text-2xl md:leading-snug;
   }
 }
 li{
@@ -39,9 +36,6 @@ p {
     font-family: 'Merriweather', serif;
   }
 
-
-
-/* Ẩn khung viền khi xuất ảnh */
 #print-area,
 #print-area * {
   border: none !important;
@@ -49,15 +43,39 @@ p {
   outline: none !important;
 }
 
-/* Giữ border nhẹ cho bảng sản phẩm */
 #print-area table,
 #print-area th,
 #print-area td {
   border: 1px solid #000 !important;
 }
 
-/* Nền trắng trơn, không bo góc */
 #print-area {
   border-radius: 0 !important;
   background: #fff !important;
+}
+body {
+    top: 0 !important;
+}
+
+iframe.skiptranslate {
+    display: none !important;
+}
+
+#goog-gt-tt {
+    display: none !important;
+}
+
+.goog-te-banner-frame {
+    display: none !important;
+}
+
+.goog-te-spinner-pos {
+    display: none !important;
+}
+
+font {
+    font-family: inherit !important;
+    background: transparent !important;
+    color: inherit !important;
+    box-shadow: none !important;
 }

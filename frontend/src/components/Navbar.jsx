@@ -1,4 +1,4 @@
-import { ShoppingCart, UserPlus, LogIn, LogOut, Lock, Home, User, X, Clock, Package, History, Edit2, Save, XCircle, ChevronLeft, MapPin, CreditCard, Bell, Camera, Search, Eye } from "lucide-react";
+import { ShoppingCart, UserPlus, LogIn, LogOut, Lock, Home, User, X, Clock, Package, History, Edit2, Save, XCircle, ChevronLeft, MapPin, CreditCard, Bell, Camera, Search, Eye, Globe } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useUserStore } from "../stores/useUserStore";
 import { useCartStore } from "../stores/useCartStore";
@@ -46,6 +46,32 @@ const Navbar = () => {
   const [visitorCount, setVisitorCount] = useState(0);
   const [visitorsData, setVisitorsData] = useState([]);
   const [showVisitorsList, setShowVisitorsList] = useState(false);
+
+  const [showLangMenu, setShowLangMenu] = useState(false);
+
+  const languages = [
+    { code: "vi", label: "Tiếng Việt", flag: "🇻🇳" },
+    { code: "en", label: "English", flag: "🇬🇧" },
+    { code: "th", label: "ภาษาไทย", flag: "🇹🇭" },
+    { code: "zh-CN", label: "中文", flag: "🇨🇳" },
+    { code: "ko", label: "한국어", flag: "🇰🇷" },
+    { code: "ar", label: "العربية", flag: "🇸🇦" }
+  ];
+
+  const handleLanguageChange = (langCode) => {
+    if (langCode === "vi") {
+      document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname};`;
+      window.location.reload();
+      return;
+    }
+    const selectElement = document.querySelector(".goog-te-combo");
+    if (selectElement) {
+      selectElement.value = langCode;
+      selectElement.dispatchEvent(new Event("change"));
+    }
+    setShowLangMenu(false);
+  };
 
   useEffect(() => {
     if (!socket) return;
@@ -407,6 +433,39 @@ const Navbar = () => {
               <Link to="/search" className={`flex items-end pb-[2px] transition ${isHome && !isScrolled ? "text-white hover:text-gray-200" : "text-black hover:text-blue-700"}`}>
                 <Search size={20} strokeWidth={2.2} />
               </Link>
+
+              <div className="relative">
+                <button
+                  onClick={() => setShowLangMenu(!showLangMenu)}
+                  className={`transition flex items-end mb-0.5 ${isHome && !isScrolled ? "text-white hover:text-gray-200" : "text-black hover:text-blue-700"}`}
+                >
+                  <Globe size={20} strokeWidth={2.2} />
+                </button>
+                <AnimatePresence>
+                  {showLangMenu && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setShowLangMenu(false)}></div>
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        className="absolute right-0 sm:-right-4 top-full mt-2 w-36 bg-white rounded-md shadow-lg border border-gray-100 z-50 overflow-hidden"
+                      >
+                        {languages.map((lang) => (
+                          <button
+                            key={lang.code}
+                            onClick={() => handleLanguageChange(lang.code)}
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 flex items-center gap-2 transition"
+                          >
+                            <span>{lang.flag}</span>
+                            <span>{lang.label}</span>
+                          </button>
+                        ))}
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
               
               {user && (
                 <div className="relative">
