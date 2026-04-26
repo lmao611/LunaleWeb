@@ -65,13 +65,16 @@ const Navbar = () => {
       window.location.reload();
       return;
     }
+    
     const selectElement = document.querySelector(".goog-te-combo");
+    
     if (selectElement) {
       selectElement.value = langCode;
       selectElement.dispatchEvent(new Event("change"));
     } else {
-      alert("Không tìm thấy trình dịch. Vui lòng tắt Adblocker hoặc khiên bảo vệ của trình duyệt và thử lại.");
+      alert("Công cụ dịch đang tải hoặc bị Extension chặn. Hãy đợi 2 giây rồi thử lại, hoặc mở Tab Ẩn Danh (Incognito) để test nhé.");
     }
+    
     setShowLangMenu(false);
   };
 
