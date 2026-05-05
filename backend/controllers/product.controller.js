@@ -69,7 +69,7 @@ export const getFeaturedProducts = async (req, res) => {
       return res.json(JSON.parse(featuredProducts));
     }
 
-    featuredProducts = await Product.find({ isFeatured: true }).lean();
+    featuredProducts = await Product.find({ isFeatured: true, isHidden: { $ne: true } }).lean();
     if (!featuredProducts.length)
       return res.status(404).json({ message: "No featured products found" });
 
@@ -82,7 +82,7 @@ export const getFeaturedProducts = async (req, res) => {
 
 export const createProduct = async (req, res) => {
   try {
-    const { name, description, price, image, category, thumbnails, productLink, isPreOrder, isSale, salePercentage } = req.body;
+    const { name, description, price, image, category, thumbnails, productLink, isPreOrder, isSale, salePercentage, isHidden } = req.body;
 
     let mainImageUrl = "";
     let thumbnailUrls = [];
@@ -110,6 +110,7 @@ export const createProduct = async (req, res) => {
       isPreOrder: isPreOrder || "None",
       isSale: isSale || false,
       salePercentage: isSale ? (salePercentage || 0) : 0,
+      isHidden: isHidden || false,
       order: 0,
       ...(category === "feedback" && { productLink }),
     };
@@ -125,7 +126,7 @@ export const createProduct = async (req, res) => {
 export const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, price, category, image, thumbnails, productLink, isPreOrder, isSale, salePercentage } = req.body;
+    const { name, description, price, category, image, thumbnails, productLink, isPreOrder, isSale, salePercentage, isHidden } = req.body;
 
     const product = await Product.findById(id);
     if (!product) return res.status(404).json({ message: "Product not found" });
@@ -171,6 +172,7 @@ export const updateProduct = async (req, res) => {
         isPreOrder: isPreOrder || "None",
         isSale: isSale || false,
         salePercentage: isSale ? (salePercentage || 0) : 0,
+        isHidden: isHidden !== undefined ? isHidden : product.isHidden,
       },
       { new: true }
     );
@@ -186,7 +188,8 @@ export const updateProduct = async (req, res) => {
           "products.$.salePercentage": updated.salePercentage,
           "products.$.isPreOrder": updated.isPreOrder,
           "products.$.category": updated.category,
-          "products.$.productLink": updated.productLink
+          "products.$.productLink": updated.productLink,
+          "products.$.isHidden": updated.isHidden
         }
       }
     );
@@ -263,15 +266,14 @@ export const searchProducts = async (req, res) => {
   try {
     const { query } = req.query;
     
-    // Nếu không có từ khóa, trả về mảng rỗng (frontend sẽ tự hiện gợi ý)
     if (!query || query.trim() === "") {
       return res.json({ products: [] });
     }
 
-    // Tìm kiếm theo tên (không phân biệt hoa thường), loại bỏ category 'feedback'
     const products = await Product.find({
       name: { $regex: query, $options: "i" },
-      category: { $ne: "feedback" }
+      category: { $ne: "feedback" },
+      isHidden: { $ne: true }
     });
 
     res.json({ products });
@@ -300,7 +302,8 @@ export const getRecommendedProducts = async (req, res) => {
         $match: {
           _id: { $nin: excluded },
           category: { $ne: "feedback" },
-          isSale: { $ne: true }
+          isSale: { $ne: true },
+          isHidden: { $ne: true }
         },
       },
       { $sample: { size: 8 } },
@@ -316,6 +319,7 @@ export const getRecommendedProducts = async (req, res) => {
           isPreOrder: 1,
           isSale: 1,
           salePercentage: 1,
+          isHidden: 1
         },
       },
     ]);

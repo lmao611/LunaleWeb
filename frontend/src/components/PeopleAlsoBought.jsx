@@ -9,16 +9,13 @@ const PeopleAlsoBought = ({ excludeIds = [] }) => {
 
   const productId = excludeIds[0];
 
-  // Hàm kiểm tra danh mục Feedback
   const isFeedbackCategory = (category) => {
     if (!category || typeof category !== "string") return false;
     const clean = category.trim().toLowerCase();
     return clean === "feedback" || clean.includes("feed") || clean.includes("fb");
   };
 
-  // ✅ Hàm kiểm tra sản phẩm có đang Sale không
   const checkIsSale = (p) => {
-    // Sale khi isSale là true/1/"true" VÀ phần trăm giảm > 0
     return (p.isSale === true || p.isSale === "true" || p.isSale === 1) && (Number(p.salePercentage) > 0);
   };
 
@@ -34,10 +31,8 @@ const PeopleAlsoBought = ({ excludeIds = [] }) => {
 
         let products = Array.isArray(res.data) ? res.data : [];
 
-        // 1. Lọc bỏ Feedback và Sản phẩm Sale khỏi danh sách API gợi ý
-        products = products.filter((p) => !isFeedbackCategory(p.category) && !checkIsSale(p));
+        products = products.filter((p) => !isFeedbackCategory(p.category) && !checkIsSale(p) && !p.isHidden);
 
-        // 2. Nếu chưa đủ 8 sản phẩm → lấy thêm từ toàn bộ
         if (products.length < 8) {
           const allRes = await axios.get("/products");
           const allProducts = Array.isArray(allRes.data.products)
@@ -49,10 +44,10 @@ const PeopleAlsoBought = ({ excludeIds = [] }) => {
               !isFeedbackCategory(p.category) &&
               !excludeIds.includes(p._id) &&
               !products.find((prod) => prod._id === p._id) &&
-              !checkIsSale(p) // ✅ Lọc bỏ sản phẩm Sale ở đây luôn
+              !checkIsSale(p) &&
+              !p.isHidden
           );
 
-          // Xáo trộn và lấy thêm cho đủ
           const extra = validProducts
             .sort(() => Math.random() - 0.5)
             .slice(0, 8 - products.length);

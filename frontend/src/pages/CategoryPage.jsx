@@ -20,14 +20,12 @@ const CategoryPage = () => {
     load();
   }, [fetchProductsByCategory, category]);
 
-  // 🔥 THÊM ĐOẠN NÀY: Lọc bỏ các sản phẩm đang Sale
   const filteredProducts = products?.filter((product) => {
-    // Kiểm tra kỹ sale: true/false hoặc "true"/"false" và % > 0
+    if (product.isHidden) return false;
     const isSale = (product.isSale === true || product.isSale === "true") && (Number(product.salePercentage) > 0);
-    return !isSale; // Chỉ lấy sản phẩm KHÔNG Sale
+    return !isSale;
   }) || [];
 
-  // 👇 Cập nhật các biến dưới đây để dùng filteredProducts thay vì products
   const totalCards = filteredProducts.length;
   const totalPages = Math.ceil(totalCards / cardsPerPage);
   const startIndex = (currentPage - 1) * cardsPerPage;
@@ -69,7 +67,6 @@ const CategoryPage = () => {
   return (
     <div className="min-h-screen bg-white text-gray-900 pt-5">
       <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-25">
-        {/* ✅ Centered title */}
         <h1 className="text-4xl font-bold text-blue-990 mb-10 mx-auto text-center">
           {displayTitle}
         </h1>
@@ -80,14 +77,12 @@ const CategoryPage = () => {
           </h2>
         )}
         
-        {/* Cập nhật điều kiện hiển thị thông báo chưa có sản phẩm */}
         {!loading && totalCards === 0 && (
           <h2 className="text-center text-gray-500 text-xl mb-10">
             Chưa có sản phẩm
           </h2>
         )}
 
-        {/* ✅ Grid wrapper (centered properly for tablet/fold) */}
         <div className="flex justify-center">
           <motion.div
             className="
@@ -135,7 +130,6 @@ const CategoryPage = () => {
           </motion.div>
         </div>
 
-        {/* ✅ Pagination */}
         {totalPages > 1 && (
           <div className="flex justify-center items-center gap-2 mt-10 flex-wrap">
             <button

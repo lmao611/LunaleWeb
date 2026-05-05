@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion, Reorder, AnimatePresence, useDragControls } from "framer-motion";
-import { Trash, Star, Settings, GripVertical, Save, RotateCcw, Plus, Upload, Tag } from "lucide-react";
+import { Trash, Star, Settings, GripVertical, Save, RotateCcw, Plus, Upload, Tag, EyeOff } from "lucide-react";
 import { useProductStore } from "../stores/useProductStore";
 import { useCollectionStore } from "../stores/useCollectionStore";
 
-// ⚡️ Cấu hình thứ tự ưu tiên
 const CATEGORY_PRIORITY = {
   dress: 1,
   shirt: 2,
@@ -21,7 +20,6 @@ const categories = [
 
 const instantTransition = { duration: 0, ease: "linear" };
 
-// -------------------- COMPONENT ROW (DESKTOP) --------------------
 const ProductRow = ({ product, categories, collections, toggleFeaturedProduct, handleTogglePreorder, setEditingProduct, handleDelete, deletingId, isDraggable }) => {
   const controls = useDragControls();
   const col = collections.find((col) => (col.products || []).some((p) => p._id === product._id));
@@ -39,7 +37,6 @@ const ProductRow = ({ product, categories, collections, toggleFeaturedProduct, h
     : product.isPreOrder === "low" ? "Số lượng còn ít"
     : "None";
 
-  // ✅ LOGIC TÍNH GIÁ SALE
   const finalPrice = product.isSale 
     ? product.price * (1 - product.salePercentage / 100) 
     : product.price;
@@ -55,15 +52,15 @@ const ProductRow = ({ product, categories, collections, toggleFeaturedProduct, h
       className={`hover:bg-blue-5 border-b last:border-b-0 relative bg-white group ${isDraggable ? "cursor-grab active:cursor-grabbing" : ""}`}
       whileDrag={{ scale: 1.0, boxShadow: "0px 5px 15px rgba(0,0,0,0.15)", backgroundColor: "#f0f9ff", zIndex: 100 }}
     >
-      {/* CỘT TÊN + BADGE SALE */}
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex items-center">
           <div className="relative">
-             <img className="h-10 w-10 rounded-full object-cover border" src={product.image} alt={product.name} />
+             <img className={`h-10 w-10 rounded-full object-cover border ${product.isHidden ? "opacity-50 grayscale" : ""}`} src={product.image} alt={product.name} />
              {product.isSale && <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[8px] font-bold px-1 rounded-full border border-white flex items-center justify-center">SALE</span>}
           </div>
-          <div className="ml-4">
+          <div className="ml-4 flex items-center gap-2">
              <div className="text-sm font-medium text-gray-900">{product.name}</div>
+             {product.isHidden && <EyeOff size={14} className="text-gray-400" />}
              {product.isSale && (
                 <div className="flex items-center gap-1 mt-0.5">
                     <Tag size={10} className="text-red-500" />
@@ -74,7 +71,6 @@ const ProductRow = ({ product, categories, collections, toggleFeaturedProduct, h
         </div>
       </td>
 
-      {/* CỘT GIÁ (HIỆN GIÁ CŨ GẠCH NGANG NẾU SALE) */}
       <td className="px-6 py-4 whitespace-nowrap">
         {product.isSale ? (
             <div className="flex flex-col">
@@ -129,7 +125,6 @@ const ProductRow = ({ product, categories, collections, toggleFeaturedProduct, h
   );
 };
 
-// -------------------- COMPONENT CARD (MOBILE) --------------------
 const ProductCard = ({ product, categories, collections, toggleFeaturedProduct, handleTogglePreorder, setEditingProduct, handleDelete, deletingId, isDraggable }) => {
   const controls = useDragControls();
   const col = collections.find((col) => (col.products || []).some((p) => p._id === product._id));
@@ -147,7 +142,6 @@ const ProductCard = ({ product, categories, collections, toggleFeaturedProduct, 
     : product.isPreOrder === "low" ? "Số lượng còn ít"
     : "None";
 
-  // ✅ LOGIC TÍNH GIÁ SALE
   const finalPrice = product.isSale 
     ? product.price * (1 - product.salePercentage / 100) 
     : product.price;
@@ -163,8 +157,7 @@ const ProductCard = ({ product, categories, collections, toggleFeaturedProduct, 
       className="border rounded-lg p-3 flex flex-col sm:flex-row sm:items-center gap-3 shadow-sm bg-white touch-none"
     >
       <div className="relative">
-        <img src={product.image} alt={product.name} className="w-full sm:w-24 h-40 sm:h-24 object-cover rounded" />
-        {/* Badge Sale trên ảnh Mobile */}
+        <img src={product.image} alt={product.name} className={`w-full sm:w-24 h-40 sm:h-24 object-cover rounded ${product.isHidden ? "opacity-50 grayscale" : ""}`} />
         {product.isSale && (
             <span className="absolute top-1 right-1 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm">
                 -{product.salePercentage}%
@@ -173,10 +166,12 @@ const ProductCard = ({ product, categories, collections, toggleFeaturedProduct, 
       </div>
       
       <div className="flex-1">
-        <h3 className="font-semibold text-base text-gray-800">{product.name}</h3>
+        <h3 className="font-semibold text-base text-gray-800 flex items-center gap-2">
+            {product.name}
+            {product.isHidden && <EyeOff size={14} className="text-gray-400" />}
+        </h3>
         <p className="text-sm text-gray-500">{cat}</p>
         
-        {/* HIỂN THỊ GIÁ MOBILE */}
         <div className="mt-0.5">
             {product.isSale ? (
                 <div className="flex items-center gap-2">
@@ -212,7 +207,6 @@ const ProductCard = ({ product, categories, collections, toggleFeaturedProduct, 
   );
 };
 
-// -------------------- EDIT MODAL --------------------
 const EditProductModal = ({ product, collections, onClose }) => {
   const { updateProduct, fetchAllProducts } = useProductStore();
   const { addProductToCollection, removeProductFromCollection } = useCollectionStore();
@@ -228,7 +222,8 @@ const EditProductModal = ({ product, collections, onClose }) => {
     collectionId: "", 
     isPreOrder: "none",
     isSale: false,
-    salePercentage: ""
+    salePercentage: "",
+    isHidden: false
   });
   
   const [uploadingThumbIndex, setUploadingThumbIndex] = useState(null);
@@ -248,7 +243,8 @@ const EditProductModal = ({ product, collections, onClose }) => {
         collectionId: currentCol?._id || "", 
         isPreOrder: product.isPreOrder || "none",
         isSale: product.isSale || false,
-        salePercentage: product.salePercentage || ""
+        salePercentage: product.salePercentage || "",
+        isHidden: product.isHidden || false
       });
     }
   }, [product, collections]);
@@ -324,7 +320,15 @@ const EditProductModal = ({ product, collections, onClose }) => {
           {collections.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
         </select>
         
-        {/* SECTION CHỈNH SỬA SALE */}
+        <div className="bg-gray-50 p-3 rounded border">
+            <div className="flex items-center gap-2 mb-2">
+                <input type="checkbox" id="editIsHidden" checked={formData.isHidden} onChange={(e) => setFormData({...formData, isHidden: e.target.checked})} className="h-4 w-4 text-gray-600 rounded" />
+                <label htmlFor="editIsHidden" className="font-medium flex items-center gap-1 cursor-pointer select-none">
+                    <EyeOff className="w-4 h-4 text-gray-500"/> Ẩn sản phẩm
+                </label>
+            </div>
+        </div>
+
         <div className="bg-gray-50 p-3 rounded border">
             <div className="flex items-center gap-2 mb-2">
                 <input type="checkbox" id="editIsSale" checked={formData.isSale} onChange={(e) => setFormData({...formData, isSale: e.target.checked})} className="h-4 w-4 text-blue-600 rounded" />
@@ -375,7 +379,6 @@ const EditProductModal = ({ product, collections, onClose }) => {
   );
 };
 
-// -------------------- MAIN LIST COMPONENT --------------------
 const ProductsList = () => {
   const { products, deleteProduct, toggleFeaturedProduct, updateProduct, reorderProducts } = useProductStore();
   const { collections, fetchCollections, removeProductFromCollection } = useCollectionStore();
@@ -491,7 +494,6 @@ const ProductsList = () => {
     <>
       <motion.div className="bg-white shadow-lg rounded-lg overflow-hidden max-w-6xl mx-auto border border-gray-200 relative" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         
-        {/* Toolbar */}
         <div className="bg-gray-50 border-b px-4 py-3 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-30">
             <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
                 <button onClick={() => setFilterCategory("all")} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${filterCategory === "all" ? "bg-blue-600 text-white shadow-sm" : "bg-white text-gray-600 hover:bg-gray-200 border border-gray-200"}`}>Tất cả</button>

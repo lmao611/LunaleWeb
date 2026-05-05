@@ -13,8 +13,6 @@ const CartPage = () => {
   const { user, setShowUserBox } = useUserStore(); 
   const [rate, setRate] = useState(null);
   const [isOrdering, setIsOrdering] = useState(false); 
-
-  // --- STATE ---
   const [paymentMethod, setPaymentMethod] = useState("COD");
   const [showQRModal, setShowQRModal] = useState(false);
 
@@ -30,12 +28,14 @@ const CartPage = () => {
     calculateTotals(); 
   }, [getCartItems, calculateTotals]);
 
-  const totalUSD = cart.reduce(
+  const visibleCart = cart.filter((item) => !item.isHidden);
+
+  const totalUSD = visibleCart.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
   );
 
-  const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const totalItems = visibleCart.reduce((sum, item) => sum + item.quantity, 0);
 
   let totalVND = null;
   if (rate != null) {
@@ -65,7 +65,7 @@ const CartPage = () => {
     setIsOrdering(true);
     
     const orderData = {
-        products: cart.map(item => ({
+        products: visibleCart.map(item => ({
             product: item._id,
             name: item.name,
             image: item.image,
@@ -101,18 +101,18 @@ const CartPage = () => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
-            {cart.length === 0 ? (
+            {visibleCart.length === 0 ? (
               <EmptyCartUI />
             ) : (
               <div className="space-y-6 pt-40" id="cart-content">
-                {cart.map((item) => (
+                {visibleCart.map((item) => (
                   <CartItem key={item._id} item={item} />
                 ))}
               </div>
             )}
           </motion.div>
 
-          {cart.length > 0 && (
+          {visibleCart.length > 0 && (
             <motion.div
               className="mt-10 lg:mt-40 w-full max-w-md lg:self-start"
               initial={{ opacity: 0, x: 20 }}
@@ -183,13 +183,12 @@ const CartPage = () => {
           )}
         </div>
 
-        {cart.length > 0 && (
+        {visibleCart.length > 0 && (
             <div className="mt-16">
-                 <PeopleAlsoBought excludeIds={cart.map((i) => i._id)} />
+                 <PeopleAlsoBought excludeIds={visibleCart.map((i) => i._id)} />
             </div>
         )}
 
-        {/* --- MODAL QR CODE --- */}
         <AnimatePresence>
             {showQRModal && (
                 <div className="fixed inset-0 z-[999] bg-black/60 flex items-center justify-center p-4">
@@ -207,12 +206,9 @@ const CartPage = () => {
                             <h3 className="text-xl font-bold text-gray-800 mb-2">Thanh toán QR</h3>
                             <p className="text-sm text-gray-600 mb-4">Vui lòng quét mã bên dưới để thanh toán.</p>
                             
-                            {/* 👇 SỬA CSS ẢNH Ở ĐÂY 👇 
-                                w-full, max-w-[400px], h-auto để giữ tỷ lệ, object-contain
-                            */}
                             <div className="border-2 border-blue-500 rounded-lg p-2 inline-block mb-4 max-w-full">
                                 <img 
-                                    src="/qr-payment.jpg"  // Bạn lưu ảnh là qr-payment.png vào public nhé
+                                    src="/qr-payment.jpg"  
                                     alt="VietQR" 
                                     className="w-full max-w-[400px] h-auto object-contain mx-auto" 
                                 />
