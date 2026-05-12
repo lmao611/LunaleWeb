@@ -21,6 +21,7 @@ import notificationRoutes from "./routes/notification.route.js";
 import messageRoutes from "./routes/message.route.js";
 import productionRoutes from "./routes/production.routes.js";
 import analyticsRoutes from "./routes/analytics.routes.js";
+
 dotenv.config();
 const PORT = process.env.PORT || 5000;
 
@@ -59,10 +60,12 @@ app.use(
       ) {
         callback(null, true);
       } else {
-        callback(null, true); 
+        callback(new Error("Not allowed by CORS"));
       }
     },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
   })
 );
 
