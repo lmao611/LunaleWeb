@@ -4,9 +4,9 @@ const collectionSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
     description: { type: String, required: true },
-   coverMedia: {
-      url: { type: String, required: true },
-      type: { type: String, enum: ["image", "video"], required: true },
+    coverMedia: {
+      url: { type: String, default: "" },
+      type: { type: String, enum: ["image", "video"], default: "image" },
     },
     gradientFrom: { type: String, default: "#3b82f6" }, 
     gradientTo: { type: String, default: "#06b6d4" },
@@ -29,14 +29,12 @@ const collectionSchema = new mongoose.Schema(
     hideName: { type: Boolean, default: false },
     hideDescription: { type: Boolean, default: false },
 
-    
     products: [
       {
         _id: String, 
         name: String,
         image: String,
         price: Number,
-        
         category: String,
         isSale: { type: Boolean, default: false },
         salePercentage: { type: Number, default: 0 },
