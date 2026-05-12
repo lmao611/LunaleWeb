@@ -4,7 +4,7 @@ const collectionSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
     description: { type: String, required: true },
-    coverMedia: {
+   coverMedia: {
       url: { type: String, required: true },
       type: { type: String, enum: ["image", "video"], required: true },
     },
