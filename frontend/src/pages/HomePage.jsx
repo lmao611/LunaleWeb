@@ -153,10 +153,10 @@ const HomePage = () => {
           animate={{ x: ["0%", "-50%"] }}
           transition={{ ease: "linear", duration: 50, repeat: Infinity }}
         >
-          <span className="text-white font-medium tracking-widest text-sm md:text-base pr-4">
+          <span className="text-white font-medium tracking-widest text-sm md:text-base pr-4 notranslate">
             {"LUNALE FASHION - SOPHISTICATED - ELEGANT - FASHIONABLE - ".repeat(10)}
           </span>
-          <span className="text-white font-medium tracking-widest text-sm md:text-base pr-4">
+          <span className="text-white font-medium tracking-widest text-sm md:text-base pr-4 notranslate">
             {"LUNALE FASHION - SOPHISTICATED - ELEGANT - FASHIONABLE - ".repeat(10)}
           </span>
         </motion.div>
