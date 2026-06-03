@@ -59,24 +59,17 @@ const Navbar = () => {
   ];
 
   const handleLanguageChange = (langCode) => {
-    if (langCode === "vi") {
-      document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-      document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname};`;
-      window.location.reload();
-      return;
-    }
-    
-    const selectElement = document.querySelector(".goog-te-combo");
-    
-    if (selectElement) {
-      selectElement.value = langCode;
-      selectElement.dispatchEvent(new Event("change"));
-    } else {
-      alert("Công cụ dịch đang tải hoặc bị Extension chặn. Hãy đợi 2 giây rồi thử lại, hoặc mở Tab Ẩn Danh (Incognito) để test nhé.");
-    }
-    
-    setShowLangMenu(false);
-  };
+  document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+  document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname};`;
+
+  if (langCode !== "vi") {
+    document.cookie = `googtrans=/vi/${langCode}; path=/;`;
+    document.cookie = `googtrans=/vi/${langCode}; path=/; domain=${window.location.hostname};`;
+  }
+
+  setShowLangMenu(false);
+  window.location.reload();
+};
 
   useEffect(() => {
     if (!socket) return;
