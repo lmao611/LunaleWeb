@@ -79,19 +79,20 @@ font {
     color: inherit !important;
     box-shadow: none !important;
 }
-.VIpgJd-Zvi9od-ORHb-OEVmcd {
+#goog-gt-tt, 
+.goog-te-balloon-frame,
+div[id^="goog-gt-"],
+.VIpgJd-Zvi9od-ORHb-OEVmcd,
+.VIpgJd-Zvi9od-aZ2wEe-OiiCO {
   display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  z-index: -1000 !important;
 }
 
 .goog-text-highlight {
   background-color: transparent !important;
   box-shadow: none !important;
-}
-
-.goog-te-banner-frame {
-  display: none !important;
-}
-
-body {
-  top: 0px !important;
+  pointer-events: none !important;
 }
