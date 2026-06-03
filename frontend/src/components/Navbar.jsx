@@ -441,7 +441,7 @@ const Navbar = () => {
                 <Search size={20} strokeWidth={2.2} />
               </Link>
 
-              <div className="relative">
+              <div className="relative notranslate">
                 <button
                   onClick={() => setShowLangMenu(!showLangMenu)}
                   className={`transition flex items-end mb-0.5 ${isHome && !isScrolled ? "text-white hover:text-gray-200" : "text-black hover:text-blue-700"}`}
