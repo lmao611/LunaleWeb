@@ -59,16 +59,25 @@ const Navbar = () => {
   ];
 
   const handleLanguageChange = (langCode) => {
-  document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-  document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname};`;
-
-  if (langCode !== "vi") {
-    document.cookie = `googtrans=/vi/${langCode}; path=/;`;
-    document.cookie = `googtrans=/vi/${langCode}; path=/; domain=${window.location.hostname};`;
+  if (langCode === "vi") {
+    document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname};`;
+    window.location.reload();
+    return;
   }
 
+  const selectElement = document.querySelector(".goog-te-combo");
+  
+  if (selectElement) {
+    selectElement.value = langCode;
+    selectElement.dispatchEvent(new Event("change"));
+  } else {
+    document.cookie = `googtrans=/vi/${langCode}; path=/;`;
+    document.cookie = `googtrans=/vi/${langCode}; path=/; domain=${window.location.hostname};`;
+    window.location.reload();
+  }
+  
   setShowLangMenu(false);
-  window.location.reload();
 };
 
   useEffect(() => {
