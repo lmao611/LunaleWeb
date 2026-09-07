@@ -35,10 +35,23 @@ export const decryptJSON = (encryptedText) => {
         const textParts = encryptedText.split(":");
         const iv = Buffer.from(textParts.shift(), "hex");
         const encryptedTextBuffer = Buffer.from(textParts.join(":"), "hex");
-        const decipher = crypto.createDecipheriv("aes-256-cbc", getEncryptionKey(), iv);
-        let decrypted = decipher.update(encryptedTextBuffer, "hex", "utf8");
-        decrypted += decipher.final("utf8");
-        return JSON.parse(decrypted);
+        
+        try {
+            // Thử giải mã bằng key chính (từ .env)
+            const decipher = crypto.createDecipheriv("aes-256-cbc", getEncryptionKey(), iv);
+            let decrypted = decipher.update(encryptedTextBuffer, "hex", "utf8");
+            decrypted += decipher.final("utf8");
+            return JSON.parse(decrypted);
+        } catch (err) {
+            // Nếu giải mã bằng key chính thất bại (do đổi key hoặc lúc mã hóa dùng fallback key)
+            // Thử giải mã bằng fallback key gốc
+            console.log("⚠️ Main key failed, trying fallback key for decryption...");
+            const fallbackKey = Buffer.from("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", "hex");
+            const decipherFallback = crypto.createDecipheriv("aes-256-cbc", fallbackKey, iv);
+            let decryptedFallback = decipherFallback.update(encryptedTextBuffer, "hex", "utf8");
+            decryptedFallback += decipherFallback.final("utf8");
+            return JSON.parse(decryptedFallback);
+        }
     } catch (error) {
         console.error("Decryption error:", error);
         return null;
