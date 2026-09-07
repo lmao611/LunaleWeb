@@ -442,7 +442,7 @@ export default function OrdersManager() {
         {loading ? (
             <div className="flex-1 flex items-center justify-center text-gray-400">Đang tải dữ liệu...</div>
         ) : (
-            <div className="flex-1 overflow-x-auto custom-scrollbar">
+            <div className="flex-1 overflow-auto custom-scrollbar">
                  <AnimatePresence mode="wait">
                     {currentMonthOrders.length > 0 ? (
                         <motion.div
@@ -453,23 +453,23 @@ export default function OrdersManager() {
                             transition={{ duration: 0.2 }}
                             className="min-w-max w-full"
                         >
-                            <table className="w-full text-sm text-left border-collapse">
-                                <thead className="bg-gray-100 text-gray-700 font-semibold border-b">
+                            <table className="w-full text-sm text-left border-collapse relative">
+                                <thead className="bg-gray-100 text-gray-700 font-semibold border-b sticky top-0 z-20 shadow-sm">
                                     <tr>
-                                        <th className="px-4 py-2 text-left whitespace-nowrap">#</th>
-                                        <th className="px-4 py-2 text-left whitespace-nowrap">Trạng thái</th>
-                                        <th className="px-4 py-2 text-left whitespace-nowrap">Ngày nhận</th>
-                                        <th className="px-4 py-2 text-left whitespace-nowrap">Ngày giao</th>
-                                        <th className="px-4 py-2 text-left whitespace-nowrap">Khách hàng</th>
-                                        <th className="px-4 py-2 text-left whitespace-nowrap">Địa chỉ</th>
-                                        <th className="px-4 py-2 text-left whitespace-nowrap">SĐT</th>
-                                        <th className="px-4 py-2 text-left whitespace-nowrap">Sản phẩm</th>
-                                        <th className="px-4 py-2 text-left whitespace-nowrap">Số lượng</th>
-                                        <th className="px-4 py-2 text-left whitespace-nowrap">Size</th>
-                                        <th className="px-4 py-2 text-left whitespace-nowrap">Phí ship</th>
-                                        <th className="px-4 py-2 text-left whitespace-nowrap">Tổng</th>
-                                        <th className="px-4 py-2 text-left whitespace-nowrap">Thanh toán</th>
-                                        <th className="px-4 py-2 text-left whitespace-nowrap">Hành động</th>
+                                        <th className="px-4 py-2 text-left whitespace-nowrap bg-gray-100">#</th>
+                                        <th className="px-4 py-2 text-left whitespace-nowrap bg-gray-100">Trạng thái</th>
+                                        <th className="px-4 py-2 text-left whitespace-nowrap bg-gray-100">Ngày nhận</th>
+                                        <th className="px-4 py-2 text-left whitespace-nowrap bg-gray-100">Ngày giao</th>
+                                        <th className="px-4 py-2 text-left whitespace-nowrap bg-gray-100">Khách hàng</th>
+                                        <th className="px-4 py-2 text-left whitespace-nowrap bg-gray-100">Địa chỉ</th>
+                                        <th className="px-4 py-2 text-left whitespace-nowrap bg-gray-100">SĐT</th>
+                                        <th className="px-4 py-2 text-left whitespace-nowrap bg-gray-100">Sản phẩm</th>
+                                        <th className="px-4 py-2 text-left whitespace-nowrap bg-gray-100">Số lượng</th>
+                                        <th className="px-4 py-2 text-left whitespace-nowrap bg-gray-100">Size</th>
+                                        <th className="px-4 py-2 text-left whitespace-nowrap bg-gray-100">Phí ship</th>
+                                        <th className="px-4 py-2 text-left whitespace-nowrap bg-gray-100">Tổng</th>
+                                        <th className="px-4 py-2 text-left whitespace-nowrap bg-gray-100">Thanh toán</th>
+                                        <th className="px-4 py-2 text-left whitespace-nowrap bg-gray-100">Hành động</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -554,9 +554,9 @@ export default function OrdersManager() {
             </div>
         )}
 
-        <div className="bg-white border-t p-3 flex flex-col lg:flex-row justify-between items-center gap-4">
-             <div className="flex items-center gap-3 min-w-max pb-1 overflow-x-auto custom-scrollbar w-full lg:w-auto flex-1">
-                <span className="text-xs font-bold text-gray-400 uppercase mr-2 tracking-wide sticky left-0 bg-white pl-1 z-10">Chọn tháng:</span>
+        <div className="bg-white border-t p-3 flex flex-col gap-4">
+             <div className="flex items-center gap-3 overflow-x-auto custom-scrollbar w-full pb-2">
+                <span className="text-xs font-bold text-gray-400 uppercase mr-2 tracking-wide sticky left-0 bg-white pl-1 z-10 whitespace-nowrap shadow-[10px_0_10px_-10px_rgba(0,0,0,0.1)] py-2">Chọn tháng:</span>
                 {sortedMonthKeys.map(key => {
                     const ordersForTab = key === "Tất cả" ? filteredOrders : (groupedOrders[key] || []);
                     const monthTotal = ordersForTab.reduce((sum, o) => {
@@ -565,7 +565,7 @@ export default function OrdersManager() {
                     }, 0);
                     
                     return (
-                        <div key={key} className="flex flex-col items-center gap-1">
+                        <div key={key} className="flex flex-col items-center gap-1 flex-shrink-0">
                             <button
                                 onClick={() => setSelectedMonthKey(key)}
                                 className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all flex items-center gap-2
@@ -587,16 +587,18 @@ export default function OrdersManager() {
                 })}
              </div>
 
-             <div className="flex items-center gap-3 bg-yellow-50 px-5 py-2.5 rounded-xl border border-yellow-200 flex-shrink-0 w-full lg:w-auto justify-center">
-                <span className="text-sm font-bold text-gray-700 uppercase">
-                    {isDateFiltered ? "Tổng theo lọc:" : "Tổng doanh thu:"}
-                </span>
-                {!isDateFiltered && (
-                    <select value={selectedYear} onChange={e => setSelectedYear(e.target.value)} className="bg-white border border-yellow-300 rounded-md text-sm px-2 py-1 font-bold outline-none text-blue-700 shadow-sm cursor-pointer">
-                        {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
-                    </select>
-                )}
-                <span className="text-xl font-black text-red-600">{displayTotal.toLocaleString()} ₫</span>
+             <div className="flex justify-end items-center gap-3 w-full">
+                <div className="flex items-center gap-3 bg-yellow-50 px-5 py-2.5 rounded-xl border border-yellow-200">
+                    <span className="text-sm font-bold text-gray-700 uppercase">
+                        {isDateFiltered ? "Tổng theo lọc:" : "Tổng doanh thu:"}
+                    </span>
+                    {!isDateFiltered && (
+                        <select value={selectedYear} onChange={e => setSelectedYear(e.target.value)} className="bg-white border border-yellow-300 rounded-md text-sm px-2 py-1 font-bold outline-none text-blue-700 shadow-sm cursor-pointer">
+                            {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
+                        </select>
+                    )}
+                    <span className="text-xl font-black text-red-600">{displayTotal.toLocaleString()} ₫</span>
+                </div>
              </div>
         </div>
       </div>

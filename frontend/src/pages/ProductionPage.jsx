@@ -33,6 +33,19 @@ const ProductionPage = () => {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
 
+  const [mathQuestion, setMathQuestion] = useState({ a: 0, b: 0, result: 0 });
+  const [mathAnswer, setMathAnswer] = useState("");
+
+  const generateMathQuestion = () => {
+    const a = Math.floor(Math.random() * 10) + 1;
+    const b = Math.floor(Math.random() * 10) + 1;
+    setMathQuestion({ a, b, result: a + b });
+  };
+
+  useEffect(() => {
+    generateMathQuestion();
+  }, []);
+
   // --- TỰ ĐỘNG XÓA PHIÊN KHI THOÁT KHỎI KHU VỰC NÀY ---
   useEffect(() => {
     return () => {
@@ -75,6 +88,13 @@ const ProductionPage = () => {
 
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
+    if (parseInt(mathAnswer) !== mathQuestion.result) {
+      toast.error("Sai phép tính xác thực bot! Vui lòng thử lại.");
+      generateMathQuestion();
+      setMathAnswer("");
+      return;
+    }
+
     try {
       const res = await axios.post("/production/verify-password", { password: passwordInput });
       if (res.data.success) {
@@ -91,6 +111,8 @@ const ProductionPage = () => {
         const left = error.response?.data?.attemptsLeft || 0;
         toast.error(`Sai mật khẩu. Còn ${left} lần thử.`);
         setPasswordInput("");
+        generateMathQuestion();
+        setMathAnswer("");
       }
     }
   };
@@ -166,6 +188,19 @@ const ProductionPage = () => {
               />
               <KeyRound className="absolute left-3.5 top-3.5 text-gray-400" size={20} />
             </div>
+
+            <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
+              <span className="font-bold text-gray-700 whitespace-nowrap">Xác thực: {mathQuestion.a} + {mathQuestion.b} =</span>
+              <input
+                type="number"
+                value={mathAnswer}
+                onChange={(e) => setMathAnswer(e.target.value)}
+                placeholder="?"
+                required
+                className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 text-center font-bold"
+              />
+            </div>
+
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 type="button"

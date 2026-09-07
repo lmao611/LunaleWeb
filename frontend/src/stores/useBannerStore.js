@@ -8,6 +8,8 @@ export const useBannerStore = create(
     (set) => ({
   bannerUrl: "",
   loading: false,
+  isBannerLoaded: false,
+  setIsBannerLoaded: (status) => set({ isBannerLoaded: status }),
 
   fetchBanner: async () => {
     try {

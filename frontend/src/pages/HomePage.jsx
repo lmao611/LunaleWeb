@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import CategoryItem from "../components/CategoryItem";
 import { useProductStore } from "../stores/useProductStore";
 import { useCollectionStore } from "../stores/useCollectionStore";
+import { useBannerStore } from "../stores/useBannerStore";
 import FeaturedProducts from "../components/FeaturedProducts";
 import CollectionsSection from "../components/CollectionsSection";
 import axios from "../lib/axios";
@@ -19,17 +20,11 @@ const categories = [
 const HomePage = () => {
   const { products, isLoading: loadingProducts } = useProductStore();
   const { collections } = useCollectionStore();
-  const [bannerUrl, setBannerUrl] = useState("");
+  const { bannerUrl, fetchBanner, isBannerLoaded, setIsBannerLoaded } = useBannerStore();
 
   useEffect(() => {
-    const fetchBanner = async () => {
-      try {
-        const res = await axios.get("/banner");
-        setBannerUrl(res.data.imageUrl);
-      } catch (err) { console.error(err.message); }
-    };
     fetchBanner();
-  }, []);
+  }, [fetchBanner]);
 
   const specialCollections = collections.filter(c => c.isSpecial === true);
   const regularCollections = collections.filter(c => !c.isSpecial);
@@ -128,23 +123,34 @@ const HomePage = () => {
 
   return (
     <div className="bg-white text-gray-800 overflow-x-hidden">
-      {bannerUrl && (
-        <section className="relative w-screen h-screen overflow-hidden">
-          <img src={bannerUrl} alt="Banner" className="absolute inset-0 w-full h-full object-cover object-center" />
-          <div className="absolute inset-0 bg-black/10"></div>
-          <div className="relative z-10 flex flex-col items-center justify-center h-full text-center pt-130">
-            <h5 className="text-white text-xl sm:text-2xl mb-10">Khám phá bộ sưu tập mới</h5>
-            <button
-              onClick={() => {
-                const nextSection = document.getElementById("homepage-content");
-                nextSection?.scrollIntoView({ behavior: "smooth" });
-              }}
-              className="bg-white text-black px-8 py-4 rounded-full font-medium hover:bg-gray-300 transition"
-            >
-              Khám phá ngay
-            </button>
-          </div>
+      {bannerUrl ? (
+        <section className="relative w-screen h-screen overflow-hidden bg-gray-300">
+          <img 
+            src={bannerUrl} 
+            alt="Banner" 
+            className={`absolute inset-0 w-full h-full object-cover object-center ${isBannerLoaded ? 'block' : 'hidden'}`}
+            onLoad={() => setIsBannerLoaded(true)}
+          />
+          {isBannerLoaded && (
+            <>
+              <div className="absolute inset-0 bg-black/10"></div>
+              <div className="relative z-10 flex flex-col items-center justify-center h-full text-center pt-130">
+                <h5 className="text-white text-xl sm:text-2xl mb-10">Khám phá bộ sưu tập mới</h5>
+                <button
+                  onClick={() => {
+                    const nextSection = document.getElementById("homepage-content");
+                    nextSection?.scrollIntoView({ behavior: "smooth" });
+                  }}
+                  className="bg-white text-black px-8 py-4 rounded-full font-medium hover:bg-gray-300 transition"
+                >
+                  Khám phá ngay
+                </button>
+              </div>
+            </>
+          )}
         </section>
+      ) : (
+        <section className="relative w-screen h-screen overflow-hidden bg-gray-300"></section>
       )}
 
       <div className="w-full bg-black overflow-hidden py-3 border-t border-b border-gray-800">
