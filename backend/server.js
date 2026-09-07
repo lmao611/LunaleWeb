@@ -37,8 +37,8 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.json({ limit: "60mb" }));
-app.use(express.urlencoded({ limit: "60mb", extended: true }));
+app.use(express.json({ limit: "15mb" }));
+app.use(express.urlencoded({ limit: "15mb", extended: true }));
 app.use(cookieParser());
 
 const allowedOrigins = [

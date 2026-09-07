@@ -85,7 +85,8 @@ export const facebookLogin = async (req, res) => {
 };
 
 export const signup = async (req, res) => {
-    const { email, password, name, phoneNumber, direction } = req.body;
+    const { password, name, phoneNumber, direction } = req.body;
+    const email = String(req.body.email || "");
     try {
         const userExists = await User.findOne({ email });
         if (userExists) {
@@ -135,7 +136,8 @@ export const login = async (req, res) => {
             });
         }
 
-        const { email, password } = req.body;
+        const email = String(req.body.email || "");
+        const password = String(req.body.password || "");
         const user = await User.findOne({ email });
 
         if (user && (await user.comparePassword(password))) {

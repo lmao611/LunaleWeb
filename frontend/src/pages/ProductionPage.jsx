@@ -46,9 +46,15 @@ const ProductionPage = () => {
     generateMathQuestion();
   }, []);
 
-  // --- TỰ ĐỘNG XÓA PHIÊN KHI THOÁT KHỎI KHU VỰC NÀY ---
+  // --- TỰ ĐỘNG XÓA PHIÊN KHI THOÁT HOẶC REFRESH ---
   useEffect(() => {
+    const handleUnload = () => {
+      navigator.sendBeacon("/api/production/clear-auth");
+    };
+    window.addEventListener("beforeunload", handleUnload);
+
     return () => {
+      window.removeEventListener("beforeunload", handleUnload);
       // Khi trang bị đóng, nếu đích đến không phải là trang con của production, sẽ tự hủy Auth
       if (!window.location.pathname.startsWith("/admin/production")) {
         axios.post("/production/clear-auth").catch(() => {});

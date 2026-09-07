@@ -36,8 +36,9 @@ const productionSchema = new mongoose.Schema({
     required: true,
     unique: true
   },
-  inventory: [inventorySchema],
-  batches: [batchSchema]
+  inventory: { type: mongoose.Schema.Types.Mixed, default: [] },
+  batches: { type: mongoose.Schema.Types.Mixed, default: [] },
+  encryptedData: { type: String, default: null }
 }, { timestamps: true });
 
 const Production = mongoose.model("Production", productionSchema);

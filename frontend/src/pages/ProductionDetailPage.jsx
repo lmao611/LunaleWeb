@@ -64,9 +64,15 @@ const ProductionDetailPage = () => {
   const initialLoadRef = useRef(true);
   const timeoutRef = useRef(null);
 
-  // --- TỰ ĐỘNG XÓA PHIÊN KHI THOÁT KHỎI KHU VỰC NÀY ---
+  // --- TỰ ĐỘNG XÓA PHIÊN KHI THOÁT HOẶC REFRESH ---
   useEffect(() => {
+    const handleUnload = () => {
+      navigator.sendBeacon("/api/production/clear-auth");
+    };
+    window.addEventListener("beforeunload", handleUnload);
+
     return () => {
+      window.removeEventListener("beforeunload", handleUnload);
       if (!window.location.pathname.startsWith("/admin/production")) {
         axios.post("/production/clear-auth").catch(() => {});
       }
