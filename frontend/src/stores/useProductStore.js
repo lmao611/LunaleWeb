@@ -1,8 +1,11 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import toast from "react-hot-toast";
 import axios from "../lib/axios";
 
-export const useProductStore = create((set, get) => ({
+export const useProductStore = create(
+  persist(
+    (set, get) => ({
   products: [],
   selectedProduct: null,
   loading: false,
@@ -175,4 +178,9 @@ export const useProductStore = create((set, get) => ({
       toast.error(error.response?.data?.error || "Failed to fetch featured products");
     }
   },
-}));
+  }),
+  {
+    name: "product-storage",
+    partialize: (state) => ({ products: state.products }),
+  }
+));

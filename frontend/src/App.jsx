@@ -53,7 +53,14 @@ function App() {
 
     return () => clearTimeout(timer);
   }, []);
-
+  useEffect(() => {
+    const match = document.cookie.match(/googtrans=\/vi\/([^;]+)/);
+    if (match && match[1]) {
+      document.body.setAttribute('data-lang', match[1]);
+    } else {
+      document.body.removeAttribute('data-lang');
+    }
+  }, []);
   useEffect(() => {
     if (!user) return;
     getCartItems();

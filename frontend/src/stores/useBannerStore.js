@@ -1,8 +1,11 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import axios from "../lib/axios";
 import toast from "react-hot-toast";
 
-export const useBannerStore = create((set) => ({
+export const useBannerStore = create(
+  persist(
+    (set) => ({
   bannerUrl: "",
   loading: false,
 
@@ -45,5 +48,9 @@ export const useBannerStore = create((set) => ({
       set({ loading: false });
     }
   },
-}));
-    
+  }),
+  {
+    name: "banner-storage",
+    partialize: (state) => ({ bannerUrl: state.bannerUrl }),
+  }
+));

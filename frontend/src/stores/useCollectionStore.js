@@ -1,7 +1,10 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import axios from "../lib/axios";
 
-export const useCollectionStore = create((set, get) => ({
+export const useCollectionStore = create(
+  persist(
+    (set, get) => ({
   collections: [],
   isLoading: false,
   editingCollection: null,
@@ -104,4 +107,9 @@ export const useCollectionStore = create((set, get) => ({
       console.error(error);
     }
   },
-}));
+  }),
+  {
+    name: "collection-storage",
+    partialize: (state) => ({ collections: state.collections }),
+  }
+));
