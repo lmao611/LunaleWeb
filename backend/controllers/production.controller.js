@@ -1,7 +1,6 @@
 import Production from "../models/production.model.js";
 import { redis } from "../lib/redis.js";
 import jwt from "jsonwebtoken";
-import { encryptJSON, decryptJSON } from "../lib/encryption.js";
 
 const defaultSizes = { total: 0, S: 0, M: 0, L: 0, XL: 0 };
 
@@ -42,35 +41,12 @@ export const clearAuth = async (req, res) => {
 };
 
 // ==========================================
-// 3. CÁC API NGHIỆP VỤ (CÓ MÃ HÓA & MIGRATION)
+// 3. CÁC API NGHIỆP VỤ 
 // ==========================================
 export const getAllProductions = async (req, res) => {
   try {
     const productions = await Production.find({});
-    const processedProductions = [];
-
-    for (let prod of productions) {
-      const prodObj = prod.toObject();
-      let needsMigration = false;
-
-      if (!prodObj.encryptedData && (prodObj.inventory?.length > 0 || prodObj.batches?.length > 0)) {
-         // Auto-migrate old plaintext data
-         const encryptedData = encryptJSON({ inventory: prodObj.inventory, batches: prodObj.batches });
-         await Production.findByIdAndUpdate(prod._id, { encryptedData, inventory: [], batches: [] });
-         needsMigration = true;
-      } else if (prodObj.encryptedData) {
-         // Decrypt data for frontend
-         const decrypted = decryptJSON(prodObj.encryptedData);
-         if (decrypted) {
-           prodObj.inventory = decrypted.inventory || [];
-           prodObj.batches = decrypted.batches || [];
-         }
-      }
-
-      delete prodObj.encryptedData;
-      processedProductions.push(prodObj);
-    }
-    res.status(200).json(processedProductions);
+    res.status(200).json(productions);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -82,7 +58,7 @@ export const getProduction = async (req, res) => {
     let production = await Production.findOne({ product: productId });
     
     if (!production) {
-      const defaultData = {
+      production = {
         product: productId,
         inventory: [{
           tonDauKy: { ...defaultSizes }, ngayNhap: "", nhapTrongKy: { ...defaultSizes },
@@ -99,26 +75,8 @@ export const getProduction = async (req, res) => {
           ]
         }]
       };
-      return res.status(200).json(defaultData);
     }
-
-    const prodObj = production.toObject();
-    
-    if (!prodObj.encryptedData && (prodObj.inventory?.length > 0 || prodObj.batches?.length > 0)) {
-       // Migration
-       const encryptedData = encryptJSON({ inventory: prodObj.inventory, batches: prodObj.batches });
-       await Production.findByIdAndUpdate(production._id, { encryptedData, inventory: [], batches: [] });
-    } else if (prodObj.encryptedData) {
-       // Decryption
-       const decrypted = decryptJSON(prodObj.encryptedData);
-       if (decrypted) {
-         prodObj.inventory = decrypted.inventory || [];
-         prodObj.batches = decrypted.batches || [];
-       }
-    }
-    
-    delete prodObj.encryptedData;
-    res.status(200).json(prodObj);
+    res.status(200).json(production);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -129,20 +87,10 @@ export const saveProduction = async (req, res) => {
     const { productId } = req.params;
     const { inventory, batches } = req.body;
 
-    const encryptedData = encryptJSON({ inventory, batches });
-
     const production = await Production.findOneAndUpdate(
-      { product: productId }, 
-      { encryptedData, inventory: [], batches: [] }, 
-      { new: true, upsert: true }
+      { product: productId }, { inventory, batches }, { new: true, upsert: true }
     );
-    
-    const responseData = production.toObject();
-    responseData.inventory = inventory;
-    responseData.batches = batches;
-    delete responseData.encryptedData;
-
-    res.status(200).json(responseData);
+    res.status(200).json(production);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
