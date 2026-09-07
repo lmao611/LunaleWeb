@@ -327,7 +327,10 @@ const ProductionDetailPage = () => {
       <div className="max-w-[1800px] mx-auto">
         <div className="flex justify-between items-center mb-4 md:mb-6">
           <button
-            onClick={() => navigate("/admin/production")}
+            onClick={() => {
+              saveProduction(id, { inventory, batches }, false);
+              navigate("/admin/production");
+            }}
             className="flex items-center text-blue-600 hover:text-blue-800 transition-colors font-semibold text-sm md:text-base"
           >
             <ArrowLeft className="mr-1 md:mr-2" size={20} />
