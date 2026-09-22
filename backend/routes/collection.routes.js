@@ -8,18 +8,18 @@ import {
   removeProductFromCollection,
   updateCollection 
 } from "../controllers/collection.controller.js";
+import { protectRoute, adminRoute } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
 router.get("/", getAllCollections);
 router.get("/:id", getCollectionById);
-router.post("/", createCollection);
+router.post("/", protectRoute, adminRoute, createCollection);
 
+router.put("/:id", protectRoute, adminRoute, updateCollection); 
 
-router.put("/:id", updateCollection); 
-
-router.delete("/:id", deleteCollection);
-router.post("/:id/products", addProductToCollection);
-router.delete("/:id/products/:productId", removeProductFromCollection);
+router.delete("/:id", protectRoute, adminRoute, deleteCollection);
+router.post("/:id/products", protectRoute, adminRoute, addProductToCollection);
+router.delete("/:id/products/:productId", protectRoute, adminRoute, removeProductFromCollection);
 
 export default router;

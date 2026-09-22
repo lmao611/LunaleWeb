@@ -1,9 +1,10 @@
 import express from "express";
 import cloudinary from "../lib/cloudinary.js";
+import { protectRoute, adminRoute } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
-router.post("/delete-cloudinary", async (req, res) => {
+router.post("/delete-cloudinary", protectRoute, adminRoute, async (req, res) => {
   try {
     const { publicId } = req.body;
     if (!publicId) return res.status(400).json({ message: "Thiếu publicId" });

@@ -23,6 +23,7 @@
     "cors": "^2.8.5",
     "dotenv": "^17.3.1",
     "express": "^5.1.0",
+    "express-rate-limit": "^8.7.0",
     "framer-motion": "^12.23.22",
     "google-auth-library": "^10.4.2",
     "ioredis": "^5.8.2",
