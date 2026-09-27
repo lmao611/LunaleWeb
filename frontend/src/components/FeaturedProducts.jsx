@@ -217,9 +217,9 @@ const Card = ({ product, isMobile, preorderStatus }) => {
           ref={cardRef}
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
-          className="group/card relative block overflow-hidden rounded-none shadow-md hover:shadow-xl hover:ring-2 hover:ring-gray-900/40 transition-transform duration-200 ease-out bg-white/80 backdrop-blur-sm w-full h-full"
+          className="group/card relative block overflow-hidden rounded-[5px] shadow-md hover:shadow-xl hover:ring-2 hover:ring-gray-900/40 transition-transform duration-200 ease-out bg-white/80 backdrop-blur-sm w-full h-full"
         >
-          <div ref={glareRef} className="pointer-events-none absolute inset-0 rounded-none z-20 transition-all duration-300" />
+          <div ref={glareRef} className="pointer-events-none absolute inset-0 rounded-[5px] z-20 transition-all duration-300" />
 
           {preorderStatus && (
             <span className={`absolute top-2 right-2 z-30 text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-md opacity-70 ${preorderStatus.color}`}>

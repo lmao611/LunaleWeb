@@ -89,7 +89,7 @@ const HomePage = () => {
                          w-[var(--mobile-w)] md:w-[var(--desktop-w)]
                          ${col.isFullSize 
                             ? "" 
-                            : "h-[var(--mobile-h)] md:h-[var(--desktop-h)] rounded-none" 
+                            : "h-[var(--mobile-h)] md:h-[var(--desktop-h)] rounded-[5px]" 
                          }
                        `}
                    >
