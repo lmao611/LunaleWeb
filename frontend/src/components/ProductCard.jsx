@@ -86,11 +86,11 @@ const ProductCard = ({ product, variant = "PeopleAlsoBought", disableLink = fals
       ref={cardRef}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      className={`relative overflow-hidden rounded-none shadow-md transform-gpu will-change-transform
+      className={`relative overflow-hidden rounded-[5px] shadow-md transform-gpu will-change-transform
         hover:shadow-2xl transition-transform duration-300 ease-out bg-white
         ${size.width}`}
     >
-      <div ref={glareRef} className="pointer-events-none absolute inset-0 rounded-none z-20 transition-opacity duration-300" />
+      <div ref={glareRef} className="pointer-events-none absolute inset-0 rounded-[5px] z-20 transition-opacity duration-300" />
 
       <div className="absolute top-2 right-2 z-40 flex flex-col items-end gap-1 pointer-events-none">
          {isSale && (

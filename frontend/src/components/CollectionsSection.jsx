@@ -7,7 +7,7 @@ const CollectionsSection = ({ collections }) => {
   if (!Array.isArray(collections) || !collections.length) return null;
 
   return (
-    <section className="mt-24 space-y-28">
+    <section className="mt-24 space-y-28 pb-16 md:pb-24">
       <h2 className="text-3xl mb:text-[26px] font-bold text-center text-black mb-8">Bộ Sưu Tập</h2>
 
       {collections.map((col, index) => (
@@ -34,9 +34,9 @@ const CollectionsSection = ({ collections }) => {
           </div>
 
           {/* Media Card - Dùng SmartVideo */}
-          <div className="flex-1 flex justify-center">
-            <Link to={`/collection/${col._id}`}>
-              <motion.div whileHover={{ scale: 1.02 }} className="rounded-none overflow-hidden shadow-2xl w-[330px] h-[450px] sm:w-[320px] sm:h-[480px] md:w-[400px] md:h-[600px] relative flex items-center justify-center bg-gray-200">
+          <div className="flex-1 flex justify-center py-4">
+            <Link to={`/collection/${col._id}`} className="block">
+              <motion.div whileHover={{ scale: 1.02 }} className="rounded-[5px] overflow-hidden shadow-2xl w-[330px] h-[450px] sm:w-[320px] sm:h-[480px] md:w-[400px] md:h-[600px] relative flex items-center justify-center bg-gray-200">
                 <div className="absolute inset-0 w-full h-full">
                   {col.coverMedia?.type === "video" ? (
                     // ✅ DÙNG SMART VIDEO
