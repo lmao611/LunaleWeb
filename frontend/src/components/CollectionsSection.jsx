@@ -36,7 +36,7 @@ const CollectionsSection = ({ collections }) => {
           {/* Media Card - Dùng SmartVideo */}
           <div className="flex-1 flex justify-center">
             <Link to={`/collection/${col._id}`}>
-              <motion.div whileHover={{ scale: 1.02 }} className="rounded-3xl overflow-hidden shadow-2xl w-[330px] h-[450px] sm:w-[320px] sm:h-[480px] md:w-[400px] md:h-[600px] relative flex items-center justify-center bg-gray-200">
+              <motion.div whileHover={{ scale: 1.02 }} className="rounded-none overflow-hidden shadow-2xl w-[330px] h-[450px] sm:w-[320px] sm:h-[480px] md:w-[400px] md:h-[600px] relative flex items-center justify-center bg-gray-200">
                 <div className="absolute inset-0 w-full h-full">
                   {col.coverMedia?.type === "video" ? (
                     // ✅ DÙNG SMART VIDEO
