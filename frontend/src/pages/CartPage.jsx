@@ -7,6 +7,7 @@ import CartItem from "../components/CartItem";
 import PeopleAlsoBought from "../components/PeopleAlsoBought";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast"; 
+import { getUnitPrice } from "../lib/price";
 
 const CartPage = () => {
   const { cart, getCartItems, calculateTotals, placeOrder } = useCartStore(); 
@@ -31,7 +32,7 @@ const CartPage = () => {
   const visibleCart = cart.filter((item) => !item.isHidden);
 
   const totalUSD = visibleCart.reduce(
-    (sum, item) => sum + item.price * item.quantity,
+    (sum, item) => sum + getUnitPrice(item) * item.quantity,
     0
   );
 
@@ -69,7 +70,7 @@ const CartPage = () => {
             product: item._id,
             name: item.name,
             image: item.image,
-            price: item.price,
+            price: getUnitPrice(item),
             quantity: item.quantity,
             size: item.size || "M" 
         })),

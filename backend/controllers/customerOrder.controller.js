@@ -164,8 +164,13 @@ export const createGuestOrder = async (req, res) => {
 
 export const createOrder = async (req, res) => {
   try {
-    const { products, note, paymentMethod } = req.body;
+    const { products, note, paymentMethod, isPaid } = req.body;
     const user = req.user;
+
+    const method = paymentMethod ? String(paymentMethod).slice(0, 20) : "COD";
+    // Khách chỉ được tự đánh dấu "đã thanh toán" với chuyển khoản (sau khi quét QR).
+    // COD luôn là chưa thanh toán.
+    const paidByCustomer = method === "Chuyển khoản" ? Boolean(isPaid) : false;
 
     if (!Array.isArray(products) || products.length === 0) {
       return res.status(400).json({ message: "Giỏ hàng trống" });
@@ -251,7 +256,8 @@ export const createOrder = async (req, res) => {
           : String(note).slice(0, 500);
       }
 
-      if (paymentMethod) existingOrder.paymentMethod = String(paymentMethod).slice(0, 20);
+      if (paymentMethod) existingOrder.paymentMethod = method;
+      if (paidByCustomer) existingOrder.isPaid = true;
 
       if (!existingOrder.orderId) existingOrder.orderId = await getNextOrderId();
 
@@ -286,8 +292,8 @@ export const createOrder = async (req, res) => {
       products: builtItems,
       totalAmount: calculatedTotal,
       note: note ? String(note).slice(0, 500) : undefined,
-      paymentMethod: paymentMethod ? String(paymentMethod).slice(0, 20) : "COD",
-      isPaid: false, // khách không được tự đánh dấu đã thanh toán
+      paymentMethod: method,
+      isPaid: paidByCustomer,
       orderId: await getNextOrderId(),
     });
 

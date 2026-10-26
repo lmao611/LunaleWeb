@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Minus, Plus, Trash } from "lucide-react";
 import { useCartStore } from "../stores/useCartStore";
 import { useNavigate } from "react-router-dom";
+import { getUnitPrice } from "../lib/price";
 
 const CartItem = ({ item }) => {
   const { removeFromCart, updateQuantity } = useCartStore();
@@ -27,7 +28,8 @@ const CartItem = ({ item }) => {
 
   let vndDisplay = "";
   if (rate != null) {
-    const raw = item.price * item.quantity;
+    // Dùng giá đã áp dụng khuyến mãi để khớp với trang sản phẩm và đơn hàng
+    const raw = getUnitPrice(item) * item.quantity;
     const rounded = Math.floor(raw / 1000) * 1000; 
     vndDisplay = rounded.toLocaleString("vi-VN") + " ₫";
   }
