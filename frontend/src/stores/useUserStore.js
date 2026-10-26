@@ -90,8 +90,9 @@ export const useUserStore = create((set, get) => ({
     if (!user || (socket && socket.connected)) return;
 
     const newSocket = io(BASE_URL, {
-      query: { userId: user._id },
-      transports: ["websocket"], 
+      // Server xác thực JWT trong handshake — không còn tin userId do client gửi
+      auth: { token: localStorage.getItem("accessToken") || undefined },
+      transports: ["websocket", "polling"],
       withCredentials: true,
     });
 

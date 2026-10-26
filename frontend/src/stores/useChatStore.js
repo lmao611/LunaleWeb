@@ -6,6 +6,7 @@ import { useUserStore } from "./useUserStore";
 export const useChatStore = create((set, get) => ({
   messages: [],
   users: [],
+  adminContact: null,
   selectedUser: null,
   isUsersLoading: false,
   isMessagesLoading: false,
@@ -16,6 +17,18 @@ export const useChatStore = create((set, get) => ({
   toggleChat: () => set((state) => ({ isChatOpen: !state.isChatOpen })),
   openChat: () => set({ isChatOpen: true }),
   closeChat: () => set({ isChatOpen: false }),
+
+  /** Khách: chỉ lấy thông tin liên hệ của admin (không lộ danh sách người dùng) */
+  getAdminContact: async () => {
+    try {
+      const res = await axios.get("/messages/admin-contact");
+      const admin = Array.isArray(res.data) ? res.data[0] : null;
+      if (admin) set({ adminContact: admin });
+      return admin;
+    } catch {
+      return null;
+    }
+  },
 
   getUsers: async () => {
     set({ isUsersLoading: true });
@@ -70,11 +83,6 @@ export const useChatStore = create((set, get) => ({
       const res = await axios.post(`/messages/send/${selectedUser._id}`, messageData);
       
       const responseData = res.data.message ? res.data.message : res.data;
-
-      if (res.data.accessToken) {
-          localStorage.setItem("accessToken", res.data.accessToken);
-          useUserStore.getState().checkAuth(); 
-      }
 
       set((state) => ({
         messages: state.messages.map((msg) => msg._id === tempId ? responseData : msg),

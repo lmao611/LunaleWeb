@@ -31,7 +31,7 @@ export const getAllProducts = async (req, res) => {
     const products = await Product.find({}).sort({ order: 1, createdAt: -1 });
     res.json({ products });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -48,7 +48,7 @@ export const reorderProducts = async (req, res) => {
     await Product.bulkWrite(bulkOps);
     res.json({ message: "Products reordered successfully" });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -58,7 +58,7 @@ export const getProductById = async (req, res) => {
     if (!product) return res.status(404).json({ message: "Product not found" });
     res.json(product);
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -76,7 +76,7 @@ export const getFeaturedProducts = async (req, res) => {
     await redis.set("featured_products", JSON.stringify(featuredProducts));
     res.json(featuredProducts);
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -119,7 +119,7 @@ export const createProduct = async (req, res) => {
     await clearFeaturedCache();
     res.status(201).json(newProduct);
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -197,7 +197,7 @@ export const updateProduct = async (req, res) => {
     await clearFeaturedCache();
     res.json(updated);
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -227,7 +227,7 @@ export const deleteProduct = async (req, res) => {
     await clearFeaturedCache();
     res.json({ message: "Product deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -241,7 +241,7 @@ export const toggleFeaturedProduct = async (req, res) => {
     await updateFeaturedProductsCache();
     res.json(updatedProduct);
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -259,26 +259,32 @@ export const togglePreOrderProduct = async (req, res) => {
     const updatedProduct = await product.save();
     res.json(updatedProduct);
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 export const searchProducts = async (req, res) => {
   try {
     const { query } = req.query;
     
-    if (!query || query.trim() === "") {
+    if (!query || String(query).trim() === "") {
       return res.json({ products: [] });
     }
 
+    // Escape ký tự đặc biệt của regex: tránh ReDoS / regex injection
+    const safeQuery = String(query)
+      .trim()
+      .slice(0, 100)
+      .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
     const products = await Product.find({
-      name: { $regex: query, $options: "i" },
+      name: { $regex: safeQuery, $options: "i" },
       category: { $ne: "feedback" },
       isHidden: { $ne: true }
     });
 
     res.json({ products });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 export const getProductsByCategory = async (req, res) => {
@@ -287,15 +293,18 @@ export const getProductsByCategory = async (req, res) => {
     const products = await Product.find({ category }).sort({ order: 1, createdAt: -1 });
     res.json({ products });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
 export const getRecommendedProducts = async (req, res) => {
   try {
     let { excludeIds = "" } = req.query;
-    excludeIds = excludeIds ? excludeIds.split(",") : [];
-    const excluded = excludeIds.map((id) => new mongoose.Types.ObjectId(id));
+    excludeIds = excludeIds ? String(excludeIds).split(",").slice(0, 30) : [];
+    // Bỏ qua id không hợp lệ (trước đây new ObjectId() sẽ throw -> 500)
+    const excluded = excludeIds
+      .filter((id) => mongoose.Types.ObjectId.isValid(id))
+      .map((id) => new mongoose.Types.ObjectId(id));
 
     const products = await Product.aggregate([
       {
@@ -326,6 +335,6 @@ export const getRecommendedProducts = async (req, res) => {
 
     res.json(products);
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };

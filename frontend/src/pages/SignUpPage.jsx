@@ -99,6 +99,7 @@ const SignUpPage = () => {
                   id="password"
                   type="password"
                   required
+                  minLength={8}
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className="block w-full px-3 py-2 pl-10 bg-white border border-gray-300 rounded-md placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-gray-900 focus:border-gray-900 sm:text-sm"

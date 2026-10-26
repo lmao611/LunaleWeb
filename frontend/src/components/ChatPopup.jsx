@@ -5,8 +5,13 @@ import { MessageCircle, X, Send, Image as ImageIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 
+const makeGuestId = () =>
+  typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `g_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+
 const ChatPopup = () => {
-  const { isChatOpen, toggleChat, closeChat, messages, getMessages, sendMessage, subscribeToMessages, unsubscribeFromMessages, setSelectedUser, users, getUsers } = useChatStore();
+  const { isChatOpen, toggleChat, closeChat, messages, getMessages, sendMessage, subscribeToMessages, unsubscribeFromMessages, setSelectedUser, adminContact, getAdminContact } = useChatStore();
   
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
@@ -15,6 +20,7 @@ const ChatPopup = () => {
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
   const [guestAddress, setGuestAddress] = useState("");
+  const [guestId, setGuestId] = useState("");
   const [isGuestRegistered, setIsGuestRegistered] = useState(false);
 
   const fileInputRef = useRef(null);
@@ -26,27 +32,42 @@ const ChatPopup = () => {
   useEffect(() => {
     const storedGuest = localStorage.getItem("chatGuestInfo");
     if (storedGuest) {
-      const parsed = JSON.parse(storedGuest);
-      setGuestName(parsed.name);
-      setGuestPhone(parsed.phone);
-      setGuestAddress(parsed.address);
-      setIsGuestRegistered(true);
+      try {
+        const parsed = JSON.parse(storedGuest);
+        setGuestName(parsed.name || "");
+        setGuestPhone(parsed.phone || "");
+        setGuestAddress(parsed.address || "");
+
+        if (parsed.guestId) {
+          setGuestId(parsed.guestId);
+        } else {
+          const id = makeGuestId();
+          setGuestId(id);
+          localStorage.setItem("chatGuestInfo", JSON.stringify({ ...parsed, guestId: id }));
+        }
+
+        setIsGuestRegistered(!!parsed.name && !!parsed.phone && !!parsed.address);
+      } catch {
+        setGuestId(makeGuestId());
+      }
+    } else {
+      setGuestId(makeGuestId());
     }
   }, []);
 
+  // Khách chỉ tải thông tin liên hệ admin, không tải toàn bộ danh sách người dùng
   useEffect(() => {
-    getUsers();
-  }, [getUsers]);
-  
+    if (!user || user.role === "customer") {
+      getAdminContact();
+    }
+  }, [getAdminContact, user]);
+
   useEffect(() => {
-      if (!user || user.role === "customer") {
-          const admin = users.find(u => u.role === 'admin' || u.role === 'controller');
-          if (admin) {
-              setAdminId(admin._id);
-              setSelectedUser(admin);
-          }
-      }
-  }, [users, setSelectedUser, user]);
+    if (adminContact && (!user || user.role === "customer")) {
+      setAdminId(adminContact._id);
+      setSelectedUser(adminContact);
+    }
+  }, [adminContact, setSelectedUser, user]);
 
   useEffect(() => {
     if (!socket) return;
@@ -119,7 +140,7 @@ const ChatPopup = () => {
   const handleGuestSubmit = (e) => {
     e.preventDefault();
     if (!guestName.trim() || !guestPhone.trim() || !guestAddress.trim()) return;
-    const guestInfo = { name: guestName.trim(), phone: guestPhone.trim(), address: guestAddress.trim() };
+    const guestInfo = { name: guestName.trim(), phone: guestPhone.trim(), address: guestAddress.trim(), guestId };
     localStorage.setItem("chatGuestInfo", JSON.stringify(guestInfo));
     setIsGuestRegistered(true);
   };
@@ -131,7 +152,7 @@ const ChatPopup = () => {
     const messagePayload = { text: text.trim(), image: imagePreview };
     
     if (!user && isGuestRegistered) {
-        messagePayload.guestInfo = { name: guestName, phone: guestPhone, address: guestAddress };
+        messagePayload.guestInfo = { name: guestName, phone: guestPhone, address: guestAddress, guestId };
     }
 
     await sendMessage(messagePayload);

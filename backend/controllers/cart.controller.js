@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Product from "../models/product.model.js";
 
 
@@ -26,7 +27,7 @@ export const getCartProducts = async (req, res) => {
     res.json(cartItems);
   } catch (error) {
     console.log("Error in getCartProducts ctrler", error.message);
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -35,8 +36,18 @@ export const addToCart = async (req, res) => {
   try {
     const { productId, size, quantity } = req.body;
     const user = req.user;
-    const qtyToAdd = quantity ? Number(quantity) : 1;
-    const selectedSize = size || "M";
+
+    if (!productId || !mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ message: "Sản phẩm không hợp lệ" });
+    }
+
+    const product = await Product.findById(productId).select("_id");
+    if (!product) {
+      return res.status(404).json({ message: "Sản phẩm không tồn tại" });
+    }
+
+    const qtyToAdd = Math.min(Math.max(Number(quantity) || 1, 1), 99);
+    const selectedSize = String(size || "M").slice(0, 12);
 
 
     const existingItem = user.cartItems.find(
@@ -57,7 +68,7 @@ export const addToCart = async (req, res) => {
     res.json(user.cartItems);
   } catch (error) {
     console.log("Error in addToCart ctrler", error.message);
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -77,7 +88,7 @@ export const deleteAllFromCart = async (req, res) => {
     res.json(user.cartItems);
   } catch (error) {
     console.log("Error in deleteAllFromCart ctrler", error.message);
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -104,6 +115,6 @@ export const updateQuantity = async (req, res) => {
     }
   } catch (error) {
     console.log("Error in updateQuantity ctrler", error.message);
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };

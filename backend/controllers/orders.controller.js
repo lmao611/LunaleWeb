@@ -79,7 +79,7 @@ export const createOrder = async (req, res) => {
     res.status(201).json(full);
   } catch (error) {
     console.error("createOrder error:", error);
-    res.status(400).json({ message: `Chi tiết lỗi Server: ${error.message}` });
+    res.status(400).json({ message: "Dữ liệu không hợp lệ" });
   }
 };
 
@@ -91,7 +91,7 @@ export const getAllOrders = async (req, res) => {
       .sort({ createdAt: -1 });
     res.json(orders);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(500).json({ message: "L?i server" });
   }
 };
 
@@ -151,7 +151,7 @@ export const updateOrder = async (req, res) => {
     res.json(order);
   } catch (error) {
     console.error("updateOrder error:", error);
-    res.status(400).json({ message: `Chi tiết lỗi Server: ${error.message}` });
+    res.status(400).json({ message: "Dữ liệu không hợp lệ" });
   }
 };
 
@@ -160,6 +160,6 @@ export const deleteOrder = async (req, res) => {
     await Order.findByIdAndDelete(req.params.id);
     res.json({ message: "Đã xóa đơn hàng" });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(500).json({ message: "L?i server" });
   }
 };

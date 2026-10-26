@@ -1,10 +1,60 @@
+import mongoose from "mongoose";
 import CustomerOrder from "../models/customerOrder.model.js";
 import Order from "../models/orders.model.js"; 
 import User from "../models/user.model.js";
 import Notification from "../models/notification.model.js"; 
 import Product from "../models/product.model.js"; 
-import { io, getReceiverSocketId } from "../lib/socket.js"; 
+import Counter from "../models/counter.model.js";
+import { io, getReceiverSocketId, emitToAdmins } from "../lib/socket.js"; 
 import { redis } from "../lib/redis.js";
+import { getClientIp } from "../lib/requestIp.js";
+
+const MAX_QTY = 99;
+
+/** Giá bán thực tế: áp dụng % khuyến mãi giống frontend */
+const computeSellingPrice = (product) => {
+  const base = Number(product?.price) || 0;
+  const percent = product?.isSale
+    ? Math.min(Math.max(Number(product?.salePercentage) || 0, 0), 100)
+    : 0;
+  return Math.round(base * (1 - percent / 100));
+};
+
+const safeRedis = async (fn, fallback = null) => {
+  try {
+    return await fn();
+  } catch (err) {
+    console.error("[REDIS]", err.message);
+    return fallback;
+  }
+};
+
+/**
+ * Sinh orderId tuần tự, nguyên tử.
+ * Lần đầu chạy sẽ khởi tạo bộ đếm bằng orderId lớn nhất đang có
+ * để không đụng số của các đơn cũ.
+ */
+const getNextOrderId = async () => {
+  let counter = await Counter.findById("customerOrder").lean();
+
+  if (!counter) {
+    const last = await CustomerOrder.findOne().sort({ orderId: -1 }).select("orderId").lean();
+    const start = Number(last?.orderId) || 0;
+    try {
+      await Counter.create({ _id: "customerOrder", seq: start });
+    } catch {
+      /* instance khác vừa tạo -> bỏ qua */
+    }
+  }
+
+  const updated = await Counter.findByIdAndUpdate(
+    "customerOrder",
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true }
+  ).lean();
+
+  return updated.seq;
+};
 
 // === HÀM BẮN THÔNG BÁO CHO ADMIN & CONTROLLER ===
 const notifyAdminsAboutOrder = async (order, customerName) => {
@@ -61,15 +111,15 @@ export const createGuestOrder = async (req, res) => {
         return res.status(400).json({ message: "Vui lòng điền đầy đủ thông tin" });
     }
 
-    const product = await Product.findById(productId);
+    const product = await Product.findById(productId).select(
+      "name price image isSale salePercentage"
+    );
     
     if (!product) return res.status(404).json({ message: "Sản phẩm không tồn tại" });
 
-    const qty = Number(quantity) || 1;
-    const totalAmount = product.price * qty;
-
-    const lastOrder = await CustomerOrder.findOne().sort({ orderId: -1 });
-    const nextOrderId = lastOrder && lastOrder.orderId ? lastOrder.orderId + 1 : 1;
+    const qty = Math.min(Math.max(Number(quantity) || 1, 1), MAX_QTY);
+    const unitPrice = computeSellingPrice(product);
+    const totalAmount = unitPrice * qty;
 
     const newOrder = await CustomerOrder.create({
         customerInfo: {
@@ -82,19 +132,17 @@ export const createGuestOrder = async (req, res) => {
             name: product.name,
             size: size || "M",
             quantity: qty,
-            price: product.price,
+            price: unitPrice,
             image: product.image
         }],
         totalAmount: totalAmount,
         status: "Pending",
         paymentMethod: "COD",
         isPaid: false,
-        orderId: nextOrderId
+        orderId: await getNextOrderId()
     });
 
-    if (io) {
-        io.emit("newCustomerOrder", newOrder);
-    }
+    emitToAdmins("newCustomerOrder", newOrder);
 
     // GỌI HÀM THÔNG BÁO Ở ĐÂY
     await notifyAdminsAboutOrder(newOrder, customerName);
@@ -110,21 +158,62 @@ export const createGuestOrder = async (req, res) => {
 
     res.status(201).json({ success: true, message: "Đặt hàng thành công", order: newOrder });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: "L?i server" });
   }
 };
 
 export const createOrder = async (req, res) => {
   try {
-    const { products, totalAmount, note, paymentMethod, isPaid } = req.body;
+    const { products, note, paymentMethod } = req.body;
     const user = req.user;
 
-    if (!products || products.length === 0) {
+    if (!Array.isArray(products) || products.length === 0) {
       return res.status(400).json({ message: "Giỏ hàng trống" });
     }
 
-    const lastOrder = await CustomerOrder.findOne().sort({ orderId: -1 });
-    const nextOrderId = lastOrder && lastOrder.orderId ? lastOrder.orderId + 1 : 1;
+    // ---- Giá LUÔN lấy từ database, không tin giá do client gửi lên ----
+    const builtItems = [];
+    for (const item of products) {
+      const productId = item?.product || item?.productId || item?._id;
+      if (!productId || !mongoose.Types.ObjectId.isValid(productId)) continue;
+
+      const product = await Product.findById(productId).select(
+        "name price image isSale salePercentage"
+      );
+      if (!product) continue;
+
+      // Giá bán thực tế = giá gốc - % khuyến mãi (giống cách frontend hiển thị)
+      const effectivePrice = computeSellingPrice(product);
+
+      const qty = Math.min(Math.max(Number(item.quantity) || 1, 1), MAX_QTY);
+      const size = String(item.size || "M").slice(0, 12);
+
+      const existed = builtItems.find(
+        (b) => b.product.toString() === product._id.toString() && b.size === size
+      );
+
+      if (existed) {
+        existed.quantity = Math.min(existed.quantity + qty, MAX_QTY);
+      } else {
+        builtItems.push({
+          product: product._id,
+          name: product.name,
+          image: product.image,
+          size,
+          quantity: qty,
+          price: effectivePrice,
+        });
+      }
+    }
+
+    if (builtItems.length === 0) {
+      return res.status(400).json({ message: "Không có sản phẩm hợp lệ trong đơn" });
+    }
+
+    const calculatedTotal = builtItems.reduce(
+      (total, item) => total + Number(item.price) * Number(item.quantity),
+      0
+    );
 
     const existingOrder = await CustomerOrder.findOne({
       user: user._id,
@@ -132,30 +221,39 @@ export const createOrder = async (req, res) => {
     });
 
     if (existingOrder) {
-      products.forEach((newProduct) => {
-        const existingItemIndex = existingOrder.products.findIndex(
+      builtItems.forEach((newProduct) => {
+        const idx = existingOrder.products.findIndex(
           (p) =>
             p.product.toString() === newProduct.product.toString() &&
             p.size === newProduct.size
         );
 
-        if (existingItemIndex > -1) {
-          existingOrder.products[existingItemIndex].quantity += newProduct.quantity;
+        if (idx > -1) {
+          existingOrder.products[idx].quantity = Math.min(
+            existingOrder.products[idx].quantity + newProduct.quantity,
+            MAX_QTY
+          );
+          existingOrder.products[idx].price = newProduct.price;
+          existingOrder.products[idx].name = newProduct.name;
         } else {
           existingOrder.products.push(newProduct);
         }
       });
 
-      existingOrder.totalAmount = existingOrder.products.reduce((total, item) => {
-        return total + (Number(item.price) * Number(item.quantity));
-      }, 0);
+      existingOrder.totalAmount = existingOrder.products.reduce(
+        (total, item) => total + Number(item.price) * Number(item.quantity),
+        0
+      );
 
-      if (note) existingOrder.note = existingOrder.note ? `${existingOrder.note} | ${note}` : note;
-      
-      if (paymentMethod) existingOrder.paymentMethod = paymentMethod;
-      if (isPaid !== undefined) existingOrder.isPaid = isPaid;
+      if (note) {
+        existingOrder.note = existingOrder.note
+          ? `${existingOrder.note} | ${String(note).slice(0, 500)}`
+          : String(note).slice(0, 500);
+      }
 
-      if (!existingOrder.orderId) existingOrder.orderId = nextOrderId;
+      if (paymentMethod) existingOrder.paymentMethod = String(paymentMethod).slice(0, 20);
+
+      if (!existingOrder.orderId) existingOrder.orderId = await getNextOrderId();
 
       existingOrder.customerInfo = {
         name: user.name,
@@ -163,7 +261,6 @@ export const createOrder = async (req, res) => {
         phone: user.phoneNumber,
         address: user.direction,
       };
-      existingOrder.createdAt = Date.now();
 
       await existingOrder.save();
 
@@ -172,17 +269,11 @@ export const createOrder = async (req, res) => {
         await user.save();
       }
 
-      io.emit("newCustomerOrder", existingOrder);
-      
-      // GỌI HÀM THÔNG BÁO Ở ĐÂY
+      emitToAdmins("newCustomerOrder", existingOrder);
       await notifyAdminsAboutOrder(existingOrder, user.name);
 
       return res.status(200).json(existingOrder);
     }
-
-    const calculatedTotal = products.reduce((total, item) => {
-        return total + (Number(item.price) * Number(item.quantity));
-    }, 0);
 
     const newOrder = await CustomerOrder.create({
       user: user._id,
@@ -192,28 +283,27 @@ export const createOrder = async (req, res) => {
         phone: user.phoneNumber,
         address: user.direction,
       },
-      products,
-      totalAmount: calculatedTotal, 
-      note,
-      paymentMethod: paymentMethod || "COD",
-      isPaid: isPaid || false,
-      orderId: nextOrderId
+      products: builtItems,
+      totalAmount: calculatedTotal,
+      note: note ? String(note).slice(0, 500) : undefined,
+      paymentMethod: paymentMethod ? String(paymentMethod).slice(0, 20) : "COD",
+      isPaid: false, // khách không được tự đánh dấu đã thanh toán
+      orderId: await getNextOrderId(),
     });
 
     if (req.body.isFromCart) {
-        user.cartItems = [];
-        await user.save();
+      user.cartItems = [];
+      await user.save();
     }
 
-    io.emit("newCustomerOrder", newOrder);
-    
-    // GỌI HÀM THÔNG BÁO Ở ĐÂY
+    emitToAdmins("newCustomerOrder", newOrder);
+
     await notifyAdminsAboutOrder(newOrder, user.name);
 
     res.status(201).json(newOrder);
   } catch (error) {
-    console.error("Error creating order:", error);
-    res.status(500).json({ message: "Lỗi tạo đơn hàng", error: error.message });
+    console.error("[CREATE ORDER]", error.message);
+    res.status(500).json({ message: "Lỗi tạo đơn hàng" });
   }
 };
 
@@ -268,7 +358,12 @@ export const updateOrderStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
-    
+
+    const ALLOWED_STATUS = ["Pending", "Processed", "Shipping", "Delivered", "Cancelled"];
+    if (!ALLOWED_STATUS.includes(status)) {
+      return res.status(400).json({ message: "Trạng thái không hợp lệ" });
+    }
+
     const oldOrder = await CustomerOrder.findById(id);
     if (!oldOrder) return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
 
@@ -342,7 +437,7 @@ export const updateOrderStatus = async (req, res) => {
     res.json(customerOrder);
   } catch (error) {
     console.error("Lỗi update status:", error);
-    res.status(500).json({ message: "Lỗi server", error: error.message });
+    res.status(500).json({ message: "Lỗi server" });
   }
 };
 
@@ -376,7 +471,7 @@ export const cancelMyOrder = async (req, res) => {
     return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
   } catch (error) {
     console.error("Cancel order error:", error);
-    res.status(500).json({ message: "Lỗi hủy đơn", error: error.message });
+    res.status(500).json({ message: "Lỗi hủy đơn" });
   }
 };
 
