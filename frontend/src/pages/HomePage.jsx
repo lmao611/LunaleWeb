@@ -201,11 +201,11 @@ const HomePage = () => {
           <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/40 to-transparent pointer-events-none"></div>
 
           <div
-            className={`relative z-10 flex flex-col items-center justify-end h-full text-center px-4 pb-14 sm:pb-20 lg:pb-24 transition-opacity duration-700 ${
+            className={`relative z-10 flex flex-col items-center justify-end h-full text-center px-4 pb-14 sm:pb-20 lg:pb-16 transition-opacity duration-700 ${
               isBannerLoaded ? "opacity-100" : "opacity-0"
             }`}
           >
-            <h5 className="text-white text-xl sm:text-2xl mb-10">
+            <h5 className="text-white text-xl sm:text-2xl mb-10 lg:mb-[3px]">
               Khám phá bộ sưu tập mới
             </h5>
             <button
