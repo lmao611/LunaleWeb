@@ -3,6 +3,7 @@ import { motion, Reorder, AnimatePresence, useDragControls } from "framer-motion
 import { Trash, Star, Settings, GripVertical, Save, RotateCcw, Plus, Upload, Tag, EyeOff } from "lucide-react";
 import { useProductStore } from "../stores/useProductStore";
 import { useCollectionStore } from "../stores/useCollectionStore";
+import { uploadImageToCloudinary } from "../lib/uploadImage";
 
 const CATEGORY_PRIORITY = {
   dress: 1,
@@ -249,34 +250,40 @@ const EditProductModal = ({ product, collections, onClose }) => {
     }
   }, [product, collections]);
 
-  const handleMainImageChange = (e) => {
-    const file = e.target.files[0];
+  const handleMainImageChange = async (e) => {
+    const file = e.target.files?.[0];
     if (!file) return;
 
     setUploadingMain(true);
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setFormData({ ...formData, image: reader.result });
+    try {
+      const url = await uploadImageToCloudinary(file, "products");
+      setFormData((prev) => ({ ...prev, image: url }));
+    } catch (err) {
+      alert(err.message || "Lỗi upload ảnh");
+    } finally {
       setUploadingMain(false);
-    };
-    reader.readAsDataURL(file);
+      e.target.value = "";
+    }
   };
 
   const handleThumbnailChange = async (e, index) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
+
     setUploadingThumbIndex(index);
     try {
-      const formDataCloud = new FormData();
-      formDataCloud.append("file", file);
-      formDataCloud.append("upload_preset", import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`, { method: "POST", body: formDataCloud });
-      const data = await res.json();
-      const currentThumbs = Array.isArray(formData.thumbnails) ? formData.thumbnails : [];
-      const newThumbs = [...currentThumbs]; 
-      newThumbs[index] = data.secure_url;
-      setFormData({ ...formData, thumbnails: newThumbs });
-    } catch { alert("Lỗi upload thumb"); } finally { setUploadingThumbIndex(null); }
+      const url = await uploadImageToCloudinary(file, "thumbnails");
+      setFormData((prev) => {
+        const currentThumbs = Array.isArray(prev.thumbnails) ? [...prev.thumbnails] : [];
+        currentThumbs[index] = url;
+        return { ...prev, thumbnails: currentThumbs };
+      });
+    } catch (err) {
+      alert(err.message || "Lỗi upload thumb");
+    } finally {
+      setUploadingThumbIndex(null);
+      e.target.value = "";
+    }
   };
 
   const addThumbnail = () => {

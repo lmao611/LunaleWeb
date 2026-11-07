@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { PlusCircle, Upload, Loader, Images, Link as LinkIcon, Tag } from "lucide-react";
+import toast from "react-hot-toast";
 import { useProductStore } from "../stores/useProductStore";
 import { useCollectionStore } from "../stores/useCollectionStore"; // ✅ 1. Import Store Collection
+import { uploadImageToCloudinary } from "../lib/uploadImage";
 
 const categories = [
   { id: "dress", label: "Đầm nữ" },
@@ -33,6 +35,9 @@ const CreateProductForm = () => {
     collectionId: "", // ✅ 4. State lưu ID collection được chọn
   });
 
+  const [uploadingMain, setUploadingMain] = useState(false);
+  const [uploadingThumbs, setUploadingThumbs] = useState(false);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -62,31 +67,45 @@ const CreateProductForm = () => {
     }
   };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setNewProduct({ ...newProduct, image: reader.result });
-      };
-      reader.readAsDataURL(file);
+  const handleImageChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingMain(true);
+    try {
+      // Upload thẳng lên Cloudinary, chỉ nhận URL về -> không vướng giới hạn body
+      const url = await uploadImageToCloudinary(file, "products");
+      setNewProduct((prev) => ({ ...prev, image: url }));
+      toast.success("Đã tải ảnh chính");
+    } catch (err) {
+      toast.error(err.message || "Tải ảnh thất bại");
+    } finally {
+      setUploadingMain(false);
+      e.target.value = "";
     }
   };
 
-  const handleThumbnailsChange = (e) => {
-    const files = Array.from(e.target.files);
+  const handleThumbnailsChange = async (e) => {
+    const files = Array.from(e.target.files || []);
     if (!files.length) return;
 
-    files.forEach((file) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setNewProduct((prev) => ({
-          ...prev,
-          thumbnails: [...prev.thumbnails, reader.result],
-        }));
-      };
-      reader.readAsDataURL(file);
-    });
+    setUploadingThumbs(true);
+    try {
+      const urls = [];
+      for (const file of files.slice(0, 6)) {
+        urls.push(await uploadImageToCloudinary(file, "thumbnails"));
+      }
+      setNewProduct((prev) => ({
+        ...prev,
+        thumbnails: [...prev.thumbnails, ...urls],
+      }));
+      toast.success(`Đã tải ${urls.length} ảnh phụ`);
+    } catch (err) {
+      toast.error(err.message || "Tải ảnh phụ thất bại");
+    } finally {
+      setUploadingThumbs(false);
+      e.target.value = "";
+    }
   };
 
   return (
@@ -236,23 +255,40 @@ const CreateProductForm = () => {
            </motion.div>
         )}
 
-        <div className="mt-1 flex items-center">
+        <div className="mt-1 flex items-center gap-3">
           <input
             type="file"
             id="image"
             className="sr-only"
             accept="image/*"
             onChange={handleImageChange}
+            disabled={uploadingMain}
           />
           <label
             htmlFor="image"
-            className="cursor-pointer bg-blue-600 text-white py-2 px-3 rounded-md shadow-sm text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className={`cursor-pointer bg-blue-600 text-white py-2 px-3 rounded-md shadow-sm text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+              uploadingMain ? "opacity-50 pointer-events-none" : ""
+            }`}
           >
-            <Upload className="h-5 w-5 inline-block mr-2" />
-            Tải ảnh chính
+            {uploadingMain ? (
+              <>
+                <Loader className="h-5 w-5 inline-block mr-2 animate-spin" />
+                Đang tải ảnh...
+              </>
+            ) : (
+              <>
+                <Upload className="h-5 w-5 inline-block mr-2" />
+                Tải ảnh chính
+              </>
+            )}
           </label>
+
           {newProduct.image && (
-            <span className="ml-3 text-sm text-gray-500">Đã chọn ảnh</span>
+            <img
+              src={newProduct.image}
+              alt="Ảnh chính"
+              className="h-16 w-16 rounded border border-gray-300 object-cover"
+            />
           )}
         </div>
 
@@ -264,13 +300,25 @@ const CreateProductForm = () => {
             accept="image/*"
             multiple
             onChange={handleThumbnailsChange}
+            disabled={uploadingThumbs}
           />
           <label
             htmlFor="thumbnails"
-            className="cursor-pointer bg-blue-600 text-white py-2 px-3 rounded-md shadow-sm text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className={`cursor-pointer bg-blue-600 text-white py-2 px-3 rounded-md shadow-sm text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+              uploadingThumbs ? "opacity-50 pointer-events-none" : ""
+            }`}
           >
-            <Images className="h-5 w-5 inline-block mr-2" />
-            Tải ảnh phụ
+            {uploadingThumbs ? (
+              <>
+                <Loader className="h-5 w-5 inline-block mr-2 animate-spin" />
+                Đang tải ảnh phụ...
+              </>
+            ) : (
+              <>
+                <Images className="h-5 w-5 inline-block mr-2" />
+                Tải ảnh phụ
+              </>
+            )}
           </label>
 
           <div className="flex gap-2 mt-2 flex-wrap">
@@ -290,12 +338,17 @@ const CreateProductForm = () => {
           className="w-full flex justify-center py-2 px-4 rounded-md shadow-sm text-sm font-medium 
           text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 
           focus:ring-blue-500 disabled:opacity-50"
-          disabled={loading}
+          disabled={loading || uploadingMain || uploadingThumbs}
         >
           {loading ? (
             <>
               <Loader className="mr-2 h-5 w-5 animate-spin" aria-hidden="true" />
               Đang xử lý...
+            </>
+          ) : uploadingMain || uploadingThumbs ? (
+            <>
+              <Loader className="mr-2 h-5 w-5 animate-spin" aria-hidden="true" />
+              Đang tải ảnh...
             </>
           ) : (
             <>
