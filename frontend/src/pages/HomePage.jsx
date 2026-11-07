@@ -8,7 +8,7 @@ import { useBannerStore } from "../stores/useBannerStore";
 import FeaturedProducts from "../components/FeaturedProducts";
 import CollectionsSection from "../components/CollectionsSection";
 import axios from "../lib/axios";
-import { optimizeUrl, optimizeVideoUrl } from "../lib/cloudinary";
+import { optimizeUrl, optimizeVideoUrl, optimizeBannerVideo } from "../lib/cloudinary";
 
 const categories = [
   { href: "/dress", name: "Đầm nữ", imageUrl: "/dress.jpg" },
@@ -20,11 +20,46 @@ const categories = [
 const HomePage = () => {
   const { products, isLoading: loadingProducts } = useProductStore();
   const { collections } = useCollectionStore();
-  const { bannerUrl, fetchBanner, isBannerLoaded, setIsBannerLoaded } = useBannerStore();
+  const {
+    bannerUrl,
+    bannerType,
+    posterUrl,
+    fetchBanner,
+    isBannerLoaded,
+    setIsBannerLoaded,
+  } = useBannerStore();
+
+  const [videoReady, setVideoReady] = useState(false);
+  const [allowVideo, setAllowVideo] = useState(true);
 
   useEffect(() => {
     fetchBanner();
   }, [fetchBanner]);
+
+  // Không tải video khi: người dùng giảm chuyển động, bật tiết kiệm dữ liệu, mạng 2G/3G
+  useEffect(() => {
+    try {
+      const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+      const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+      const slowNetwork =
+        conn?.saveData || /(^|-)2g$|(^|-)3g$/i.test(conn?.effectiveType || "");
+
+      if (reduceMotion || slowNetwork) setAllowVideo(false);
+    } catch {
+      /* trình duyệt không hỗ trợ -> giữ mặc định */
+    }
+  }, []);
+
+  useEffect(() => {
+    setVideoReady(false);
+  }, [bannerUrl]);
+
+  const isVideoBanner = bannerType === "video";
+  const heroImage = isVideoBanner
+    ? posterUrl || ""
+    : optimizeUrl(bannerUrl, 1920);
+
+  const heroVideo = isVideoBanner ? optimizeBannerVideo(bannerUrl, 1600) : "";
 
   const specialCollections = collections.filter(c => c.isSpecial === true);
   const regularCollections = collections.filter(c => !c.isSpecial);
@@ -124,33 +159,68 @@ const HomePage = () => {
   return (
     <div className="bg-white text-gray-800 overflow-x-hidden">
       {bannerUrl ? (
-        <section className="relative w-screen h-screen overflow-hidden bg-gray-300">
-          <img
-            src={bannerUrl}
-            alt="Banner"
-            className={`absolute inset-0 w-full h-full object-cover object-center ${isBannerLoaded ? 'block' : 'hidden'}`}
-            onLoad={() => setIsBannerLoaded(true)}
-          />
-          {isBannerLoaded && (
-            <>
-              <div className="absolute inset-0 bg-black/10"></div>
-              <div className="relative z-10 flex flex-col items-center justify-center h-full text-center pt-130">
-                <h5 className="text-white text-xl sm:text-2xl mb-10">Khám phá bộ sưu tập mới</h5>
-                <button
-                  onClick={() => {
-                    const nextSection = document.getElementById("homepage-content");
-                    nextSection?.scrollIntoView({ behavior: "smooth" });
-                  }}
-                  className="bg-white text-black px-8 py-4 rounded-full font-medium hover:bg-gray-300 transition"
-                >
-                  Khám phá ngay
-                </button>
-              </div>
-            </>
+        <section
+          className="relative w-full h-screen overflow-hidden bg-gray-300"
+          style={{ height: "100svh" }}
+        >
+          {/* Ảnh / poster hiện NGAY, không chờ video */}
+          {heroImage && (
+            <img
+              src={heroImage}
+              alt="Lunale"
+              fetchpriority="high"
+              decoding="async"
+              className={`absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-700 ${
+                isVideoBanner && videoReady ? "opacity-0" : "opacity-100"
+              }`}
+              onLoad={() => setIsBannerLoaded(true)}
+            />
           )}
+
+          {/* Video chỉ mount SAU khi ảnh đã vẽ xong -> không chặn LCP */}
+          {isVideoBanner && allowVideo && isBannerLoaded && (
+            <video
+              src={heroVideo}
+              poster={heroImage || undefined}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="none"
+              onCanPlay={() => setVideoReady(true)}
+              onError={() => setVideoReady(false)}
+              className={`absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-700 ${
+                videoReady ? "opacity-100" : "opacity-0"
+              }`}
+            />
+          )}
+
+          <div className="absolute inset-0 bg-black/10 pointer-events-none"></div>
+
+          <div
+            className={`relative z-10 flex flex-col items-center justify-center h-full text-center px-4 transition-opacity duration-700 ${
+              isBannerLoaded ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            <h5 className="text-white text-xl sm:text-2xl mb-10">
+              Khám phá bộ sưu tập mới
+            </h5>
+            <button
+              onClick={() => {
+                const nextSection = document.getElementById("homepage-content");
+                nextSection?.scrollIntoView({ behavior: "smooth" });
+              }}
+              className="bg-white text-black px-8 py-4 rounded-full font-medium hover:bg-gray-300 transition"
+            >
+              Khám phá ngay
+            </button>
+          </div>
         </section>
       ) : (
-        <section className="relative w-screen h-screen overflow-hidden bg-gray-300"></section>
+        <section
+          className="relative w-full h-screen overflow-hidden bg-gray-300"
+          style={{ height: "100svh" }}
+        ></section>
       )}
 
       <div className="w-full bg-black overflow-hidden py-3 border-t border-b border-gray-800">
