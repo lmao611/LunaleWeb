@@ -197,8 +197,11 @@ const HomePage = () => {
 
           <div className="absolute inset-0 bg-black/10 pointer-events-none"></div>
 
+          {/* Gradient mờ ở đáy để chữ trắng dễ đọc trên ảnh sáng */}
+          <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/40 to-transparent pointer-events-none"></div>
+
           <div
-            className={`relative z-10 flex flex-col items-center justify-center h-full text-center px-4 transition-opacity duration-700 ${
+            className={`relative z-10 flex flex-col items-center justify-end h-full text-center px-4 pb-14 sm:pb-20 lg:pb-24 transition-opacity duration-700 ${
               isBannerLoaded ? "opacity-100" : "opacity-0"
             }`}
           >
