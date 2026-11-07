@@ -5,9 +5,18 @@ import { redis } from "../lib/redis.js";
 import mongoose from "mongoose";
 
 const getPublicId = (url) => {
+  if (typeof url !== "string") return null;
   const match = url.match(/\/upload\/(?:v\d+\/)?(.+?)\.[^/.]+$/);
   return match ? match[1] : null;
 };
+
+/**
+ * Ảnh đã nằm sẵn trên Cloudinary (trình duyệt upload trực tiếp).
+ * Chỉ chấp nhận https + host cloudinary để tránh lưu URL lạ vào DB.
+ */
+const isCloudinaryUrl = (value) =>
+  typeof value === "string" &&
+  /^https:\/\/res\.cloudinary\.com\/[^/]+\/(image|video)\/upload\//i.test(value);
 
 async function clearFeaturedCache() {
   try {
@@ -88,16 +97,27 @@ export const createProduct = async (req, res) => {
     let thumbnailUrls = [];
 
     if (image) {
-      const uploadedMain = await cloudinary.uploader.upload(image, { folder: "products" });
-      mainImageUrl = uploadedMain.secure_url;
+      // Ảnh có thể đến từ 2 nguồn:
+      //  - URL Cloudinary (trình duyệt upload trực tiếp)  -> dùng luôn
+      //  - data:image/... (client cũ)                      -> server upload
+      if (isCloudinaryUrl(image)) {
+        mainImageUrl = image;
+      } else {
+        const uploadedMain = await cloudinary.uploader.upload(image, { folder: "products" });
+        mainImageUrl = uploadedMain.secure_url;
+      }
     }
 
-    if (thumbnails && Array.isArray(thumbnails)) {
-      const uploadPromises = thumbnails.map((thumb) =>
-        cloudinary.uploader.upload(thumb, { folder: "products/thumbnails" })
+    if (Array.isArray(thumbnails) && thumbnails.length) {
+      thumbnailUrls = await Promise.all(
+        thumbnails.slice(0, 12).map(async (thumb) => {
+          if (isCloudinaryUrl(thumb)) return thumb;
+          const uploaded = await cloudinary.uploader.upload(thumb, {
+            folder: "products/thumbnails",
+          });
+          return uploaded.secure_url;
+        })
       );
-      const results = await Promise.all(uploadPromises);
-      thumbnailUrls = results.map((r) => r.secure_url);
     }
 
     const productData = {
@@ -132,7 +152,15 @@ export const updateProduct = async (req, res) => {
     if (!product) return res.status(404).json({ message: "Product not found" });
 
     let newImage = product.image;
-    if (image && image.startsWith("data:image")) {
+
+    if (image && isCloudinaryUrl(image) && image !== product.image) {
+      // Ảnh đã upload trực tiếp từ trình duyệt -> dùng luôn, xoá ảnh cũ
+      if (product.image) {
+        const publicId = getPublicId(product.image);
+        if (publicId) await cloudinary.uploader.destroy(publicId, { invalidate: true });
+      }
+      newImage = image;
+    } else if (image && image.startsWith("data:image")) {
       if (product.image) {
         const publicId = getPublicId(product.image);
         if (publicId) await cloudinary.uploader.destroy(publicId, { invalidate: true });
@@ -141,8 +169,11 @@ export const updateProduct = async (req, res) => {
       newImage = uploaded.secure_url;
     }
 
-    let newThumbnails = thumbnails || [];
-    const deletedThumbs = product.thumbnails.filter((t) => !newThumbnails.includes(t));
+    const newThumbnails = Array.isArray(thumbnails)
+      ? thumbnails.filter((t) => typeof t === "string" && t)
+      : [];
+
+    const deletedThumbs = (product.thumbnails || []).filter((t) => !newThumbnails.includes(t));
     for (const url of deletedThumbs) {
       const publicId = getPublicId(url);
       if (publicId) await cloudinary.uploader.destroy(publicId, { invalidate: true });

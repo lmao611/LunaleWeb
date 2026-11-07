@@ -56,14 +56,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Giới hạn kích thước body: ảnh được gửi dạng base64 nên cần rộng,
-// nhưng không nên để 15MB cho MỌI route.
-app.use(express.json({ limit: "15mb" }));
-app.use(express.urlencoded({ limit: "15mb", extended: true }));
-app.use(cookieParser());
-
 /* ------------------------------------------------------------------ */
 /*  CORS — whitelist tuyệt đối                                         */
+/*  ĐẶT TRƯỚC body parser: nếu body parse lỗi (quá lớn / JSON hỏng)     */
+/*  thì response vẫn có header CORS, trình duyệt mới hiện đúng lỗi thật */
 /* ------------------------------------------------------------------ */
 
 const allowedOrigins = [
@@ -110,6 +106,14 @@ app.use((req, res, next) => {
   }
   next();
 });
+
+/* ------------------------------------------------------------------ */
+/*  Body parser — đặt SAU CORS để lỗi parse vẫn có header CORS         */
+/* ------------------------------------------------------------------ */
+
+app.use(express.json({ limit: "15mb" }));
+app.use(express.urlencoded({ limit: "15mb", extended: true }));
+app.use(cookieParser());
 
 /* ------------------------------------------------------------------ */
 /*  Rate limit toàn cục (chống spam/DoS nhẹ)                           */
@@ -174,8 +178,21 @@ app.use((req, res) => {
 });
 
 app.use((err, req, res, next) => {
-  console.error("[ERROR]", err.message);
   if (res.headersSent) return next(err);
+
+  // Body quá lớn (thường do ảnh base64)
+  if (err.type === "entity.too.large") {
+    return res.status(413).json({
+      message: "Dữ liệu gửi lên quá lớn. Vui lòng dùng ảnh nhỏ hơn.",
+    });
+  }
+
+  // JSON không hợp lệ
+  if (err.type === "entity.parse.failed") {
+    return res.status(400).json({ message: "Dữ liệu gửi lên không hợp lệ." });
+  }
+
+  console.error("[ERROR]", err.message);
   res.status(500).json({ message: "Lỗi server" });
 });
 
