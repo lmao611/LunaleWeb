@@ -4,10 +4,11 @@ import { protectRoute, adminRoute } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
-// Chỉ cho phép 2 thư mục cố định, tránh ghi bừa lên Cloudinary
+// Chỉ cho phép các thư mục cố định, tránh ghi bừa lên Cloudinary
 const ALLOWED_FOLDERS = {
   products: "products",
   thumbnails: "products/thumbnails",
+  banners: "banners",
 };
 
 /**
@@ -22,6 +23,7 @@ router.get("/upload-signature", protectRoute, adminRoute, (req, res) => {
     }
 
     const folder = ALLOWED_FOLDERS[req.query.folder] || ALLOWED_FOLDERS.products;
+    const resourceType = req.query.type === "video" ? "video" : "image";
     const timestamp = Math.round(Date.now() / 1000);
 
     const signature = cloudinary.utils.api_sign_request(
@@ -35,6 +37,7 @@ router.get("/upload-signature", protectRoute, adminRoute, (req, res) => {
       apiKey: process.env.CLOUDINARY_API_KEY,
       cloudName: process.env.CLOUDINARY_CLOUD_NAME,
       folder,
+      resourceType,
     });
   } catch (err) {
     console.error("[UPLOAD SIGNATURE]", err.message);
