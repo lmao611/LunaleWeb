@@ -40,9 +40,9 @@ const CategoryPage = () => {
 
   const categoryTitles = {
     dress: "Đầm Nữ",
-    shirt: "Áo Nữ",
+    shirt: "Set-Áo Nữ",
     skirt: "Chân Váy",
-    set: "Đồ Bộ",
+    set: "Áo Dài",
     feedback: "Feedback",
   };
   const displayTitle =
@@ -76,7 +76,7 @@ const CategoryPage = () => {
             Đang tải sản phẩm...
           </h2>
         )}
-        
+
         {!loading && totalCards === 0 && (
           <h2 className="text-center text-gray-500 text-xl mb-10">
             Chưa có sản phẩm
@@ -144,11 +144,10 @@ const CategoryPage = () => {
               <button
                 key={page}
                 onClick={() => goToPage(page)}
-                className={`px-3 py-1 rounded-md ${
-                  currentPage === page
+                className={`px-3 py-1 rounded-md ${currentPage === page
                     ? "bg-black text-white"
                     : "bg-gray-200 text-black hover:bg-gray-600"
-                }`}
+                  }`}
               >
                 {page}
               </button>
