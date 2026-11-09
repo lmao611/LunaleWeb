@@ -9,6 +9,7 @@ import FeaturedProducts from "../components/FeaturedProducts";
 import CollectionsSection from "../components/CollectionsSection";
 import axios from "../lib/axios";
 import { optimizeUrl, optimizeVideoUrl, optimizeBannerVideo } from "../lib/cloudinary";
+import { buildVideoPoster } from "../lib/uploadImage";
 
 const categories = [
   { href: "/dress", name: "Đầm nữ", imageUrl: "/dress.jpg" },
@@ -55,11 +56,13 @@ const HomePage = () => {
   }, [bannerUrl]);
 
   const isVideoBanner = bannerType === "video";
+  // Với video: luôn dựng poster chất lượng cao từ chính URL video,
+  // nhờ vậy banner cũ (poster lưu trong DB là bản 1600) cũng được nâng cấp.
   const heroImage = isVideoBanner
-    ? posterUrl || ""
+    ? buildVideoPoster(bannerUrl) || posterUrl || ""
     : optimizeUrl(bannerUrl, 1920);
 
-  const heroVideo = isVideoBanner ? optimizeBannerVideo(bannerUrl, 1600) : "";
+  const heroVideo = isVideoBanner ? optimizeBannerVideo(bannerUrl) : "";
 
   const specialCollections = collections.filter(c => c.isSpecial === true);
   const regularCollections = collections.filter(c => !c.isSpecial);

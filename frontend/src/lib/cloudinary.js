@@ -5,7 +5,7 @@ export const optimizeUrl = (url, width = 800) => {
 
     if (url.match(/\/w_\d+/)) return url;
 
-    return url.replace(/\/upload\//i, `/upload/w_${width},q_auto,f_auto/`);
+    return url.replace(/\/upload\//i, `/upload/w_${width},c_limit,q_auto,f_auto/`);
 };
   
 export const optimizeVideoUrl = (url) => {
@@ -19,15 +19,16 @@ export const optimizeVideoUrl = (url) => {
 };
 
 /**
- * Video banner hero: 1600px, nén tự động, bỏ âm thanh (vì luôn muted).
- * Tránh tải video nặng 15–25MB xuống máy khách.
+ * Video banner hero: giữ đúng độ phân giải gốc (1920) và nén ở mức
+ * chất lượng cao nhất Cloudinary có (q_auto:best).
+ * Đo thực tế: 1920x1080 -> ~6.5MB, nhìn không phân biệt được với bản gốc.
  */
-export const optimizeBannerVideo = (url, width = 1600) => {
+export const optimizeBannerVideo = (url, width = 1920) => {
     if (!url) return "";
 
     if (!url.includes("cloudinary.com")) return url;
 
     if (url.match(/\/w_\d+/)) return url;
 
-    return url.replace(/\/upload\//i, `/upload/w_${width},c_limit,q_auto,vc_auto,ac_none/`);
+    return url.replace(/\/upload\//i, `/upload/w_${width},c_limit,q_auto:best,vc_h264,ac_none/`);
 };

@@ -85,12 +85,12 @@ export const uploadVideoToCloudinary = async (file, folder = "banners") => {
 /**
  * Tạo URL poster (frame đầu) từ URL video Cloudinary.
  * res.cloudinary.com/<cloud>/video/upload/v123/banners/a.mp4
- *   -> .../video/upload/so_0,w_1600,q_auto,f_auto/v123/banners/a.jpg
+ *   -> .../video/upload/so_0,w_1920,q_auto:best,f_auto/v123/banners/a.jpg
  */
 export const buildVideoPoster = (videoUrl) => {
   if (!videoUrl || !videoUrl.includes("/video/upload/")) return "";
   return videoUrl
-    .replace("/video/upload/", "/video/upload/so_0,w_1600,q_auto,f_auto/")
+    .replace("/video/upload/", "/video/upload/so_0,w_1920,q_auto:best,f_auto/")
     .replace(/\.(mp4|mov|webm|m4v|avi|mkv)$/i, ".jpg");
 };
 
